@@ -1,0 +1,4540 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OmniScribe AI — Rehabilitation Documentation Frameworks</title>
+<style>
+  :root {
+    --bg: #0f172a;
+    --surface: #1e293b;
+    --surface2: #334155;
+    --border: #475569;
+    --text: #e2e8f0;
+    --text-muted: #94a3b8;
+    --accent: #38bdf8;
+    --accent2: #818cf8;
+    --accent3: #34d399;
+    --accent4: #f472b6;
+    --warning: #fbbf24;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.7;
+    padding: 2rem;
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+  h1 {
+    font-size: 2.5rem;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 0.5rem;
+    padding-bottom: 0.5rem;
+  }
+  h2 {
+    font-size: 1.8rem;
+    color: var(--accent);
+    border-bottom: 2px solid var(--accent);
+    padding-bottom: 0.5rem;
+    margin-top: 3rem;
+    margin-bottom: 1.5rem;
+  }
+  h3 {
+    font-size: 1.4rem;
+    color: var(--accent2);
+    margin-top: 2.5rem;
+    margin-bottom: 1rem;
+    padding-left: 0.75rem;
+    border-left: 4px solid var(--accent2);
+  }
+  h4 {
+    font-size: 1.15rem;
+    color: var(--accent3);
+    margin-top: 2rem;
+    margin-bottom: 0.75rem;
+  }
+  h5 {
+    font-size: 1rem;
+    color: var(--accent4);
+    margin-top: 1.5rem;
+    margin-bottom: 0.5rem;
+  }
+  p {
+    margin-bottom: 1rem;
+    color: var(--text-muted);
+  }
+  strong { color: var(--text); }
+  hr {
+    border: none;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--border), transparent);
+    margin: 3rem 0;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1.5rem 0;
+    font-size: 0.9rem;
+    background: var(--surface);
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+  }
+  thead {
+    background: linear-gradient(135deg, var(--surface2), var(--surface));
+  }
+  th {
+    padding: 0.85rem 1rem;
+    text-align: left;
+    font-weight: 600;
+    color: var(--accent);
+    border-bottom: 2px solid var(--accent);
+    white-space: nowrap;
+  }
+  td {
+    padding: 0.7rem 1rem;
+    border-bottom: 1px solid var(--surface2);
+    vertical-align: top;
+  }
+  tr:hover td {
+    background: rgba(56, 189, 248, 0.05);
+  }
+  tr:last-child td {
+    border-bottom: none;
+  }
+  code {
+    background: var(--surface2);
+    color: var(--warning);
+    padding: 0.15rem 0.4rem;
+    border-radius: 4px;
+    font-size: 0.85em;
+    font-family: 'Cascadia Code', 'Fira Code', monospace;
+  }
+  pre {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1.25rem;
+    overflow-x: auto;
+    margin: 1rem 0;
+  }
+  pre code {
+    background: none;
+    padding: 0;
+    color: var(--text);
+  }
+  blockquote {
+    border-left: 4px solid var(--accent2);
+    padding: 0.75rem 1.25rem;
+    margin: 1rem 0;
+    background: rgba(129, 140, 248, 0.08);
+    border-radius: 0 8px 8px 0;
+  }
+  blockquote p { color: var(--text); margin: 0; }
+  ol, ul {
+    margin: 0.75rem 0 0.75rem 2rem;
+    color: var(--text-muted);
+  }
+  li { margin-bottom: 0.4rem; }
+  li strong { color: var(--accent); }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  .toc-toggle {
+    position: fixed;
+    top: 1rem;
+    right: 1rem;
+    z-index: 1000;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--accent);
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+  }
+  .toc-toggle:hover { background: var(--surface2); }
+  @media (max-width: 768px) {
+    body { padding: 1rem; }
+    table { font-size: 0.8rem; }
+    td, th { padding: 0.5rem; }
+    h1 { font-size: 1.8rem; }
+  }
+  @media print {
+    body { background: #fff; color: #000; }
+    table { box-shadow: none; border: 1px solid #ccc; }
+    th { color: #333; border-bottom-color: #333; }
+    td { border-bottom-color: #ddd; }
+    h1, h2, h3, h4 { color: #333; -webkit-text-fill-color: #333; }
+  }
+</style>
+</head>
+<body>
+<h1>OmniScribe AI &mdash; Rehabilitation Documentation Frameworks</h1>
+<h2>Initial Evaluation, Progress Note, &amp; Re-evaluation/Discharge Template Data Sets</h2>
+<hr />
+<h3>What This Document Is</h3>
+<p>This document contains evidence-based documentation items for three primary rehabilitation documentation frameworks used across physical therapy (PT), occupational therapy (OT), and speech-language pathology (SLP):</p>
+<ol>
+<li><strong>Initial Evaluation</strong> &mdash; Comprehensive baseline assessment establishing the plan of care, functional limitations, goals, and medical necessity for rehabilitation services</li>
+<li><strong>Progress Note (Daily Treatment Note)</strong> &mdash; Visit-by-visit documentation of skilled interventions, patient response, objective measurements, and ongoing medical necessity</li>
+<li><strong>Re-evaluation / Discharge Summary</strong> &mdash; Comprehensive comparison of current status to initial evaluation, goal achievement, revised plan of care (if continuing), or discharge recommendations</li>
+</ol>
+<p>Each framework captures rehabilitation encounters but organizes information differently based on encounter type, clinical setting, documentation purpose, and regulatory requirements. An Initial Evaluation establishes the complete clinical and functional picture. A Progress Note documents each treatment session's skilled interventions and patient response. A Re-evaluation/Discharge Summary compares outcomes to baseline and justifies continued care or documents discharge.</p>
+<p><strong>The key design principle:</strong> OmniScribe's AI engine captures everything during the rehabilitation encounter &mdash; the full conversation, examination findings, clinical reasoning, skilled interventions, patient response, and functional outcomes &mdash; then formats the captured data into the appropriate framework and subtype selected by the provider. The provider does not need to think about structure during the encounter. They assess, treat, and make clinical decisions. OmniScribe organizes.</p>
+<p>Each item in every framework uses the same format:</p>
+<p>| Item Label | <code>"format template with __ blanks and | pipes separating discrete data elements"</code> | Source |</p>
+<p>Double underscores (<code>__</code>) mark fields the AI populates from encounter data. Pipes (<code>|</code>) separate discrete data elements within a single item. Sources reference real clinical guidelines, coding standards, validated instruments, and regulatory frameworks.</p>
+<hr />
+<h3>Framework Comparison</h3>
+<table>
+<thead>
+<tr>
+<th>Dimension</th>
+<th>Initial Evaluation</th>
+<th>Progress Note (Daily Treatment)</th>
+<th>Re-evaluation / Discharge Summary</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Primary Purpose</strong></td>
+<td>Establish comprehensive clinical and functional baseline; create plan of care with measurable goals; document medical necessity for rehabilitation services</td>
+<td>Document each treatment session's skilled interventions, patient response, and ongoing justification for continued care</td>
+<td>Compare current functional status to initial baseline; summarize goal achievement; justify continued services or document discharge</td>
+</tr>
+<tr>
+<td><strong>When Used</strong></td>
+<td>First visit with a new patient or new episode of care; required before treatment can begin; must be completed by the evaluating therapist (PT, OT, or SLP)</td>
+<td>Every treatment session; documents the specific skilled services provided, time spent, and clinical reasoning for each intervention</td>
+<td>At certification period renewal (every 90 days for Medicare); when significant change occurs; when insurance requires re-authorization; at discharge from services</td>
+</tr>
+<tr>
+<td><strong>Who Uses It</strong></td>
+<td>PT (Physical Therapist), OT (Occupational Therapist), SLP (Speech-Language Pathologist) &mdash; only licensed therapists perform evaluations; assistants (PTA/OTA) may collect data under supervision</td>
+<td>PT, PTA, OT, OTA, SLP &mdash; assistants document treatment sessions under supervising therapist direction; co-signature requirements per state practice acts</td>
+<td>PT, OT, SLP perform re-evaluations; assistants may contribute data; discharge summaries by assistants require co-signature</td>
+</tr>
+<tr>
+<td><strong>Documentation Depth</strong></td>
+<td>Deepest &mdash; full systems review, comprehensive objective testing, all outcome measures, complete goal set, full plan of care, medical necessity justification</td>
+<td>Focused on session-specific data &mdash; interventions performed, CPT codes, time, patient response, objective re-measurements, clinical reasoning, goal progress</td>
+<td>Comparative &mdash; initial-to-current data comparison, goal achievement summary, outcome measure comparison, prognosis update, revised or discharge plan</td>
+</tr>
+<tr>
+<td><strong>Section Structure</strong></td>
+<td>Demographics, Referral, History, Systems Review, Objective Tests & Measures, Evaluation/Clinical Impression, Diagnosis, Goals (STG/LTG), Plan of Care, Medical Necessity, Certification</td>
+<td>Subjective (patient report), Objective (skilled interventions with CPT codes + re-assessments), Assessment (clinical reasoning + goal status), Plan (next session + HEP + communication)</td>
+<td>Re-eval trigger, Subjective status, Comprehensive objective re-assessment, Outcome measure comparison, Goal achievement, Clinical impression, Revised POC or Discharge plan</td>
+</tr>
+<tr>
+<td><strong>Subtypes (5 each)</strong></td>
+<td>PT Initial Evaluation, PTA (→PT alias), OT Initial Evaluation, OTA (→OT alias), SLP Initial Evaluation</td>
+<td>PT Progress Note, PTA (→PT alias), OT Progress Note, OTA (→OT alias), SLP Progress Note</td>
+<td>PT Re-eval/Discharge, PTA (→PT alias), OT Re-eval/Discharge, OTA (→OT alias), SLP Re-eval/Discharge</td>
+</tr>
+<tr>
+<td><strong>Typical Item Count</strong></td>
+<td>36-44 items per subtype</td>
+<td>30-34 items per subtype</td>
+<td>28-30 items per subtype</td>
+</tr>
+<tr>
+<td><strong>Regulatory Basis</strong></td>
+<td>CMS 42 CFR 410.60-410.62, Medicare Benefit Policy Manual Ch.15, APTA/AOTA/ASHA Practice Standards, CMS Section GG (IMPACT Act), Jimmo v. Sebelius</td>
+<td>CMS 8-Minute Rule, CPT Coding Guidelines, Medicare Ch.15, State Practice Acts (supervision), CMS Section GG, APTA/AOTA/ASHA Documentation Standards</td>
+<td>CMS Certification Period Requirements, Medicare Ch.15, APTA/AOTA/ASHA Re-evaluation Standards, CMS Discharge Planning, Jimmo v. Sebelius</td>
+</tr>
+<tr>
+<td><strong>Billing Codes</strong></td>
+<td>97161-97163 (PT eval), 97165-97167 (OT eval), 92521-92524 (SLP eval), 97164 (PT re-eval), 97168 (OT re-eval)</td>
+<td>97110-97542 (therapeutic procedures), 97010-97039 (modalities), 92507-92526 (SLP treatment), G-codes as applicable</td>
+<td>97164 (PT re-eval), 97168 (OT re-eval), 92521-92524 (SLP re-eval), plus any treatment codes provided during session</td>
+</tr>
+<tr>
+<td><strong>Medical Necessity</strong></td>
+<td>Central &mdash; establishes why skilled rehabilitation services are required; must justify frequency, duration, and complexity</td>
+<td>Ongoing &mdash; each session must demonstrate skilled services, patient response, and continued need; 8-Minute Rule compliance</td>
+<td>Summative &mdash; demonstrates progress justifying continuation or criteria met for discharge; compares outcomes to baseline</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3>How the Three Frameworks Relate</h3>
+<p>The three frameworks are not competing alternatives &mdash; they serve different documentation purposes within the same patient's rehabilitation episode:</p>
+<ul>
+<li>A patient begins physical therapy with an <strong>Initial Evaluation</strong> (PT subtype) that establishes the plan of care. Each subsequent visit generates a <strong>Progress Note</strong> documenting skilled interventions and patient response. At the certification period renewal (every 90 days for Medicare), a <strong>Re-evaluation</strong> compares current status to baseline. When goals are met, a <strong>Discharge Summary</strong> documents outcomes.</li>
+<li>A patient receiving both PT and OT services gets separate <strong>Initial Evaluations</strong> from each discipline (PT and OT subtypes). Each discipline generates its own <strong>Progress Notes</strong> and <strong>Re-evaluations</strong>. OmniScribe can capture a concurrent PT/OT session and output both notes simultaneously.</li>
+<li>An inpatient receives PT, OT, and SLP services. Each discipline performs its own <strong>Initial Evaluation</strong>, generates daily <strong>Progress Notes</strong>, and completes discipline-specific <strong>Discharge Summaries</strong>. CMS Section GG data is shared across disciplines and settings.</li>
+</ul>
+<p>OmniScribe's engine captures the encounter once and can output documentation in any of the three frameworks simultaneously when multiple documentation types are generated from a single encounter.</p>
+<hr />
+<h3>Applicable Provider Types</h3>
+<p>These rehabilitation documentation frameworks are designed for the following provider types:</p>
+<table>
+<thead>
+<tr>
+<th>Provider Type</th>
+<th>Abbreviation</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Physical Therapist</td>
+<td>PT</td>
+<td>Full framework access; all subtypes; performs evaluations and re-evaluations independently</td>
+</tr>
+<tr>
+<td>Physical Therapist Assistant</td>
+<td>PTA</td>
+<td>Aliases to PT data sets; documents treatment under PT supervision; cannot perform evaluations or re-evaluations independently; co-signature required per state practice acts</td>
+</tr>
+<tr>
+<td>Occupational Therapist</td>
+<td>OT</td>
+<td>Full framework access; all subtypes; performs evaluations and re-evaluations independently</td>
+</tr>
+<tr>
+<td>Occupational Therapy Assistant</td>
+<td>OTA</td>
+<td>Aliases to OT data sets; documents treatment under OT supervision; cannot perform evaluations or re-evaluations independently; co-signature required per state practice acts</td>
+</tr>
+<tr>
+<td>Speech-Language Pathologist</td>
+<td>SLP</td>
+<td>Full framework access; all subtypes; no assistant equivalent in most settings; SLP assistants (SLPAs) operate under direct supervision with limited documentation role</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Note on aliasing:</strong> PTA providers use the same documentation data sets as PT providers. OTA providers use the same documentation data sets as OT providers. The clinical documentation requirements, CMS billing rules, and medical necessity standards are identical &mdash; the supervising therapist's plan of care drives the template. The AI engine does not reduce or modify documentation requirements based on provider type; the framework and subtype selection drives the template, not the credential. Supervision and co-signature requirements are governed by individual state practice acts and CMS conditions of participation.</p>
+<hr />
+<h3>Regulatory Sources Governing These Frameworks</h3>
+<p>The documentation items across all three rehabilitation frameworks are grounded in the following regulatory and standards bodies:</p>
+<table>
+<thead>
+<tr>
+<th>Source</th>
+<th>Scope</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>CMS 42 CFR 410.60 (Physical Therapy)</strong></td>
+<td>Coverage and payment rules for outpatient PT services; physician certification requirements; plan of care standards</td>
+</tr>
+<tr>
+<td><strong>CMS 42 CFR 410.62 (Speech-Language Pathology)</strong></td>
+<td>Coverage and payment rules for outpatient SLP services; physician certification; plan of care standards</td>
+</tr>
+<tr>
+<td><strong>CMS 42 CFR 410.59 (Occupational Therapy)</strong></td>
+<td>Coverage and payment rules for outpatient OT services; physician certification; plan of care standards</td>
+</tr>
+<tr>
+<td><strong>Medicare Benefit Policy Manual Chapter 15 (§220-230)</strong></td>
+<td>Detailed coverage criteria for PT, OT, and SLP services; medical necessity standards; documentation requirements; certification periods</td>
+</tr>
+<tr>
+<td><strong>CMS 8-Minute Rule</strong></td>
+<td>Time-based billing for rehabilitation services; unit calculation for timed CPT codes; minimum time thresholds per billable unit</td>
+</tr>
+<tr>
+<td><strong>CMS Section GG (IMPACT Act 2014)</strong></td>
+<td>Standardized functional assessment items for self-care and mobility; required across post-acute care settings; 42 CFR 485.645</td>
+</tr>
+<tr>
+<td><strong>Jimmo v. Sebelius (2013)</strong></td>
+<td>Settlement clarifying that Medicare coverage is based on need for skilled services, not expectation of improvement; maintenance therapy coverage</td>
+</tr>
+<tr>
+<td><strong>APTA (American Physical Therapy Association)</strong></td>
+<td>Guide to Physical Therapist Practice 3.0; clinical practice guidelines; documentation standards; Movement System diagnosis; outcome measures</td>
+</tr>
+<tr>
+<td><strong>AOTA (American Occupational Therapy Association)</strong></td>
+<td>Occupational Therapy Practice Framework 4th Edition (OTPF-4); clinical practice guidelines; documentation standards; occupational profile</td>
+</tr>
+<tr>
+<td><strong>ASHA (American Speech-Language-Hearing Association)</strong></td>
+<td>Practice Portal; clinical practice guidelines; NOMS (National Outcomes Measurement System); documentation standards; scope of practice</td>
+</tr>
+<tr>
+<td><strong>FIM (Functional Independence Measure)</strong></td>
+<td>Standardized functional assessment (UDS, 1997); 7-point scale for 18 items across motor and cognitive domains; used in inpatient rehabilitation</td>
+</tr>
+<tr>
+<td><strong>CARF (Commission on Accreditation of Rehabilitation Facilities)</strong></td>
+<td>Accreditation standards for rehabilitation programs; outcome measurement requirements; person-centered planning; quality improvement</td>
+</tr>
+<tr>
+<td><strong>ICF (International Classification of Functioning, Disability and Health)</strong></td>
+<td>WHO framework for describing health and health-related states; body functions/structures, activities, participation, environmental/personal factors</td>
+</tr>
+<tr>
+<td><strong>NPUAP/EPUAP (National/European Pressure Ulcer Advisory Panel)</strong></td>
+<td>Pressure injury staging, prevention, and treatment guidelines; wound assessment standards</td>
+</tr>
+<tr>
+<td><strong>CDC STEADI (Stopping Elderly Accidents, Deaths & Injuries)</strong></td>
+<td>Fall risk screening, assessment, and intervention algorithm; TUG, 30-second chair stand, 4-stage balance test</td>
+</tr>
+<tr>
+<td><strong>IDDSI (International Dysphagia Diet Standardisation Initiative)</strong></td>
+<td>Standardized framework for food textures and drink thickness levels (0-7); replaces NDD; global standard for dysphagia diet</td>
+</tr>
+<tr>
+<td><strong>ASHT (American Society of Hand Therapists)</strong></td>
+<td>Clinical assessment and treatment standards for hand and upper extremity rehabilitation; grip/pinch testing protocols; splinting guidelines</td>
+</tr>
+<tr>
+<td><strong>ISL (International Society of Lymphology)</strong></td>
+<td>Consensus document for lymphedema diagnosis, staging, and treatment; CDT protocols; compression therapy standards</td>
+</tr>
+<tr>
+<td><strong>NLN (National Lymphedema Network)</strong></td>
+<td>Position statements on lymphedema risk reduction, treatment, and compression; certification standards for lymphedema therapists</td>
+</tr>
+<tr>
+<td><strong>ICS (International Continence Society)</strong></td>
+<td>Standardized terminology for pelvic floor dysfunction; assessment and outcome measures for urinary and fecal incontinence</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3>How Subtypes Work</h3>
+<p>Each of the three frameworks contains <strong>5 subtypes</strong> representing different provider types within that framework's scope.</p>
+<p><strong>The selection flow:</strong></p>
+<ol>
+<li><strong>Framework Selection</strong> &mdash; The provider (or OmniScribe's AI based on encounter context) selects one of the three frameworks: Initial Evaluation, Progress Note, or Re-evaluation/Discharge.</li>
+<li><strong>Subtype Selection</strong> &mdash; Within the selected framework, the provider selects one of 5 subtypes based on their discipline and credential: PT, PTA (→PT alias), OT, OTA (→OT alias), or SLP.</li>
+<li><strong>Default Template Loads</strong> &mdash; The selected framework + subtype combination loads a default set of documentation items with format templates and source citations.</li>
+<li><strong>Provider Customization</strong> &mdash; Providers can add or remove items from the default template to match the specific encounter's needs. Not every item is required for every encounter &mdash; the template represents the comprehensive set from which the provider selects.</li>
+<li><strong>Specialty Add-Ons</strong> &mdash; Specialty-specific item sets layer additional documentation items on top of the base template. A hand therapist using the OT Initial Evaluation would see general OT items plus Hand Therapy add-on items. A PT treating vestibular dysfunction would see general PT items plus Vestibular Rehab add-on items.</li>
+<li><strong>Cross-Setting Compatibility</strong> &mdash; CMS Section GG items are included in all frameworks and subtypes to ensure consistency across post-acute care settings (SNF, IRF, HHA, LTCH, outpatient).</li>
+</ol>
+<p><strong>Subtype inventory:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Framework</th>
+<th>Subtype 1</th>
+<th>Subtype 2</th>
+<th>Subtype 3</th>
+<th>Subtype 4</th>
+<th>Subtype 5</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Initial Evaluation</strong></td>
+<td>PT Initial Evaluation (97161-97163)</td>
+<td>PTA (→PT alias)</td>
+<td>OT Initial Evaluation (97165-97167)</td>
+<td>OTA (→OT alias)</td>
+<td>SLP Initial Evaluation (92521-92524)</td>
+</tr>
+<tr>
+<td><strong>Progress Note</strong></td>
+<td>PT Progress Note (97110-97542)</td>
+<td>PTA (→PT alias)</td>
+<td>OT Progress Note (97110-97542)</td>
+<td>OTA (→OT alias)</td>
+<td>SLP Progress Note (92507-92526)</td>
+</tr>
+<tr>
+<td><strong>Re-eval / Discharge</strong></td>
+<td>PT Re-eval/Discharge (97164)</td>
+<td>PTA (→PT alias)</td>
+<td>OT Re-eval/Discharge (97168)</td>
+<td>OTA (→OT alias)</td>
+<td>SLP Re-eval/Discharge (92521-92524)</td>
+</tr>
+</tbody>
+</table>
+<p>Each subtype's item count is calibrated to the documentation burden and complexity of that discipline's scope of practice. A PT Initial Evaluation carries 42-44 items because physical therapy assessments encompass mobility, strength, balance, gait, and functional movement. An SLP Initial Evaluation carries 34-36 items focused on communication, cognition, and swallowing. The AI engine captures all available data and populates whichever items are active in the selected template.</p>
+<hr />
+<h3>Document Structure</h3>
+<table>
+<thead>
+<tr>
+<th>Part</th>
+<th>Content</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Part 1</strong></td>
+<td>Initial Evaluation Framework &mdash; 5 subtypes (PT, PTA→PT, OT, OTA→OT, SLP)</td>
+</tr>
+<tr>
+<td><strong>Part 2</strong></td>
+<td>Progress Note Framework (Daily Treatment) &mdash; 5 subtypes</td>
+</tr>
+<tr>
+<td><strong>Part 3</strong></td>
+<td>Re-evaluation / Discharge Summary Framework &mdash; 5 subtypes</td>
+</tr>
+<tr>
+<td><strong>Part 4</strong></td>
+<td>Specialty Add-Ons (7 specialties: Hand Therapy, Vestibular Rehab, Pelvic Floor, Aquatic Therapy, Wound Care, Lymphedema, Sports Rehab)</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>PART 1: INITIAL EVALUATION FRAMEWORK</h2>
+<p>The Initial Evaluation is the foundation of every rehabilitation episode. It establishes the patient's baseline functional status, identifies impairments and activity limitations, sets measurable goals, creates the plan of care, and documents the medical necessity that justifies skilled rehabilitation services. CMS requires that initial evaluations be performed by the licensed therapist (PT, OT, or SLP) &mdash; assistants (PTA, OTA) may collect data elements under the therapist's direction but cannot independently perform the evaluation, establish the plan of care, or determine medical necessity.</p>
+<p>All format templates use <code>__</code> (double underscore) to indicate AI-populated fields. Pipes (<code>|</code>) within templates separate discrete data elements. Sources reference real clinical guidelines, coding standards, validated instruments, and regulatory frameworks.</p>
+<hr />
+<h3>1. PT Initial Evaluation (CPT 97161-97163)</h3>
+<p><strong>Purpose:</strong> Comprehensive physical therapy evaluation establishing baseline impairments, activity limitations, participation restrictions, and functional status. Creates the physical therapy plan of care with measurable short-term and long-term goals. Documents medical necessity for skilled PT services.</p>
+<p><strong>Applicable Codes:</strong> 97161 (low complexity), 97162 (moderate complexity), 97163 (high complexity) &mdash; complexity determined by clinical presentation, number of body systems examined, and clinical decision-making</p>
+<hr />
+<h4>PT Initial Evaluation &mdash; Items</h4>
+
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Format Template</th>
+<th>Source</th>
+</tr>
+</thead>
+
+<tbody>
+
+<tr>
+<td>Patient Demographics</td>
+<td>
+<code>"Name: __ | DOB: __ | MRN: __ | Referring Provider: __ | Primary Dx ICD-10: __ | Date of Onset: __"</code>
+</td>
+<td>CMS 42 CFR 410.60; Medicare Ch.15 §220</td>
+</tr>
+
+<tr>
+<td>Referral / Prescription</td>
+<td>
+<code>"Referring physician: __ | Rx date: __ | Dx on referral: __ | Frequency/duration ordered: __ | Precautions: __"</code>
+</td>
+<td>CMS 42 CFR 410.60(a); Medicare Benefit Policy Manual Ch.15 §220.1</td>
+</tr>
+
+<tr>
+<td>Medical History</td>
+<td>
+<code>"PMH: __ | PSH: __ | Comorbidities: __ | Medications: __ | Allergies: __"</code>
+</td>
+<td>APTA Guide to PT Practice 3.0; CMS 1997 Documentation Guidelines</td>
+</tr>
+
+<tr>
+<td>Prior Level of Function (PLOF)</td>
+<td>
+<code>"Mobility: __ | Self-care: __ | Community participation: __ | Work/school status: __ | Assistive devices used: __"</code>
+</td>
+<td>APTA Guide 3.0; Medicare Ch.15 §220.2; CMS CARE Tool</td>
+</tr>
+
+<tr>
+<td>Chief Complaint / Patient-Reported Concern</td>
+<td>
+<code>"Patient reports: __ | Primary functional limitation: __ | Duration of symptoms: __ | Aggravating factors: __ | Easing factors: __"</code>
+</td>
+<td>APTA Guide 3.0; ICF Model (WHO)</td>
+</tr>
+
+<tr>
+<td>Patient Goals — Self-Reported</td>
+<td>
+<code>"Patient goal 1: __ | Patient goal 2: __ | Patient goal 3: __ | Functional priority: __"</code>
+</td>
+<td>APTA Guide 3.0; Patient-Centered Outcomes Research (PCORI)</td>
+</tr>
+
+<tr>
+<td>Pain Assessment — Location & Intensity</td>
+<td>
+<code>"Pain location: __ | Current NRS: __/10 | Worst NRS: __/10 | Best NRS: __/10 | Character: __ | Frequency: __"</code>
+</td>
+<td>APTA Pain Management CPG; NRS (Jensen et al. 2003)</td>
+</tr>
+
+<tr>
+<td>Pain Assessment — Behavior & Impact</td>
+<td>
+<code>"Pain with activity: __ | Pain at rest: __ | Sleep disruption: Y/N | Pain diagram completed: Y/N | Pain catastrophizing screen: __"</code>
+</td>
+<td>Fear-Avoidance Beliefs Questionnaire (Waddell 1993); Tampa Scale</td>
+</tr>
+
+<tr>
+<td>Systems Review — Cardiovascular/Pulmonary</td>
+<td>
+<code>"Resting HR: __ bpm | Resting BP: __/__ mmHg | Resting RR: __ | SpO2: __% | Edema: __ | Auscultation: __"</code>
+</td>
+<td>APTA Guide 3.0 Systems Review; AHA/ACSM Guidelines</td>
+</tr>
+
+<tr>
+<td>Systems Review — Musculoskeletal</td>
+<td>
+<code>"Gross ROM: __ | Gross strength: __ | Posture: __ | Gait observation: __ | Height: __ | Weight: __"</code>
+</td>
+<td>APTA Guide 3.0 Systems Review</td>
+</tr>
+
+<tr>
+<td>Systems Review — Neuromuscular</td>
+<td>
+<code>"Gross coordination: __ | Balance observation: __ | Locomotion pattern: __ | Transfers: __ | Motor control: __"</code>
+</td>
+<td>APTA Guide 3.0 Systems Review</td>
+</tr>
+
+<tr>
+<td>Systems Review — Integumentary</td>
+<td>
+<code>"Skin integrity: __ | Scar tissue: __ | Wound present: Y/N | Edema location: __ | Color changes: __"</code>
+</td>
+<td>APTA Guide 3.0 Systems Review; NPUAP Staging</td>
+</tr>
+
+<tr>
+<td>Systems Review — Communication & Cognition</td>
+<td>
+<code>"Communication ability: __ | Cognition screen: __ | Learning barriers: __ | Preferred language: __ | Interpreter needed: Y/N"</code>
+</td>
+<td>APTA Guide 3.0; ICF Model</td>
+</tr>
+
+<tr>
+<td>Active Range of Motion (AROM)</td>
+<td>
+<code>"Joint: __ | Motion: __ | Measured: __° | Normal: __° | Limitation: __° | Pain with motion: Y/N | Goniometer used: Y/N"</code>
+</td>
+<td>APTA; Norkin & White Clinical Measurement of Joint Motion 6th ed.</td>
+</tr>
+
+<tr>
+<td>Passive Range of Motion (PROM)</td>
+<td>
+<code>"Joint: __ | Motion: __ | Measured: __° | End-feel: __ | Pain at end-range: Y/N | Capsular pattern: Y/N"</code>
+</td>
+<td>Norkin & White 6th ed.; Cyriax End-Feel Classification</td>
+</tr>
+
+<tr>
+<td>Manual Muscle Testing (MMT)</td>
+<td>
+<code>"Muscle/group: __ | Side: L/R | Grade: __/5 | Pain with test: Y/N | Substitution noted: Y/N"</code>
+</td>
+<td>Daniels & Worthingham MMT 10th ed.; Kendall et al.</td>
+</tr>
+
+<tr>
+<td>Grip & Pinch Strength</td>
+<td>
+<code>"Grip R: __ kg | Grip L: __ kg | Lateral pinch R: __ kg | Lateral pinch L: __ kg | Dynamometer: Jamar/Baseline | Position: __"</code>
+</td>
+<td>ASHT; Mathiowetz et al. 1985; Jamar Dynamometer Norms</td>
+</tr>
+
+<tr>
+<td>Functional Strength Assessment</td>
+<td>
+<code>"Sit-to-stand reps/30 sec: __ | Single-leg stance R: __ sec | Single-leg stance L: __ sec | Step test: __ | Squat depth: __"</code>
+</td>
+<td>30-Second Chair Stand Test (Jones 1999); CDC STEADI</td>
+</tr>
+
+<tr>
+<td>Balance Assessment — Static</td>
+<td>
+<code>"Romberg eyes open: __ sec | Romberg eyes closed: __ sec | Single-leg stance R: __ sec | Single-leg stance L: __ sec | Tandem stance: __ sec"</code>
+</td>
+<td>CDC STEADI; Bohannon 2006</td>
+</tr>
+
+<tr>
+<td>Balance Assessment — Dynamic</td>
+<td>
+<code>"Berg Balance Scale: __/56 | Mini-BESTest: __/28 | Dynamic Gait Index: __/24 | Functional Reach: __ inches | Reactive balance: __"</code>
+</td>
+<td>BBS (Berg 1992); Mini-BESTest (Franchignoni 2010); DGI (Shumway-Cook 1997)</td>
+</tr>
+
+<tr>
+<td>Gait Analysis — Observational</td>
+<td>
+<code>"Gait pattern: __ | Assistive device: __ | Weight-bearing status: __ | Cadence: __ steps/min | Step length symmetry: __ | Arm swing: __ | Deviations: __"</code>
+</td>
+<td>APTA Gait Analysis Guidelines; Rancho Los Amigos Observational Gait Analysis</td>
+</tr>
+
+<tr>
+<td>Gait Speed / Timed Walk</td>
+<td>
+<code>"10-Meter Walk Test preferred: __ m/s | 10MWT comfortable: __ m/s | 6-Minute Walk Test: __ meters | Assistive device used: __"</code>
+</td>
+<td>10MWT (Graham 2008); 6MWT (ATS 2002); MCID values per diagnosis</td>
+</tr>
+
+<tr>
+<td>Timed Up and Go (TUG)</td>
+<td>
+<code>"TUG time: __ seconds | Assistive device: __ | Fall risk (>12s): Y/N | Dual-task TUG: __ seconds | Cognitive task: __"</code>
+</td>
+<td>TUG (Podsiadlo & Richardson 1991); CDC STEADI</td>
+</tr>
+
+<tr>
+<td>Functional Mobility Assessment</td>
+<td>
+<code>"Bed mobility: __ (I/S/Min/Mod/Max/Dep) | Transfers: __ | Sit-to-stand: __ | Floor transfers: __ | Car transfers: __"</code>
+</td>
+<td>FIM (UDS 1997); AM-PAC; CMS Section GG</td>
+</tr>
+
+<tr>
+<td>CMS Section GG — Self-Care</td>
+<td>
+<code>"Eating: __/06 | Oral hygiene: __/06 | Toileting hygiene: __/06 | Shower/bathe: __/06 | Upper body dressing: __/06 | Lower body dressing: __/06 | Putting on/taking off footwear: __/06"</code>
+</td>
+<td>CMS Section GG (IMPACT Act 2014); 42 CFR 485.645</td>
+</tr>
+
+<tr>
+<td>CMS Section GG — Mobility</td>
+<td>
+<code>"Roll L/R: __/06 | Sit to lying: __/06 | Lying to sit: __/06 | Sit to stand: __/06 | Chair/bed-to-chair transfer: __/06 | Toilet transfer: __/06 | Car transfer: __/06"</code>
+</td>
+<td>CMS Section GG (IMPACT Act 2014); 42 CFR 485.645</td>
+</tr>
+
+<tr>
+<td>CMS Section GG — Mobility (Walking)</td>
+<td>
+<code>"Walk 10 feet: __/06 | Walk 50 feet w/2 turns: __/06 | Walk 150 feet: __/06 | Walk 10 feet uneven: __/06 | 1 step curb: __/06 | 4 steps: __/06 | 12 steps: __/06 | Picking up object: __/06 | Wheel 50 feet: __/06 | Wheel 150 feet: __/06"</code>
+</td>
+<td>CMS Section GG (IMPACT Act 2014); 42 CFR 485.645</td>
+</tr>
+
+<tr>
+<td>Special Tests — Orthopedic</td>
+<td>
+<code>"Test performed: __ | Result: positive/negative | Sensitivity: __ | Specificity: __ | Cluster with: __ | Clinical relevance: __"</code>
+</td>
+<td>APTA Clinical Practice Guidelines; Cleland Orthopedic Clinical Examination 3rd ed.</td>
+</tr>
+
+<tr>
+<td>Special Tests — Neurological</td>
+<td>
+<code>"Dermatome screen: __ | Myotome screen: __ | DTRs: __ | Babinski: __ | Clonus: __ | Modified Ashworth Scale: __/4 | Sensation: __"</code>
+</td>
+<td>APTA Neuro Section; Modified Ashworth Scale (Bohannon & Smith 1987)</td>
+</tr>
+
+<tr>
+<td>Posture Assessment</td>
+<td>
+<code>"Head position: __ | Cervical lordosis: __ | Thoracic kyphosis: __ | Lumbar lordosis: __ | Pelvic tilt: __ | Shoulder symmetry: __ | Knee alignment: __ | Foot position: __"</code>
+</td>
+<td>Kendall et al. Muscles: Testing and Function 5th ed.; APTA</td>
+</tr>
+
+<tr>
+<td>Palpation Findings</td>
+<td>
+<code>"Tissue: __ | Location: __ | Tenderness: __/10 | Tone: normal/increased/decreased | Trigger points: __ | Temperature: __ | Crepitus: Y/N"</code>
+</td>
+<td>APTA Guide 3.0; Travell & Simons Myofascial Pain</td>
+</tr>
+
+<tr>
+<td>Functional Outcome Measure — Condition-Specific</td>
+<td>
+<code>"Tool: __ | Score: __ | Interpretation: __ | MCID: __ | MDC: __ | Percentile: __"</code>
+</td>
+<td>APTA; specific tool validation studies</td>
+</tr>
+
+<tr>
+<td>Functional Outcome Measure — General</td>
+<td>
+<code>"DASH: __/100 | LEFS: __/80 | NDI: __% | ODI: __% | FOTO: __ | PROMIS: __ | Other: __"</code>
+</td>
+<td>DASH (Hudak 1996); LEFS (Binkley 1999); NDI (Vernon 1991); ODI (Fairbank 1980)</td>
+</tr>
+
+<tr>
+<td>Fall Risk Screening</td>
+<td>
+<code>"Falls in past 12 months: __ | Fear of falling: Y/N | Fall Risk Index: __ | CDC STEADI screen: __ | Medications increasing risk: __"</code>
+</td>
+<td>CDC STEADI; AGS/BGS Fall Prevention Guidelines; CMS Fall Risk QPP</td>
+</tr>
+
+<tr>
+<td>Evaluation / Clinical Impression</td>
+<td>
+<code>"Primary impairments: __ | Activity limitations: __ | Participation restrictions: __ | Rehab prognosis: excellent/good/fair/poor | Rehab potential: __"</code>
+</td>
+<td>APTA Guide 3.0; ICF Framework (WHO); Medicare Ch.15 §220.2</td>
+</tr>
+
+<tr>
+<td>Physical Therapy Diagnosis</td>
+<td>
+<code>"PT diagnosis: __ | ICD-10: __ | Movement system diagnosis: __ | Tissue irritability: low/moderate/high | Stage of healing: acute/subacute/chronic"</code>
+</td>
+<td>APTA Movement System; Sahrmann Diagnosis by Physical Therapists</td>
+</tr>
+
+<tr>
+<td>Plan of Care — Goals (STG)</td>
+<td>
+<code>"STG 1: __ in __ weeks | STG 2: __ in __ weeks | STG 3: __ in __ weeks | Measurable criterion: __ | Functional relevance: __"</code>
+</td>
+<td>APTA Guide 3.0; CMS Medicare Ch.15 §220.2; SMART Goals</td>
+</tr>
+
+<tr>
+<td>Plan of Care — Goals (LTG)</td>
+<td>
+<code>"LTG 1: __ by discharge | LTG 2: __ by discharge | LTG 3: __ by discharge | Discharge functional level: __ | Target timeframe: __ weeks"</code>
+</td>
+<td>APTA Guide 3.0; CMS Medicare Ch.15 §220.2; SMART Goals</td>
+</tr>
+
+<tr>
+<td>Plan of Care — Interventions</td>
+<td>
+<code>"Therapeutic exercise: __ | Manual therapy: __ | Neuromuscular re-education: __ | Modalities: __ | Patient education: __ | Gait training: __ | Functional training: __"</code>
+</td>
+<td>APTA CPGs; CMS Medicare Ch.15 §220.3</td>
+</tr>
+
+<tr>
+<td>Plan of Care — Frequency/Duration</td>
+<td>
+<code>"Frequency: __x/week | Duration: __ weeks | Total visits: __ | Session length: __ minutes | Justification: __"</code>
+</td>
+<td>CMS Medicare Ch.15 §220.2; 42 CFR 410.60</td>
+</tr>
+
+<tr>
+<td>Medical Necessity Justification</td>
+<td>
+<code>"Skilled services required because: __ | Complexity requiring PT: __ | Prior functional level: __ | Expected functional gain: __ | Alternative considered: __"</code>
+</td>
+<td>CMS Medicare Ch.15 §220.2; Jimmo v. Sebelius (2013); 42 CFR 409.44</td>
+</tr>
+
+<tr>
+<td>Physician Certification / Plan of Care</td>
+<td>
+<code>"Certifying physician: __ | Certification date: __ | Diagnosis: __ | Frequency/duration: __ | Physician signature: pending/obtained"</code>
+</td>
+<td>CMS 42 CFR 410.60(a)(3); Medicare Ch.15 §220.1.3</td>
+</tr>
+
+<tr>
+<td>Patient/Caregiver Education</td>
+<td>
+<code>"Education provided: __ | Topics: __ | HEP given: Y/N | Barriers to learning: __ | Understanding demonstrated: Y/N | Caregiver trained: Y/N"</code>
+</td>
+<td>APTA Guide 3.0; Health Literacy Guidelines</td>
+</tr>
+
+<tr>
+<td>Consent & Patient Rights</td>
+<td>
+<code>"Informed consent obtained: Y/N | Plan of care reviewed with patient: Y/N | Patient agrees with goals: Y/N | Patient rights provided: Y/N"</code>
+</td>
+<td>CMS Conditions of Participation; State Practice Acts</td>
+</tr>
+
+</tbody>
+</table>
+
+<h3>2. PTA Initial Evaluation (→ PT Alias)</h3>
+<p><strong>PTA (Physical Therapist Assistant) uses the PT Initial Evaluation data set. PTAs do not perform initial evaluations independently — initial evaluations must be performed by the supervising PT per APTA Standards and state practice acts. PTAs may collect data elements under PT direction.</strong></p>
+<p>When PTA is selected as the provider type, the system loads the PT Initial Evaluation data set. The PTA's role is to collect data under PT direction &mdash; the PT reviews, interprets, and signs the evaluation.</p>
+<hr />
+<h3>3. OT Initial Evaluation (CPT 97165-97167)</h3>
+<p><strong>Purpose:</strong> Comprehensive occupational therapy evaluation establishing baseline occupational performance, client factors, performance skills, and performance patterns. Creates the OT plan of care with measurable goals focused on occupation-based outcomes. Documents medical necessity for skilled OT services.</p>
+<p><strong>Applicable Codes:</strong> 97165 (low complexity), 97166 (moderate complexity), 97167 (high complexity) &mdash; complexity determined by occupational profile, clinical decision-making, and number of performance areas assessed</p>
+<hr />
+<h4>OT Initial Evaluation &mdash; Items</h4>
+
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Format Template</th>
+<th>Source</th>
+</tr>
+</thead>
+
+<tbody>
+
+<tr>
+<td>Patient Demographics</td>
+<td>
+<code>"Name: __ | DOB: __ | MRN: __ | Referring Provider: __ | Primary Dx ICD-10: __ | Date of Onset: __"</code>
+</td>
+<td>CMS 42 CFR 410.60; Medicare Ch.15 §230</td>
+</tr>
+
+<tr>
+<td>Referral / Prescription</td>
+<td>
+<code>"Referring physician: __ | Rx date: __ | Dx on referral: __ | Frequency/duration ordered: __ | Precautions: __"</code>
+</td>
+<td>CMS 42 CFR 410.60(a); Medicare Benefit Policy Manual Ch.15 §230.1</td>
+</tr>
+
+<tr>
+<td>Medical History</td>
+<td>
+<code>"PMH: __ | PSH: __ | Comorbidities: __ | Medications: __ | Allergies: __"</code>
+</td>
+<td>AOTA Occupational Profile; CMS 1997 Documentation Guidelines</td>
+</tr>
+
+<tr>
+<td>Occupational Profile</td>
+<td>
+<code>"Roles: __ | Routines: __ | Habits: __ | Rituals: __ | Contexts: __ | Client priorities: __ | Occupational history: __"</code>
+</td>
+<td>AOTA Occupational Therapy Practice Framework 4th ed. (OTPF-4)</td>
+</tr>
+
+<tr>
+<td>Prior Level of Function (PLOF)</td>
+<td>
+<code>"ADL independence: __ | IADL independence: __ | Work/school participation: __ | Leisure: __ | Social participation: __ | Assistive devices: __"</code>
+</td>
+<td>AOTA OTPF-4; Medicare Ch.15 §230.2; CMS CARE Tool</td>
+</tr>
+
+<tr>
+<td>Chief Complaint / Client-Reported Concern</td>
+<td>
+<code>"Client reports: __ | Primary occupational limitation: __ | Duration of symptoms: __ | Impact on daily occupations: __"</code>
+</td>
+<td>AOTA OTPF-4; ICF Model (WHO)</td>
+</tr>
+
+<tr>
+<td>Client Goals — Self-Reported</td>
+<td>
+<code>"Client goal 1: __ | Client goal 2: __ | Client goal 3: __ | Occupational priority: __"</code>
+</td>
+<td>AOTA OTPF-4; Canadian Occupational Performance Measure (COPM)</td>
+</tr>
+
+<tr>
+<td>COPM Assessment</td>
+<td>
+<code>"COPM Performance score: __/10 | COPM Satisfaction score: __/10 | Occupation 1: __ | Occupation 2: __ | Occupation 3: __"</code>
+</td>
+<td>COPM (Law et al. 2014); MCID = 2.0 points</td>
+</tr>
+
+<tr>
+<td>Pain Assessment</td>
+<td>
+<code>"Pain location: __ | Current NRS: __/10 | Worst NRS: __/10 | Pain with occupation: __ | Pain at rest: __ | Sleep disruption: Y/N"</code>
+</td>
+<td>NRS (Jensen et al. 2003); AOTA</td>
+</tr>
+
+<tr>
+<td>Systems Review — Cardiovascular/Pulmonary</td>
+<td>
+<code>"Resting HR: __ bpm | Resting BP: __/__ mmHg | SpO2: __% | Edema: __ | Activity tolerance: __"</code>
+</td>
+<td>AOTA; AHA/ACSM Guidelines</td>
+</tr>
+
+<tr>
+<td>Systems Review — Musculoskeletal</td>
+<td>
+<code>"Gross ROM: __ | Gross strength: __ | Posture: __ | Deformity: __ | Amputation: __"</code>
+</td>
+<td>AOTA OTPF-4 Systems Review</td>
+</tr>
+
+<tr>
+<td>Systems Review — Neuromuscular</td>
+<td>
+<code>"Gross coordination: __ | Muscle tone: __ | Motor control: __ | Postural control: __ | Praxis: __"</code>
+</td>
+<td>AOTA OTPF-4 Systems Review</td>
+</tr>
+
+<tr>
+<td>Systems Review — Sensory/Perceptual</td>
+<td>
+<code>"Vision: __ | Hearing: __ | Tactile: __ | Proprioception: __ | Vestibular: __ | Pain: __"</code>
+</td>
+<td>AOTA OTPF-4; Sensory Integration Theory (Ayres)</td>
+</tr>
+
+<tr>
+<td>Active Range of Motion (AROM) — UE Focus</td>
+<td>
+<code>"Shoulder: flex __° abd __° ER __° IR __° | Elbow: flex __° ext __° | Forearm: sup __° pro __° | Wrist: flex __° ext __° | Digits: flex __° ext __°"</code>
+</td>
+<td>Norkin & White 6th ed.; AOTA</td>
+</tr>
+
+<tr>
+<td>Manual Muscle Testing (MMT) — UE Focus</td>
+<td>
+<code>"Shoulder flex: __/5 | Shoulder abd: __/5 | Elbow flex: __/5 | Elbow ext: __/5 | Wrist ext: __/5 | Grip: __/5 | Pinch: __/5"</code>
+</td>
+<td>Daniels & Worthingham MMT 10th ed.; AOTA</td>
+</tr>
+
+<tr>
+<td>Grip & Pinch Strength</td>
+<td>
+<code>"Grip R: __ kg | Grip L: __ kg | Lateral pinch R: __ kg | Tip pinch R: __ kg | Palmar pinch R: __ kg | Dynamometer: Jamar | Position: __"</code>
+</td>
+<td>ASHT; Mathiowetz et al. 1985</td>
+</tr>
+
+<tr>
+<td>Sensation Assessment</td>
+<td>
+<code>"Light touch: __ | Sharp/dull: __ | Temperature: __ | Proprioception: __ | Stereognosis: __ | Two-point discrimination: __ mm | Monofilament: __"</code>
+</td>
+<td>Semmes-Weinstein Monofilaments; AOTA; ASHT</td>
+</tr>
+
+<tr>
+<td>Coordination / Fine Motor Assessment</td>
+<td>
+<code>"Nine-Hole Peg Test R: __ sec L: __ sec | Box & Block Test R: __ blocks L: __ blocks | In-hand manipulation: __ | Bilateral coordination: __"</code>
+</td>
+<td>9HPT (Mathiowetz 1985); Box & Block (Mathiowetz 1985)</td>
+</tr>
+
+<tr>
+<td>Visual-Perceptual Assessment</td>
+<td>
+<code>"Visual acuity: __ | Visual fields: __ | Scanning: __ | Figure-ground: __ | Spatial relations: __ | Body scheme: __ | Unilateral neglect screen: __"</code>
+</td>
+<td>MVPT-4; Motor-Free Visual Perception Test; AOTA</td>
+</tr>
+
+<tr>
+<td>Cognitive Assessment</td>
+<td>
+<code>"Orientation: __ | Attention: __ | Memory: __ | Problem-solving: __ | Sequencing: __ | Safety awareness: __ | MMSE: __/30 | MoCA: __/30"</code>
+</td>
+<td>MoCA (Nasreddine 2005); MMSE; Allen Cognitive Level Screen; AOTA</td>
+</tr>
+
+<tr>
+<td>ADL Assessment — Basic</td>
+<td>
+<code>"Feeding: __ | Grooming: __ | Bathing: __ | UB dressing: __ | LB dressing: __ | Toileting: __ | Functional mobility: __ | FIM Self-Care: __/42"</code>
+</td>
+<td>FIM (UDS 1997); Barthel Index; AOTA OTPF-4; CMS Section GG</td>
+</tr>
+
+<tr>
+<td>ADL Assessment — Instrumental</td>
+<td>
+<code>"Meal prep: __ | Laundry: __ | Housekeeping: __ | Shopping: __ | Money management: __ | Medication management: __ | Phone use: __ | Transportation: __"</code>
+</td>
+<td>Lawton IADL Scale (Lawton & Brody 1969); AOTA OTPF-4</td>
+</tr>
+
+<tr>
+<td>CMS Section GG — Self-Care</td>
+<td>
+<code>"Eating: __/06 | Oral hygiene: __/06 | Toileting hygiene: __/06 | Shower/bathe: __/06 | Upper body dressing: __/06 | Lower body dressing: __/06 | Putting on/taking off footwear: __/06"</code>
+</td>
+<td>CMS Section GG (IMPACT Act 2014); 42 CFR 485.645</td>
+</tr>
+
+<tr>
+<td>CMS Section GG — Mobility (OT-relevant)</td>
+<td>
+<code>"Sit to stand: __/06 | Chair/bed-to-chair transfer: __/06 | Toilet transfer: __/06 | Car transfer: __/06 | Picking up object: __/06"</code>
+</td>
+<td>CMS Section GG (IMPACT Act 2014); 42 CFR 485.645</td>
+</tr>
+
+<tr>
+<td>Functional Outcome Measure — Condition-Specific</td>
+<td>
+<code>"Tool: __ | Score: __ | Interpretation: __ | MCID: __ | MDC: __"</code>
+</td>
+<td>AOTA; specific tool validation studies</td>
+</tr>
+
+<tr>
+<td>Functional Outcome Measure — General</td>
+<td>
+<code>"DASH: __/100 | QuickDASH: __/100 | FIM Total: __/126 | Barthel: __/100 | COPM P: __/10 S: __/10 | PROMIS: __"</code>
+</td>
+<td>DASH (Hudak 1996); FIM (UDS 1997); COPM (Law 2014)</td>
+</tr>
+
+<tr>
+<td>Home/Environment Assessment</td>
+<td>
+<code>"Home setup: __ | Barriers: __ | Adaptive equipment in place: __ | Safety hazards: __ | Caregiver support: __ | DME needs: __"</code>
+</td>
+<td>AOTA Home Assessment; CMS DME Requirements</td>
+</tr>
+
+<tr>
+<td>Fall Risk Screening</td>
+<td>
+<code>"Falls in past 12 months: __ | Fear of falling: Y/N | Fall Risk Index: __ | Medications increasing risk: __"</code>
+</td>
+<td>CDC STEADI; AGS/BGS Fall Prevention; CMS Fall Risk QPP</td>
+</tr>
+
+<tr>
+<td>Evaluation / Clinical Impression</td>
+<td>
+<code>"Primary occupational performance deficits: __ | Client factors affecting performance: __ | Performance skills affected: __ | Performance patterns affected: __ | Rehab prognosis: excellent/good/fair/poor"</code>
+</td>
+<td>AOTA OTPF-4; ICF Framework (WHO); Medicare Ch.15 §230.2</td>
+</tr>
+
+<tr>
+<td>OT Diagnosis / Problem List</td>
+<td>
+<code>"OT problem 1: __ | OT problem 2: __ | OT problem 3: __ | ICD-10: __ | Occupational performance area: __"</code>
+</td>
+<td>AOTA OTPF-4; ICD-10-CM</td>
+</tr>
+
+<tr>
+<td>Plan of Care — Goals (STG)</td>
+<td>
+<code>"STG 1: __ in __ weeks | STG 2: __ in __ weeks | STG 3: __ in __ weeks | Measurable criterion: __ | Occupational relevance: __"</code>
+</td>
+<td>AOTA OTPF-4; CMS Medicare Ch.15 §230.2; SMART Goals</td>
+</tr>
+
+<tr>
+<td>Plan of Care — Goals (LTG)</td>
+<td>
+<code>"LTG 1: __ by discharge | LTG 2: __ by discharge | LTG 3: __ by discharge | Target occupational performance level: __ | Timeframe: __ weeks"</code>
+</td>
+<td>AOTA OTPF-4; CMS Medicare Ch.15 §230.2; SMART Goals</td>
+</tr>
+
+<tr>
+<td>Plan of Care — Interventions</td>
+<td>
+<code>"Therapeutic activity: __ | Therapeutic exercise: __ | ADL training: __ | Neuromuscular re-education: __ | Splinting/orthotics: __ | Sensory re-education: __ | Cognitive rehab: __ | Patient/caregiver education: __"</code>
+</td>
+<td>AOTA CPGs; CMS Medicare Ch.15 §230.3</td>
+</tr>
+
+<tr>
+<td>Plan of Care — Frequency/Duration</td>
+<td>
+<code>"Frequency: __x/week | Duration: __ weeks | Total visits: __ | Session length: __ minutes | Justification: __"</code>
+</td>
+<td>CMS Medicare Ch.15 §230.2; 42 CFR 410.60</td>
+</tr>
+
+<tr>
+<td>Medical Necessity Justification</td>
+<td>
+<code>"Skilled OT services required because: __ | Complexity requiring OT: __ | Prior functional level: __ | Expected functional gain: __ | Alternative considered: __"</code>
+</td>
+<td>CMS Medicare Ch.15 §230.2; Jimmo v. Sebelius (2013); 42 CFR 409.44</td>
+</tr>
+
+<tr>
+<td>Physician Certification / Plan of Care</td>
+<td>
+<code>"Certifying physician: __ | Certification date: __ | Diagnosis: __ | Frequency/duration: __ | Physician signature: pending/obtained"</code>
+</td>
+<td>CMS 42 CFR 410.60(a)(3); Medicare Ch.15 §230.1.3</td>
+</tr>
+
+<tr>
+<td>Patient/Caregiver Education</td>
+<td>
+<code>"Education provided: __ | Topics: __ | HEP given: Y/N | Barriers to learning: __ | Understanding demonstrated: Y/N | Caregiver trained: Y/N"</code>
+</td>
+<td>AOTA; Health Literacy Guidelines</td>
+</tr>
+
+<tr>
+<td>Consent & Patient Rights</td>
+<td>
+<code>"Informed consent obtained: Y/N | Plan of care reviewed with client: Y/N | Client agrees with goals: Y/N | Patient rights provided: Y/N"</code>
+</td>
+<td>CMS Conditions of Participation; State Practice Acts</td>
+</tr>
+
+</tbody>
+</table>
+
+<h3>4. OTA Initial Evaluation (→ OT Alias)</h3>
+<p><strong>OTA (Occupational Therapy Assistant) uses the OT Initial Evaluation data set. OTAs do not perform initial evaluations independently — initial evaluations must be performed by the supervising OT per AOTA Standards and state practice acts. OTAs may contribute to the evaluation process by collecting data under OT supervision.</strong></p>
+<p>When OTA is selected as the provider type, the system loads the OT Initial Evaluation data set. The OTA's role is to contribute to the evaluation process by collecting data under OT supervision &mdash; the OT reviews, interprets, and signs the evaluation.</p>
+<hr />
+<h3>5. SLP Initial Evaluation (CPT 92521-92524)</h3>
+<p><strong>Purpose:</strong> Comprehensive speech-language pathology evaluation establishing baseline communication, cognitive-communication, and swallowing function. Creates the SLP plan of care with measurable goals. Documents medical necessity for skilled SLP services.</p>
+<p><strong>Applicable Codes:</strong> 92521 (fluency), 92522 (speech sound production), 92523 (speech sound + language), 92524 (swallowing/feeding) &mdash; code selection based on area of assessment</p>
+<hr />
+<h4>SLP Initial Evaluation &mdash; Items</h4>
+
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Format Template</th>
+<th>Source</th>
+</tr>
+</thead>
+
+<tbody>
+
+<tr>
+<td>Patient Demographics</td>
+<td>
+<code>"Name: __ | DOB: __ | MRN: __ | Referring Provider: __ | Primary Dx ICD-10: __ | Date of Onset: __"</code>
+</td>
+<td>CMS 42 CFR 410.62; Medicare Ch.15 §220</td>
+</tr>
+
+<tr>
+<td>Referral / Prescription</td>
+<td>
+<code>"Referring physician: __ | Rx date: __ | Dx on referral: __ | Frequency/duration ordered: __ | Precautions: __"</code>
+</td>
+<td>CMS 42 CFR 410.62(a); Medicare Benefit Policy Manual Ch.15 §220.1</td>
+</tr>
+
+<tr>
+<td>Medical History</td>
+<td>
+<code>"PMH: __ | PSH: __ | Comorbidities: __ | Medications: __ | Allergies: __ | History of aspiration: Y/N | Intubation history: Y/N"</code>
+</td>
+<td>ASHA Practice Portal; CMS 1997 Documentation Guidelines</td>
+</tr>
+
+<tr>
+<td>Prior Level of Function (PLOF)</td>
+<td>
+<code>"Communication: __ | Swallowing: __ | Cognition: __ | Diet level prior: __ | Social participation: __ | Work/school: __"</code>
+</td>
+<td>ASHA; Medicare Ch.15 §220.2; CMS CARE Tool</td>
+</tr>
+
+<tr>
+<td>Chief Complaint / Patient-Reported Concern</td>
+<td>
+<code>"Patient/caregiver reports: __ | Primary communication concern: __ | Primary swallowing concern: __ | Duration: __ | Impact on participation: __"</code>
+</td>
+<td>ASHA Practice Portal; ICF Model (WHO)</td>
+</tr>
+
+<tr>
+<td>Patient/Caregiver Goals — Self-Reported</td>
+<td>
+<code>"Patient goal 1: __ | Patient goal 2: __ | Caregiver goal: __ | Functional communication priority: __ | Swallowing priority: __"</code>
+</td>
+<td>ASHA; Patient-Centered Care</td>
+</tr>
+
+<tr>
+<td>Hearing Screening</td>
+<td>
+<code>"Pure tone screen R: pass/refer | Pure tone screen L: pass/refer | Tympanometry R: __ | Tympanometry L: __ | Hearing aid: Y/N | Last audiology eval: __"</code>
+</td>
+<td>ASHA Hearing Screening Guidelines; AAA</td>
+</tr>
+
+<tr>
+<td>Oral-Motor Examination</td>
+<td>
+<code>"Lip ROM: __ | Lip strength: __ | Tongue ROM: __ | Tongue strength: __ | Jaw ROM: __ | Velum: __ | Dentition: __ | Oral sensitivity: __"</code>
+</td>
+<td>ASHA; Duffy Motor Speech Disorders 4th ed.</td>
+</tr>
+
+<tr>
+<td>Cranial Nerve Screen</td>
+<td>
+<code>"CN V (trigeminal): __ | CN VII (facial): __ | CN IX (glossopharyngeal): __ | CN X (vagus): __ | CN XI (accessory): __ | CN XII (hypoglossal): __"</code>
+</td>
+<td>ASHA; Duffy Motor Speech Disorders</td>
+</tr>
+
+<tr>
+<td>Voice Assessment</td>
+<td>
+<code>"Vocal quality: __ | Pitch: __ | Loudness: __ | Resonance: __ | GRBAS: G__R__B__A__S__ | Maximum phonation time: __ sec | s/z ratio: __"</code>
+</td>
+<td>ASHA; GRBAS Scale (Hirano 1981); CAPE-V</td>
+</tr>
+
+<tr>
+<td>Speech Assessment — Articulation</td>
+<td>
+<code>"Articulation errors: __ | Phonological processes: __ | Stimulability: __ | Intelligibility: __% in words | __% in sentences | __% in conversation"</code>
+</td>
+<td>Goldman-Fristoe Test of Articulation-3 (GFTA-3); ASHA</td>
+</tr>
+
+<tr>
+<td>Speech Assessment — Fluency</td>
+<td>
+<code>"Frequency of disfluencies: __% | Types: __ | Duration of blocks: __ | Secondary behaviors: __ | SSI-4 score: __ | Severity: __"</code>
+</td>
+<td>SSI-4 (Riley 2009); ASHA Fluency Guidelines</td>
+</tr>
+
+<tr>
+<td>Speech Assessment — Motor Speech</td>
+<td>
+<code>"Apraxia screen: __ | Dysarthria type: __ | DDK rates: pa__ ta__ ka__ pataka__ | AMR: __ | SMR: __ | Volitional vs automatic: __"</code>
+</td>
+<td>Duffy Motor Speech Disorders 4th ed.; ASHA</td>
+</tr>
+
+<tr>
+<td>Language Assessment — Expressive</td>
+<td>
+<code>"Spontaneous speech: __ | Naming: __ | Repetition: __ | Sentence formulation: __ | Narrative: __ | Word-finding: __ | Agrammatism: Y/N"</code>
+</td>
+<td>WAB-R (Kertesz 2006); BDAE-3; ASHA</td>
+</tr>
+
+<tr>
+<td>Language Assessment — Receptive</td>
+<td>
+<code>"Auditory comprehension: __ | Following commands: __ step | Reading comprehension: __ | Yes/no reliability: __% | Token Test: __"</code>
+</td>
+<td>WAB-R; BDAE-3; Token Test; ASHA</td>
+</tr>
+
+<tr>
+<td>Language Assessment — Pragmatics</td>
+<td>
+<code>"Turn-taking: __ | Topic maintenance: __ | Eye contact: __ | Social communication: __ | Narrative coherence: __ | Figurative language: __"</code>
+</td>
+<td>ASHA Social Communication; LCQ; FAVRES</td>
+</tr>
+
+<tr>
+<td>Cognitive-Communication Assessment</td>
+<td>
+<code>"Attention: __ | Memory: __ | Executive function: __ | Problem-solving: __ | Orientation: __ | RBANS: __ | MoCA: __/30 | SCATBI: __"</code>
+</td>
+<td>RBANS (Randolph 1998); MoCA; SCATBI; ASHA Cognitive-Communication</td>
+</tr>
+
+<tr>
+<td>Swallowing Assessment — Clinical (Bedside)</td>
+<td>
+<code>"Oral phase: __ | Pharyngeal phase: __ | Laryngeal elevation: __ | Cough reflex: __ | Wet vocal quality: Y/N | Thin liquids: __ | Puree: __ | Regular: __"</code>
+</td>
+<td>ASHA; Mann Assessment of Swallowing Ability (MASA)</td>
+</tr>
+
+<tr>
+<td>IDDSI Diet Level</td>
+<td>
+<code>"Current food texture: IDDSI Level __ | Current liquid consistency: IDDSI Level __ | Recommended food: IDDSI Level __ | Recommended liquid: IDDSI Level __"</code>
+</td>
+<td>IDDSI Framework 2.0 (2019); ASHA</td>
+</tr>
+
+<tr>
+<td>Dysphagia Severity</td>
+<td>
+<code>"Dysphagia severity: __ | ASHA NOMS Swallowing Level: __/7 | Aspiration risk: low/moderate/high | NPO recommended: Y/N | Instrumental eval needed: Y/N"</code>
+</td>
+<td>ASHA NOMS; FOIS (Crary 2005); PAS (Rosenbek 1996)</td>
+</tr>
+
+<tr>
+<td>AAC Assessment</td>
+<td>
+<code>"Current communication method: __ | AAC trial: __ | Device type: __ | Access method: __ | Communication partner training needed: Y/N | AAC system recommended: __"</code>
+</td>
+<td>ASHA AAC Practice Portal; Medicare AAC Policy</td>
+</tr>
+
+<tr>
+<td>Pediatric Speech-Language Milestones</td>
+<td>
+<code>"Babbling: __ | First words: age __ | Two-word combos: age __ | MLU: __ | Vocabulary size: __ | Age equivalency: __"</code>
+</td>
+<td>ASHA Developmental Norms; Rossetti Infant-Toddler Language Scale</td>
+</tr>
+
+<tr>
+<td>Standardized Assessment Scores</td>
+<td>
+<code>"Test administered: __ | Standard score: __ | Percentile: __ | Age equivalence: __ | Severity: __ | Confidence interval: __"</code>
+</td>
+<td>Specific test manuals; ASHA</td>
+</tr>
+
+<tr>
+<td>Functional Communication Measure</td>
+<td>
+<code>"ASHA NOMS FCM: __/7 | Admission level: __ | Communication effectiveness: __ | Partner-dependent: Y/N | Functional Communication Profile: __"</code>
+</td>
+<td>ASHA NOMS; FCP (Sarno 1969); CETI (Lomas 1989)</td>
+</tr>
+
+<tr>
+<td>CMS Section GG — Communication (SLP-relevant)</td>
+<td>
+<code>"Expression: __/06 | Comprehension: __/06 | Eating: __/06 (if dysphagia focus)"</code>
+</td>
+<td>CMS Section GG (IMPACT Act 2014); 42 CFR 485.645</td>
+</tr>
+
+<tr>
+<td>Fall Risk Screening (SLP)</td>
+<td>
+<code>"Falls in past 12 months: __ | Dysphagia-related fall risk: __ | Cognitive-related fall risk: __ | Balance screen: __"</code>
+</td>
+<td>CDC STEADI; ASHA</td>
+</tr>
+
+<tr>
+<td>Evaluation / Clinical Impression</td>
+<td>
+<code>"Primary communication deficits: __ | Primary swallowing deficits: __ | Functional impact: __ | Rehab prognosis: excellent/good/fair/poor | Rehab potential: __"</code>
+</td>
+<td>ASHA; ICF Framework (WHO); Medicare Ch.15 §220.2</td>
+</tr>
+
+<tr>
+<td>SLP Diagnosis / Problem List</td>
+<td>
+<code>"SLP diagnosis 1: __ | SLP diagnosis 2: __ | ICD-10: __ | Aphasia type: __ | Dysarthria type: __ | Dysphagia type: __"</code>
+</td>
+<td>ASHA; ICD-10-CM</td>
+</tr>
+
+<tr>
+<td>Plan of Care — Goals (STG)</td>
+<td>
+<code>"STG 1: __ in __ weeks | STG 2: __ in __ weeks | STG 3: __ in __ weeks | Measurable criterion: __ | Functional relevance: __"</code>
+</td>
+<td>ASHA; CMS Medicare Ch.15 §220.2; SMART Goals</td>
+</tr>
+
+<tr>
+<td>Plan of Care — Goals (LTG)</td>
+<td>
+<code>"LTG 1: __ by discharge | LTG 2: __ by discharge | LTG 3: __ by discharge | Target functional communication level: __ | Timeframe: __ weeks"</code>
+</td>
+<td>ASHA; CMS Medicare Ch.15 §220.2; SMART Goals</td>
+</tr>
+
+<tr>
+<td>Plan of Care — Interventions</td>
+<td>
+<code>"Articulation therapy: __ | Language therapy: __ | Voice therapy: __ | Fluency therapy: __ | Cognitive-communication therapy: __ | Dysphagia treatment: __ | AAC training: __ | Patient/caregiver education: __"</code>
+</td>
+<td>ASHA CPGs; CMS Medicare Ch.15 §220.3</td>
+</tr>
+
+<tr>
+<td>Plan of Care — Frequency/Duration</td>
+<td>
+<code>"Frequency: __x/week | Duration: __ weeks | Total visits: __ | Session length: __ minutes | Justification: __"</code>
+</td>
+<td>CMS Medicare Ch.15 §220.2; 42 CFR 410.62</td>
+</tr>
+
+<tr>
+<td>Medical Necessity Justification</td>
+<td>
+<code>"Skilled SLP services required because: __ | Complexity requiring SLP: __ | Prior functional level: __ | Expected functional gain: __ | Aspiration risk: __"</code>
+</td>
+<td>CMS Medicare Ch.15 §220.2; Jimmo v. Sebelius (2013); 42 CFR 409.44</td>
+</tr>
+
+<tr>
+<td>Physician Certification / Plan of Care</td>
+<td>
+<code>"Certifying physician: __ | Certification date: __ | Diagnosis: __ | Frequency/duration: __ | Physician signature: pending/obtained"</code>
+</td>
+<td>CMS 42 CFR 410.62(a)(3); Medicare Ch.15 §220.1.3</td>
+</tr>
+
+<tr>
+<td>Patient/Caregiver Education</td>
+<td>
+<code>"Education provided: __ | Topics: __ | HEP given: Y/N | Swallowing precautions reviewed: Y/N | Barriers to learning: __ | Understanding demonstrated: Y/N"</code>
+</td>
+<td>ASHA; Health Literacy Guidelines</td>
+</tr>
+
+<tr>
+<td>Consent & Patient Rights</td>
+<td>
+<code>"Informed consent obtained: Y/N | Plan of care reviewed with patient: Y/N | Patient agrees with goals: Y/N | Patient rights provided: Y/N"</code>
+</td>
+<td>CMS Conditions of Participation; State Practice Acts</td>
+</tr>
+
+</tbody>
+</table>
+
+<hr />
+<h2>PART 2: PROGRESS NOTE FRAMEWORK (DAILY TREATMENT NOTES)</h2>
+<p>The Progress Note documents each treatment session, capturing skilled interventions with CPT codes, treatment time for 8-Minute Rule compliance, patient response, objective re-measurements, clinical reasoning, goal progress, and ongoing medical necessity. Every treatment visit must demonstrate that the services provided require the skill of a licensed therapist (or assistant under therapist direction) and that the patient continues to benefit from or require skilled rehabilitation services.</p>
+<p>Progress Notes follow a modified SOAP structure adapted for rehabilitation: Subjective (patient report, functional update, HEP compliance), Objective (skilled interventions, re-assessments, outcome measures), Assessment (clinical reasoning, goal status, prognosis), and Plan (next session, HEP, communication, discharge planning).</p>
+<hr />
+<h3>1. PT Progress Note (CPT 97110-97542)</h3>
+<p><strong>Purpose:</strong> Document each PT treatment session's skilled interventions, patient response, objective measurements, clinical reasoning, and ongoing medical necessity. Ensures 8-Minute Rule compliance for time-based billing.</p>
+<p><strong>Applicable Codes:</strong> 97110 (therapeutic exercise), 97112 (neuromuscular re-education), 97116 (gait training), 97140 (manual therapy), 97530 (therapeutic activities), 97535 (self-care/home management), 97542 (wheelchair management), 97010-97039 (modalities)</p>
+<hr />
+<h4>PT Progress Note &mdash; Items</h4>
+
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Format Template</th>
+<th>Source</th>
+</tr>
+</thead>
+
+<tbody>
+
+<tr>
+<td>Date of Service</td>
+<td>
+<code>"Date: __ | Visit #: __ of __ authorized | Time in: __ | Time out: __ | Total minutes: __ | Billable units: __"</code>
+</td>
+<td>CMS 8-Minute Rule; Medicare Ch.15 §220</td>
+</tr>
+
+<tr>
+<td>Subjective — Patient Report</td>
+<td>
+<code>"Patient reports: __ | Pain today NRS: __/10 | Change since last visit: better/same/worse | Compliance with HEP: __% | Sleep: __ | New symptoms: __"</code>
+</td>
+<td>APTA Guide 3.0; NRS; CMS</td>
+</tr>
+
+<tr>
+<td>Subjective — Functional Status Update</td>
+<td>
+<code>"Activity tolerance: __ | ADL changes: __ | Work/school status: __ | Community participation: __ | Patient concerns: __"</code>
+</td>
+<td>APTA; ICF Model; Medicare Ch.15</td>
+</tr>
+
+<tr>
+<td>Subjective — HEP Compliance</td>
+<td>
+<code>"HEP performed: __x since last visit | Exercises completed: __ | Difficulty with: __ | Modifications needed: Y/N | Patient questions: __"</code>
+</td>
+<td>APTA; CMS Documentation Requirements</td>
+</tr>
+
+<tr>
+<td>Vital Signs (if indicated)</td>
+<td>
+<code>"BP: __/__ mmHg | HR: __ bpm | SpO2: __% | RR: __ | RPE: __/10 | Indication for monitoring: __"</code>
+</td>
+<td>APTA; AHA/ACSM Guidelines</td>
+</tr>
+
+<tr>
+<td>Objective — Skilled Intervention 1</td>
+<td>
+<code>"Intervention: __ | CPT code: __ | Time: __ minutes | Parameters: __ | Patient response: __ | Skilled reasoning: __"</code>
+</td>
+<td>CMS 8-Minute Rule; CPT Coding; Medicare Ch.15 §220.3</td>
+</tr>
+
+<tr>
+<td>Objective — Skilled Intervention 2</td>
+<td>
+<code>"Intervention: __ | CPT code: __ | Time: __ minutes | Parameters: __ | Patient response: __ | Skilled reasoning: __"</code>
+</td>
+<td>CMS 8-Minute Rule; CPT Coding; Medicare Ch.15 §220.3</td>
+</tr>
+
+<tr>
+<td>Objective — Skilled Intervention 3</td>
+<td>
+<code>"Intervention: __ | CPT code: __ | Time: __ minutes | Parameters: __ | Patient response: __ | Skilled reasoning: __"</code>
+</td>
+<td>CMS 8-Minute Rule; CPT Coding; Medicare Ch.15 §220.3</td>
+</tr>
+
+<tr>
+<td>Objective — Skilled Intervention 4</td>
+<td>
+<code>"Intervention: __ | CPT code: __ | Time: __ minutes | Parameters: __ | Patient response: __ | Skilled reasoning: __"</code>
+</td>
+<td>CMS 8-Minute Rule; CPT Coding; Medicare Ch.15 §220.3</td>
+</tr>
+
+<tr>
+<td>Objective — Therapeutic Exercise Detail</td>
+<td>
+<code>"Exercise: __ | Sets: __ | Reps: __ | Resistance: __ | Progression from last: __ | Cuing required: __ | Form quality: __"</code>
+</td>
+<td>APTA CPGs; ACSM Exercise Prescription; CMS</td>
+</tr>
+
+<tr>
+<td>Objective — Manual Therapy Detail</td>
+<td>
+<code>"Technique: __ | Target tissue/joint: __ | Grade: __ | Duration: __ minutes | Patient response: __ | Pre/post change: __"</code>
+</td>
+<td>APTA; Maitland/Kaltenborn/Mulligan; CMS</td>
+</tr>
+
+<tr>
+<td>Objective — Neuromuscular Re-education Detail</td>
+<td>
+<code>"Activity: __ | Balance challenge: __ | Surface: __ | External perturbation: Y/N | Cuing: __ | Assist level: __ | Safety: __"</code>
+</td>
+<td>APTA Neuro Section; CMS</td>
+</tr>
+
+<tr>
+<td>Objective — Gait Training Detail</td>
+<td>
+<code>"Distance: __ feet/meters | Assistive device: __ | Weight-bearing status: __ | Terrain: __ | Gait deviations addressed: __ | Assist level: __ | Cuing: __"</code>
+</td>
+<td>APTA; Rancho Los Amigos; CMS</td>
+</tr>
+
+<tr>
+<td>Objective — Modality Detail</td>
+<td>
+<code>"Modality: __ | CPT code: __ | Parameters: __ | Duration: __ minutes | Target tissue: __ | Patient response: __ | Rationale: __"</code>
+</td>
+<td>CMS; APTA Modality CPGs; CPT Coding</td>
+</tr>
+
+<tr>
+<td>Objective — Functional Training Detail</td>
+<td>
+<code>"Task: __ | Environment: __ | Assist level: __ (I/S/Min/Mod/Max) | Cuing: __ | Repetitions: __ | Progression: __ | Safety: __"</code>
+</td>
+<td>APTA; FIM Scale; CMS Section GG</td>
+</tr>
+
+<tr>
+<td>Objective — Patient Education Detail</td>
+<td>
+<code>"Topic: __ | Method: __ | Time: __ minutes | Patient understanding: __ | Return demonstration: Y/N | Handout provided: Y/N"</code>
+</td>
+<td>APTA; CMS; Health Literacy</td>
+</tr>
+
+<tr>
+<td>8-Minute Rule Compliance</td>
+<td>
+<code>"Total timed minutes: __ | Total untimed codes: __ | Billable units: __ | Unit breakdown: __ | Compliant: Y/N"</code>
+</td>
+<td>CMS 8-Minute Rule; Medicare Claims Processing Manual Ch.5 §20.2</td>
+</tr>
+
+<tr>
+<td>Objective — Outcome Measure Re-assessment</td>
+<td>
+<code>"Tool: __ | Today's score: __ | Previous score: __ | Change: __ | MCID met: Y/N | MDC met: Y/N | Trajectory: improving/plateau/declining"</code>
+</td>
+<td>APTA; Specific tool validation; CMS QPP</td>
+</tr>
+
+<tr>
+<td>Objective — ROM Re-assessment</td>
+<td>
+<code>"Joint: __ | Motion: __ | Today: __° | Initial eval: __° | Change: __° | Goal: __° | Goniometer: Y/N"</code>
+</td>
+<td>Norkin & White 6th ed.; APTA</td>
+</tr>
+
+<tr>
+<td>Objective — Strength Re-assessment</td>
+<td>
+<code>"Muscle/group: __ | Today MMT: __/5 | Initial MMT: __/5 | Change: __ grade | Dynamometry: __ | Goal: __/5"</code>
+</td>
+<td>Daniels & Worthingham 10th ed.; APTA</td>
+</tr>
+
+<tr>
+<td>Objective — Balance Re-assessment</td>
+<td>
+<code>"Test: __ | Today score: __ | Previous score: __ | Change: __ | MCID met: Y/N | Fall risk change: __"</code>
+</td>
+<td>BBS; Mini-BESTest; CDC STEADI; APTA</td>
+</tr>
+
+<tr>
+<td>Objective — Gait Speed Re-assessment</td>
+<td>
+<code>"10MWT today: __ m/s | 10MWT previous: __ m/s | Change: __ m/s | MCID (0.1-0.2 m/s): met Y/N | Community ambulation threshold (>0.8 m/s): Y/N"</code>
+</td>
+<td>10MWT (Graham 2008); MCID literature</td>
+</tr>
+
+<tr>
+<td>Objective — Functional Mobility Re-assessment</td>
+<td>
+<code>"Bed mobility: __ | Transfers: __ | Sit-to-stand: __ | Ambulation: __ | Stairs: __ | Change from prior: __"</code>
+</td>
+<td>FIM; CMS Section GG; APTA</td>
+</tr>
+
+<tr>
+<td>CMS Section GG Update</td>
+<td>
+<code>"Self-care: __ | Mobility: __ | Items changed: __ | Improvement from admission: __ | Interim goal progress: __"</code>
+</td>
+<td>CMS Section GG (IMPACT Act 2014)</td>
+</tr>
+
+<tr>
+<td>Assessment — Clinical Reasoning</td>
+<td>
+<code>"Patient response to treatment: __ | Progress toward goals: on track/behind/ahead | Skilled services justified because: __ | Treatment modifications: __"</code>
+</td>
+<td>APTA; CMS Medicare Ch.15 §220.2</td>
+</tr>
+
+<tr>
+<td>Assessment — Goal Status</td>
+<td>
+<code>"STG 1: met/progressing/not met | STG 2: met/progressing/not met | STG 3: met/progressing/not met | Goals modified: Y/N | New goals: __"</code>
+</td>
+<td>APTA; CMS; SMART Goals</td>
+</tr>
+
+<tr>
+<td>Assessment — Barriers to Progress</td>
+<td>
+<code>"Barriers identified: __ | Medical complications: __ | Psychosocial factors: __ | Adherence issues: __ | Plan to address: __"</code>
+</td>
+<td>APTA; ICF Model; CMS</td>
+</tr>
+
+<tr>
+<td>Assessment — Rehab Prognosis Update</td>
+<td>
+<code>"Prognosis: excellent/good/fair/poor | Change from initial: __ | Rationale: __ | Expected discharge date: __ | Functional plateau anticipated: Y/N"</code>
+</td>
+<td>APTA; Medicare Ch.15 §220.2</td>
+</tr>
+
+<tr>
+<td>Plan — Next Session</td>
+<td>
+<code>"Planned interventions: __ | Progression: __ | Goals to target: __ | Equipment needed: __ | Precautions: __"</code>
+</td>
+<td>APTA; CMS</td>
+</tr>
+
+<tr>
+<td>Plan — HEP Update</td>
+<td>
+<code>"HEP modifications: __ | New exercises: __ | Discontinued: __ | Frequency: __ | Patient agreement: Y/N"</code>
+</td>
+<td>APTA; CMS</td>
+</tr>
+
+<tr>
+<td>Plan — Communication</td>
+<td>
+<code>"MD communication needed: Y/N | Reason: __ | Referral to: __ | Insurance authorization status: __ | Visits remaining: __"</code>
+</td>
+<td>CMS; APTA; 42 CFR 410.60</td>
+</tr>
+
+<tr>
+<td>Plan — Discharge Planning</td>
+<td>
+<code>"Estimated discharge: __ | Discharge criteria: __ | Discharge plan: __ | Follow-up: __ | Equipment at discharge: __"</code>
+</td>
+<td>APTA; CMS; Medicare Ch.15</td>
+</tr>
+
+<tr>
+<td>Medical Necessity — Continued Services</td>
+<td>
+<code>"Skilled services continue to be necessary because: __ | Complexity: __ | Progress evidence: __ | Expected remaining duration: __ weeks | Alternative if discontinued: __"</code>
+</td>
+<td>CMS Medicare Ch.15 §220.2; Jimmo v. Sebelius (2013)</td>
+</tr>
+
+<tr>
+<td>Therapist Signature / Credentials</td>
+<td>
+<code>"Therapist: __ | Credentials: PT/DPT/PTA | License #: __ | NPI: __ | Date signed: __ | Co-signature (if PTA): __"</code>
+</td>
+<td>CMS; State Practice Acts; APTA</td>
+</tr>
+
+</tbody>
+</table>
+
+<h3>2. PTA Progress Note (→ PT Alias)</h3>
+<p><strong>PTA uses the PT Progress Note data set under PT supervision. PTAs document daily treatment notes following the same format. The supervising PT must co-sign PTA notes per state practice act requirements and CMS guidelines. PTAs cannot modify the plan of care — changes must be directed by the supervising PT.</strong></p>
+<p>When PTA is selected as the provider type for progress notes, the system loads the PT Progress Note data set with co-signature fields activated.</p>
+<hr />
+<h3>3. OT Progress Note (CPT 97110-97542)</h3>
+<p><strong>Purpose:</strong> Document each OT treatment session's skilled interventions, client response, objective measurements, clinical reasoning, and ongoing medical necessity. Focuses on occupation-based outcomes and ADL/IADL performance changes.</p>
+<p><strong>Applicable Codes:</strong> 97110 (therapeutic exercise), 97530 (therapeutic activities), 97535 (self-care/home management), 97140 (manual therapy), 97112 (neuromuscular re-education), 97542 (wheelchair management), 97760-97763 (orthotics), 97010-97039 (modalities)</p>
+<hr />
+<h4>OT Progress Note &mdash; Items</h4>
+
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Format Template</th>
+<th>Source</th>
+</tr>
+</thead>
+
+<tbody>
+
+<tr>
+<td>Date of Service</td>
+<td>
+<code>"Date: __ | Visit #: __ of __ authorized | Time in: __ | Time out: __ | Total minutes: __ | Billable units: __"</code>
+</td>
+<td>CMS 8-Minute Rule; Medicare Ch.15 §230</td>
+</tr>
+
+<tr>
+<td>Subjective — Client Report</td>
+<td>
+<code>"Client reports: __ | Pain today NRS: __/10 | Change since last visit: better/same/worse | Compliance with HEP: __% | Sleep: __ | New concerns: __"</code>
+</td>
+<td>AOTA OTPF-4; NRS; CMS</td>
+</tr>
+
+<tr>
+<td>Subjective — Occupational Performance Update</td>
+<td>
+<code>"ADL changes: __ | IADL changes: __ | Work/school status: __ | Leisure participation: __ | Social participation: __ | Client concerns: __"</code>
+</td>
+<td>AOTA OTPF-4; ICF Model; Medicare Ch.15</td>
+</tr>
+
+<tr>
+<td>Subjective — HEP Compliance</td>
+<td>
+<code>"HEP performed: __x since last visit | Activities completed: __ | Difficulty with: __ | Adaptive equipment use: __ | Modifications needed: Y/N"</code>
+</td>
+<td>AOTA; CMS Documentation Requirements</td>
+</tr>
+
+<tr>
+<td>Vital Signs (if indicated)</td>
+<td>
+<code>"BP: __/__ mmHg | HR: __ bpm | SpO2: __% | Activity tolerance: __ | Indication for monitoring: __"</code>
+</td>
+<td>AOTA; AHA/ACSM Guidelines</td>
+</tr>
+
+<tr>
+<td>Objective — Skilled Intervention 1</td>
+<td>
+<code>"Intervention: __ | CPT code: __ | Time: __ minutes | Parameters: __ | Client response: __ | Skilled reasoning: __"</code>
+</td>
+<td>CMS 8-Minute Rule; CPT Coding; Medicare Ch.15 §230.3</td>
+</tr>
+
+<tr>
+<td>Objective — Skilled Intervention 2</td>
+<td>
+<code>"Intervention: __ | CPT code: __ | Time: __ minutes | Parameters: __ | Client response: __ | Skilled reasoning: __"</code>
+</td>
+<td>CMS 8-Minute Rule; CPT Coding; Medicare Ch.15 §230.3</td>
+</tr>
+
+<tr>
+<td>Objective — Skilled Intervention 3</td>
+<td>
+<code>"Intervention: __ | CPT code: __ | Time: __ minutes | Parameters: __ | Client response: __ | Skilled reasoning: __"</code>
+</td>
+<td>CMS 8-Minute Rule; CPT Coding; Medicare Ch.15 §230.3</td>
+</tr>
+
+<tr>
+<td>Objective — Skilled Intervention 4</td>
+<td>
+<code>"Intervention: __ | CPT code: __ | Time: __ minutes | Parameters: __ | Client response: __ | Skilled reasoning: __"</code>
+</td>
+<td>CMS 8-Minute Rule; CPT Coding; Medicare Ch.15 §230.3</td>
+</tr>
+
+<tr>
+<td>Objective — Therapeutic Activity Detail</td>
+<td>
+<code>"Activity: __ | Occupation-based: Y/N | Grading: __ | Adaptation: __ | Client engagement: __ | Skilled reasoning: __"</code>
+</td>
+<td>AOTA OTPF-4; CMS</td>
+</tr>
+
+<tr>
+<td>Objective — ADL Training Detail</td>
+<td>
+<code>"ADL targeted: __ | Technique: __ | Adaptive equipment: __ | Assist level: __ (I/S/Min/Mod/Max) | Cuing: __ | Safety: __ | Progress from prior: __"</code>
+</td>
+<td>AOTA OTPF-4; FIM; CMS Section GG</td>
+</tr>
+
+<tr>
+<td>Objective — UE Therapeutic Exercise Detail</td>
+<td>
+<code>"Exercise: __ | Sets: __ | Reps: __ | Resistance: __ | ROM target: __ | Progression: __ | Pain response: __"</code>
+</td>
+<td>AOTA; ACSM; CMS</td>
+</tr>
+
+<tr>
+<td>Objective — Fine Motor / Coordination Detail</td>
+<td>
+<code>"Task: __ | Target skill: __ | Repetitions: __ | Accuracy: __% | Speed: __ | Cuing level: __ | Adaptation: __"</code>
+</td>
+<td>AOTA; 9HPT; Box & Block</td>
+</tr>
+
+<tr>
+<td>Objective — Cognitive Rehabilitation Detail</td>
+<td>
+<code>"Task: __ | Cognitive domain: __ | Complexity level: __ | Cuing: __ | Accuracy: __% | Generalization: __ | Functional application: __"</code>
+</td>
+<td>AOTA; ACLS; CMS</td>
+</tr>
+
+<tr>
+<td>Objective — Sensory Re-education Detail</td>
+<td>
+<code>"Modality: __ | Target area: __ | Technique: __ | Duration: __ minutes | Client response: __ | Progress: __"</code>
+</td>
+<td>AOTA; Callahan Sensory Re-education; ASHT</td>
+</tr>
+
+<tr>
+<td>Objective — Splinting / Orthotics</td>
+<td>
+<code>"Type: __ | Purpose: __ | Wearing schedule: __ | Skin check: __ | Adjustment needed: Y/N | Client compliance: __"</code>
+</td>
+<td>AOTA; ASHT Splinting Guidelines</td>
+</tr>
+
+<tr>
+<td>8-Minute Rule Compliance</td>
+<td>
+<code>"Total timed minutes: __ | Total untimed codes: __ | Billable units: __ | Unit breakdown: __ | Compliant: Y/N"</code>
+</td>
+<td>CMS 8-Minute Rule; Medicare Claims Processing Manual Ch.5 §20.2</td>
+</tr>
+
+<tr>
+<td>Objective — Outcome Measure Re-assessment</td>
+<td>
+<code>"Tool: __ | Today's score: __ | Previous score: __ | Change: __ | MCID met: Y/N | Trajectory: improving/plateau/declining"</code>
+</td>
+<td>AOTA; Specific tool validation; CMS QPP</td>
+</tr>
+
+<tr>
+<td>Objective — ROM Re-assessment (UE)</td>
+<td>
+<code>"Joint: __ | Motion: __ | Today: __° | Initial eval: __° | Change: __° | Goal: __° | Functional impact: __"</code>
+</td>
+<td>Norkin & White 6th ed.; AOTA</td>
+</tr>
+
+<tr>
+<td>Objective — Strength Re-assessment (UE)</td>
+<td>
+<code>"Muscle/group: __ | Today MMT: __/5 | Initial MMT: __/5 | Grip today: __ kg | Grip initial: __ kg | Change: __"</code>
+</td>
+<td>Daniels & Worthingham 10th ed.; Jamar; AOTA</td>
+</tr>
+
+<tr>
+<td>Objective — ADL Performance Re-assessment</td>
+<td>
+<code>"ADL: __ | Today level: __ | Previous level: __ | FIM change: __ | Section GG change: __ | Goal status: __"</code>
+</td>
+<td>FIM; CMS Section GG; AOTA</td>
+</tr>
+
+<tr>
+<td>Objective — Cognitive Performance Re-assessment</td>
+<td>
+<code>"Domain: __ | Today score: __ | Previous score: __ | Functional application: __ | Safety: __ | Change: __"</code>
+</td>
+<td>MoCA; ACLS; AOTA</td>
+</tr>
+
+<tr>
+<td>CMS Section GG Update</td>
+<td>
+<code>"Self-care: __ | Mobility (OT items): __ | Items changed: __ | Improvement from admission: __ | Interim goal progress: __"</code>
+</td>
+<td>CMS Section GG (IMPACT Act 2014)</td>
+</tr>
+
+<tr>
+<td>Assessment — Clinical Reasoning</td>
+<td>
+<code>"Client response to treatment: __ | Progress toward goals: on track/behind/ahead | Skilled services justified because: __ | Treatment modifications: __"</code>
+</td>
+<td>AOTA; CMS Medicare Ch.15 §230.2</td>
+</tr>
+
+<tr>
+<td>Assessment — Goal Status</td>
+<td>
+<code>"STG 1: met/progressing/not met | STG 2: met/progressing/not met | STG 3: met/progressing/not met | Goals modified: Y/N | New goals: __"</code>
+</td>
+<td>AOTA; CMS; SMART Goals</td>
+</tr>
+
+<tr>
+<td>Assessment — Barriers to Progress</td>
+<td>
+<code>"Barriers identified: __ | Medical complications: __ | Psychosocial factors: __ | Adherence issues: __ | Plan to address: __"</code>
+</td>
+<td>AOTA; ICF Model; CMS</td>
+</tr>
+
+<tr>
+<td>Assessment — Rehab Prognosis Update</td>
+<td>
+<code>"Prognosis: excellent/good/fair/poor | Change from initial: __ | Rationale: __ | Expected discharge date: __ | Functional plateau anticipated: Y/N"</code>
+</td>
+<td>AOTA; Medicare Ch.15 §230.2</td>
+</tr>
+
+<tr>
+<td>Plan — Next Session</td>
+<td>
+<code>"Planned interventions: __ | Progression: __ | Goals to target: __ | Equipment needed: __ | Precautions: __"</code>
+</td>
+<td>AOTA; CMS</td>
+</tr>
+
+<tr>
+<td>Plan — HEP Update</td>
+<td>
+<code>"HEP modifications: __ | New activities: __ | Adaptive equipment changes: __ | Frequency: __ | Client agreement: Y/N"</code>
+</td>
+<td>AOTA; CMS</td>
+</tr>
+
+<tr>
+<td>Plan — Communication</td>
+<td>
+<code>"MD communication needed: Y/N | Reason: __ | Referral to: __ | Insurance authorization status: __ | Visits remaining: __"</code>
+</td>
+<td>CMS; AOTA; 42 CFR 410.60</td>
+</tr>
+
+<tr>
+<td>Plan — Discharge Planning</td>
+<td>
+<code>"Estimated discharge: __ | Discharge criteria: __ | Discharge plan: __ | Equipment at discharge: __ | Caregiver training status: __"</code>
+</td>
+<td>AOTA; CMS; Medicare Ch.15</td>
+</tr>
+
+<tr>
+<td>Medical Necessity — Continued Services</td>
+<td>
+<code>"Skilled OT services continue to be necessary because: __ | Complexity: __ | Progress evidence: __ | Expected remaining duration: __ weeks | Alternative if discontinued: __"</code>
+</td>
+<td>CMS Medicare Ch.15 §230.2; Jimmo v. Sebelius (2013)</td>
+</tr>
+
+<tr>
+<td>Therapist Signature / Credentials</td>
+<td>
+<code>"Therapist: __ | Credentials: OT/OTR/L/OTA | License #: __ | NPI: __ | Date signed: __ | Co-signature (if OTA): __"</code>
+</td>
+<td>CMS; State Practice Acts; AOTA</td>
+</tr>
+
+</tbody>
+</table>
+
+<h3>4. OTA Progress Note (→ OT Alias)</h3>
+<p><strong>OTA uses the OT Progress Note data set under OT supervision. OTAs document daily treatment notes following the same format. The supervising OT must co-sign OTA notes per state practice act requirements and CMS guidelines. OTAs cannot modify the plan of care — changes must be directed by the supervising OT.</strong></p>
+<p>When OTA is selected as the provider type for progress notes, the system loads the OT Progress Note data set with co-signature fields activated.</p>
+<hr />
+<h3>5. SLP Progress Note (CPT 92507-92526)</h3>
+<p><strong>Purpose:</strong> Document each SLP treatment session's skilled interventions, patient response, communication and swallowing status, clinical reasoning, and ongoing medical necessity.</p>
+<p><strong>Applicable Codes:</strong> 92507 (speech/language treatment), 92526 (swallowing treatment), 92508 (group treatment), 92609 (AAC evaluation), 92610 (swallowing evaluation), 97532 (cognitive skills development), 92597 (voice prosthesis evaluation)</p>
+<hr />
+<h4>SLP Progress Note &mdash; Items</h4>
+
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Format Template</th>
+<th>Source</th>
+</tr>
+</thead>
+
+<tbody>
+
+<tr>
+<td>Date of Service</td>
+<td>
+<code>"Date: __ | Visit #: __ of __ authorized | Time in: __ | Time out: __ | Total minutes: __ | Billable units: __"</code>
+</td>
+<td>CMS 8-Minute Rule; Medicare Ch.15 §220</td>
+</tr>
+
+<tr>
+<td>Subjective — Patient/Caregiver Report</td>
+<td>
+<code>"Patient/caregiver reports: __ | Communication changes: __ | Swallowing changes: __ | Diet compliance: __ | New symptoms: __ | HEP compliance: __%"</code>
+</td>
+<td>ASHA; NRS; CMS</td>
+</tr>
+
+<tr>
+<td>Subjective — Functional Communication Update</td>
+<td>
+<code>"Communication effectiveness: __ | Partner-dependent: Y/N | AAC use: __ | Social participation: __ | Work/school impact: __"</code>
+</td>
+<td>ASHA; ICF Model; Medicare Ch.15</td>
+</tr>
+
+<tr>
+<td>Subjective — Swallowing Status Update</td>
+<td>
+<code>"Diet level: IDDSI __ | Oral intake: __% | Supplemental nutrition: __ | Choking/coughing episodes: __ | Weight change: __ | Aspiration symptoms: __"</code>
+</td>
+<td>IDDSI; ASHA; CMS</td>
+</tr>
+
+<tr>
+<td>Vital Signs (if indicated)</td>
+<td>
+<code>"BP: __/__ mmHg | HR: __ bpm | SpO2: __% (pre-swallow: __ / post-swallow: __) | RR: __ | Indication: __"</code>
+</td>
+<td>ASHA; AHA Guidelines</td>
+</tr>
+
+<tr>
+<td>Objective — Skilled Intervention 1</td>
+<td>
+<code>"Intervention: __ | CPT code: __ | Time: __ minutes | Parameters: __ | Patient response: __ | Skilled reasoning: __"</code>
+</td>
+<td>CMS 8-Minute Rule; CPT Coding; Medicare Ch.15 §220.3</td>
+</tr>
+
+<tr>
+<td>Objective — Skilled Intervention 2</td>
+<td>
+<code>"Intervention: __ | CPT code: __ | Time: __ minutes | Parameters: __ | Patient response: __ | Skilled reasoning: __"</code>
+</td>
+<td>CMS 8-Minute Rule; CPT Coding; Medicare Ch.15 §220.3</td>
+</tr>
+
+<tr>
+<td>Objective — Skilled Intervention 3</td>
+<td>
+<code>"Intervention: __ | CPT code: __ | Time: __ minutes | Parameters: __ | Patient response: __ | Skilled reasoning: __"</code>
+</td>
+<td>CMS 8-Minute Rule; CPT Coding; Medicare Ch.15 §220.3</td>
+</tr>
+
+<tr>
+<td>Objective — Language Therapy Detail</td>
+<td>
+<code>"Target: __ | Task: __ | Cuing hierarchy: __ | Accuracy: __% | Trials: __ | Generalization: __ | Functional application: __"</code>
+</td>
+<td>ASHA CPGs; CMS</td>
+</tr>
+
+<tr>
+<td>Objective — Articulation/Motor Speech Detail</td>
+<td>
+<code>"Target sound/movement: __ | Level: __ | Accuracy: __% | Cuing: __ | Stimulability: __ | Carryover: __"</code>
+</td>
+<td>ASHA; Duffy Motor Speech</td>
+</tr>
+
+<tr>
+<td>Objective — Voice Therapy Detail</td>
+<td>
+<code>"Target: __ | Technique: __ | Pitch range: __ | Loudness: __ dB | MPT: __ sec | Patient compliance: __ | Vocal hygiene: __"</code>
+</td>
+<td>ASHA; LSVT; Vocal Function Exercises</td>
+</tr>
+
+<tr>
+<td>Objective — Fluency Therapy Detail</td>
+<td>
+<code>"Target strategy: __ | Disfluency rate: __% | Speaking rate: __ wpm | Situation: __ | Self-monitoring: __ | Desensitization: __"</code>
+</td>
+<td>ASHA Fluency Guidelines; Lidcombe; SSI-4</td>
+</tr>
+
+<tr>
+<td>Objective — Cognitive-Communication Therapy Detail</td>
+<td>
+<code>"Domain: __ | Task: __ | Complexity: __ | Accuracy: __% | Cuing: __ | Functional carryover: __ | Compensatory strategies: __"</code>
+</td>
+<td>ASHA; ACLS; CMS</td>
+</tr>
+
+<tr>
+<td>Objective — Dysphagia Treatment Detail</td>
+<td>
+<code>"Diet trialed: IDDSI Level __ | Bolus size: __ | Strategy: __ | Swallow quality: __ | Coughing/clearing: __ | Oral residue: __ | Aspiration signs: __"</code>
+</td>
+<td>ASHA; IDDSI; CMS</td>
+</tr>
+
+<tr>
+<td>Objective — Oral Motor Exercise Detail</td>
+<td>
+<code>"Target structure: __ | Exercise: __ | Repetitions: __ | Resistance: __ | Accuracy: __ | NMES: Y/N | Parameters: __"</code>
+</td>
+<td>ASHA; Oral Motor Literature</td>
+</tr>
+
+<tr>
+<td>Objective — AAC Training Detail</td>
+<td>
+<code>"Device/system: __ | Access method: __ | Vocabulary target: __ | Accuracy: __% | Communication partner training: __ | Functional use: __"</code>
+</td>
+<td>ASHA AAC; Medicare AAC Policy</td>
+</tr>
+
+<tr>
+<td>8-Minute Rule Compliance</td>
+<td>
+<code>"Total timed minutes: __ | Total untimed codes: __ | Billable units: __ | Unit breakdown: __ | Compliant: Y/N"</code>
+</td>
+<td>CMS 8-Minute Rule; Medicare Claims Processing Manual Ch.5 §20.2</td>
+</tr>
+
+<tr>
+<td>Objective — Outcome Measure Re-assessment</td>
+<td>
+<code>"Tool: __ | Today's score: __ | Previous score: __ | Change: __ | MCID met: Y/N | Trajectory: improving/plateau/declining"</code>
+</td>
+<td>ASHA; Specific tool validation</td>
+</tr>
+
+<tr>
+<td>Objective — Communication Re-assessment</td>
+<td>
+<code>"ASHA NOMS FCM: __/7 | Previous: __/7 | Intelligibility: __% | Previous: __% | Comprehension change: __ | Expression change: __"</code>
+</td>
+<td>ASHA NOMS; CMS</td>
+</tr>
+
+<tr>
+<td>Objective — Swallowing Re-assessment</td>
+<td>
+<code>"ASHA NOMS Swallowing: __/7 | Previous: __/7 | FOIS: __/7 | Previous: __/7 | Diet level change: __ | Aspiration risk change: __"</code>
+</td>
+<td>ASHA NOMS; FOIS (Crary 2005)</td>
+</tr>
+
+<tr>
+<td>CMS Section GG Update (SLP)</td>
+<td>
+<code>"Expression: __/06 | Previous: __/06 | Comprehension: __/06 | Previous: __/06 | Eating (if applicable): __/06 | Previous: __/06"</code>
+</td>
+<td>CMS Section GG (IMPACT Act 2014)</td>
+</tr>
+
+<tr>
+<td>Assessment — Clinical Reasoning</td>
+<td>
+<code>"Patient response to treatment: __ | Progress toward goals: on track/behind/ahead | Skilled services justified because: __ | Treatment modifications: __"</code>
+</td>
+<td>ASHA; CMS Medicare Ch.15 §220.2</td>
+</tr>
+
+<tr>
+<td>Assessment — Goal Status</td>
+<td>
+<code>"STG 1: met/progressing/not met | STG 2: met/progressing/not met | STG 3: met/progressing/not met | Goals modified: Y/N | New goals: __"</code>
+</td>
+<td>ASHA; CMS; SMART Goals</td>
+</tr>
+
+<tr>
+<td>Assessment — Barriers to Progress</td>
+<td>
+<code>"Barriers identified: __ | Medical complications: __ | Cognitive factors: __ | Adherence issues: __ | Environmental factors: __ | Plan to address: __"</code>
+</td>
+<td>ASHA; ICF Model; CMS</td>
+</tr>
+
+<tr>
+<td>Assessment — Rehab Prognosis Update</td>
+<td>
+<code>"Prognosis: excellent/good/fair/poor | Change from initial: __ | Rationale: __ | Expected discharge date: __ | Functional plateau anticipated: Y/N"</code>
+</td>
+<td>ASHA; Medicare Ch.15 §220.2</td>
+</tr>
+
+<tr>
+<td>Plan — Next Session</td>
+<td>
+<code>"Planned interventions: __ | Progression: __ | Goals to target: __ | Materials needed: __ | Precautions: __"</code>
+</td>
+<td>ASHA; CMS</td>
+</tr>
+
+<tr>
+<td>Plan — HEP Update</td>
+<td>
+<code>"HEP modifications: __ | New exercises/activities: __ | Swallowing precautions updated: Y/N | Frequency: __ | Patient/caregiver agreement: Y/N"</code>
+</td>
+<td>ASHA; CMS</td>
+</tr>
+
+<tr>
+<td>Plan — Communication with Team</td>
+<td>
+<code>"MD communication needed: Y/N | Reason: __ | Dietary consult: Y/N | Referral to: __ | Insurance authorization: __ | Visits remaining: __"</code>
+</td>
+<td>CMS; ASHA; 42 CFR 410.62</td>
+</tr>
+
+<tr>
+<td>Plan — Discharge Planning</td>
+<td>
+<code>"Estimated discharge: __ | Discharge criteria: __ | Discharge plan: __ | Follow-up: __ | AAC at discharge: __ | Diet at discharge: IDDSI __"</code>
+</td>
+<td>ASHA; CMS; Medicare Ch.15</td>
+</tr>
+
+<tr>
+<td>Medical Necessity — Continued Services</td>
+<td>
+<code>"Skilled SLP services continue to be necessary because: __ | Complexity: __ | Progress evidence: __ | Aspiration risk: __ | Expected remaining duration: __ weeks"</code>
+</td>
+<td>CMS Medicare Ch.15 §220.2; Jimmo v. Sebelius (2013)</td>
+</tr>
+
+<tr>
+<td>Therapist Signature / Credentials</td>
+<td>
+<code>"Therapist: __ | Credentials: SLP/CCC-SLP/CF-SLP | License #: __ | NPI: __ | Date signed: __ | ASHA #: __"</code>
+</td>
+<td>CMS; State Practice Acts; ASHA</td>
+</tr>
+
+</tbody>
+</table>
+
+<hr />
+<h2>PART 3: RE-EVALUATION / DISCHARGE SUMMARY FRAMEWORK</h2>
+<p>The Re-evaluation / Discharge Summary provides a comprehensive comparison of current functional status to initial evaluation baseline, documents goal achievement, updates prognosis, and either revises the plan of care for continued services or documents discharge. CMS requires re-evaluation at certification period renewal (typically every 90 days), when there is a significant change in the patient's condition, or when the plan of care needs modification. Discharge summaries document the episode of care outcomes and provide recommendations for ongoing care.</p>
+<p>Re-evaluations must be performed by the licensed therapist (PT, OT, or SLP) &mdash; assistants may contribute data collection but cannot independently determine whether to continue or discharge services. Discharge summaries by assistants require co-signature by the supervising therapist.</p>
+<hr />
+<h3>1. PT Re-evaluation / Discharge (CPT 97164)</h3>
+<p><strong>Purpose:</strong> Comprehensive re-assessment of physical therapy treatment effectiveness, comparing current functional status to initial evaluation. Determines whether to continue services with revised goals/plan or discharge the patient. Documents goal achievement, outcome measure changes, and medical necessity for continued care or discharge rationale.</p>
+<p><strong>Applicable Code:</strong> 97164 (PT re-evaluation) &mdash; used when the therapist performs a formal re-evaluation; additional treatment codes may be billed in the same session if treatment is also provided</p>
+<hr />
+<h4>PT Re-evaluation / Discharge &mdash; Items</h4>
+
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Format Template</th>
+<th>Source</th>
+</tr>
+</thead>
+
+<tbody>
+
+<tr>
+<td>Re-evaluation / Discharge Type</td>
+<td>
+<code>"Type: Re-evaluation / Discharge | Date: __ | Reason: __ | Episode start date: __ | Total visits completed: __ | Total weeks: __"</code>
+</td>
+<td>CMS 42 CFR 410.60; APTA; Medicare Ch.15 §220</td>
+</tr>
+
+<tr>
+<td>Re-evaluation Trigger</td>
+<td>
+<code>"Trigger: __ (significant change / insurance requirement / certification period / planned re-eval / plateau / new diagnosis) | Days since last eval: __"</code>
+</td>
+<td>APTA Standards; CMS Medicare Ch.15 §220.2</td>
+</tr>
+
+<tr>
+<td>Subjective — Patient Report at Re-eval/DC</td>
+<td>
+<code>"Patient reports: __ | Satisfaction with progress: __ | Remaining concerns: __ | Goals achieved per patient: __ | Pain NRS: __/10 | Compared to initial: __/10"</code>
+</td>
+<td>APTA; NRS; Patient-Centered Care</td>
+</tr>
+
+<tr>
+<td>Subjective — Functional Status Self-Report</td>
+<td>
+<code>"Current ADL status: __ | Current mobility status: __ | Work/school status: __ | Community participation: __ | Quality of life: __"</code>
+</td>
+<td>APTA; ICF Model; SF-36</td>
+</tr>
+
+<tr>
+<td>Objective — Pain Re-assessment</td>
+<td>
+<code>"Pain NRS current: __/10 | Pain NRS initial: __/10 | Change: __ | MCID (2 points): met Y/N | Pain location change: __ | Pain behavior change: __"</code>
+</td>
+<td>NRS; APTA; MCID literature</td>
+</tr>
+
+<tr>
+<td>Objective — ROM Re-assessment (Comprehensive)</td>
+<td>
+<code>"Joint: __ | Motion: __ | Current: __° | Initial: __° | Change: +/-__° | Normal: __° | % of normal: __%"</code>
+</td>
+<td>Norkin & White 6th ed.; APTA</td>
+</tr>
+
+<tr>
+<td>Objective — Strength Re-assessment (Comprehensive)</td>
+<td>
+<code>"Muscle/group: __ | Current MMT: __/5 | Initial MMT: __/5 | Change: __ grade | Grip current: __ kg | Grip initial: __ kg | Change: __ kg"</code>
+</td>
+<td>Daniels & Worthingham 10th ed.; APTA</td>
+</tr>
+
+<tr>
+<td>Objective — Balance Re-assessment (Comprehensive)</td>
+<td>
+<code>"BBS current: __/56 | BBS initial: __/56 | Change: __ | MCID: __ | Mini-BESTest current: __/28 | Initial: __/28 | Fall risk category change: __"</code>
+</td>
+<td>BBS (Berg 1992); Mini-BESTest; CDC STEADI</td>
+</tr>
+
+<tr>
+<td>Objective — Gait Analysis Re-assessment</td>
+<td>
+<code>"Gait pattern current: __ | Gait pattern initial: __ | Assistive device change: __ | Weight-bearing status: __ | Deviations resolved: __ | Deviations remaining: __"</code>
+</td>
+<td>APTA; Rancho Los Amigos</td>
+</tr>
+
+<tr>
+<td>Objective — Gait Speed Re-assessment</td>
+<td>
+<code>"10MWT current: __ m/s | 10MWT initial: __ m/s | Change: __ m/s | MCID met: Y/N | 6MWT current: __ m | 6MWT initial: __ m | Change: __ m | MCID met: Y/N"</code>
+</td>
+<td>10MWT; 6MWT (ATS 2002); MCID literature</td>
+</tr>
+
+<tr>
+<td>Objective — TUG Re-assessment</td>
+<td>
+<code>"TUG current: __ sec | TUG initial: __ sec | Change: __ sec | Fall risk change: __ | Dual-task TUG current: __ sec | Initial: __ sec"</code>
+</td>
+<td>TUG (Podsiadlo & Richardson 1991); CDC STEADI</td>
+</tr>
+
+<tr>
+<td>Objective — Functional Mobility Re-assessment</td>
+<td>
+<code>"Bed mobility current: __ | Initial: __ | Transfers current: __ | Initial: __ | Ambulation current: __ | Initial: __ | Stairs current: __ | Initial: __"</code>
+</td>
+<td>FIM; CMS Section GG; APTA</td>
+</tr>
+
+<tr>
+<td>CMS Section GG — Self-Care Comparison</td>
+<td>
+<code>"Eating: admission __/06 → discharge __/06 | Oral hygiene: __→__ | Toileting: __→__ | Bathing: __→__ | UB dressing: __→__ | LB dressing: __→__ | Footwear: __→__"</code>
+</td>
+<td>CMS Section GG (IMPACT Act 2014)</td>
+</tr>
+
+<tr>
+<td>CMS Section GG — Mobility Comparison</td>
+<td>
+<code>"Roll: __→__ | Sit-lie: __→__ | Lie-sit: __→__ | Sit-stand: __→__ | Transfer: __→__ | Walk 10ft: __→__ | Walk 50ft: __→__ | Walk 150ft: __→__ | Stairs: __→__"</code>
+</td>
+<td>CMS Section GG (IMPACT Act 2014)</td>
+</tr>
+
+<tr>
+<td>Functional Outcome Measure Comparison</td>
+<td>
+<code>"Tool: __ | Initial score: __ | Current score: __ | Change: __ | MCID: __ | MDC: __ | MCID met: Y/N | Percentile change: __"</code>
+</td>
+<td>APTA; Specific tool validation</td>
+</tr>
+
+<tr>
+<td>Functional Outcome Measure — General Comparison</td>
+<td>
+<code>"DASH: initial __→current __ | LEFS: __→__ | NDI: __→__ | ODI: __→__ | FOTO: __→__ | PROMIS: __→__"</code>
+</td>
+<td>DASH; LEFS; NDI; ODI; FOTO</td>
+</tr>
+
+<tr>
+<td>Goal Achievement Summary</td>
+<td>
+<code>"STG 1: met/not met | STG 2: met/not met | STG 3: met/not met | LTG 1: met/not met | LTG 2: met/not met | LTG 3: met/not met | Overall: __%"</code>
+</td>
+<td>APTA; CMS; SMART Goals</td>
+</tr>
+
+<tr>
+<td>Goals — Revised (if re-eval)</td>
+<td>
+<code>"New STG 1: __ in __ weeks | New STG 2: __ in __ weeks | New LTG 1: __ by discharge | Justification for revision: __"</code>
+</td>
+<td>APTA; CMS Medicare Ch.15 §220.2</td>
+</tr>
+
+<tr>
+<td>Clinical Impression / Summary</td>
+<td>
+<code>"Initial presentation: __ | Current status: __ | Overall improvement: __ | Impairments resolved: __ | Impairments remaining: __ | Functional gains: __"</code>
+</td>
+<td>APTA; ICF Framework; Medicare Ch.15</td>
+</tr>
+
+<tr>
+<td>Rehab Prognosis — Updated</td>
+<td>
+<code>"Initial prognosis: __ | Current prognosis: __ | Rationale: __ | Factors affecting: __ | Remaining rehab potential: __"</code>
+</td>
+<td>APTA; Medicare Ch.15 §220.2</td>
+</tr>
+
+<tr>
+<td>Plan of Care — Revised (if re-eval)</td>
+<td>
+<code>"Revised interventions: __ | New interventions: __ | Discontinued interventions: __ | Frequency change: __→__ | Duration extension: __ weeks | Justification: __"</code>
+</td>
+<td>APTA; CMS; 42 CFR 410.60</td>
+</tr>
+
+<tr>
+<td>Medical Necessity — Continued (if re-eval)</td>
+<td>
+<code>"Continued skilled PT is necessary because: __ | New complexity: __ | Progress supporting continuation: __ | Expected additional gains: __ | Discharge criteria not yet met because: __"</code>
+</td>
+<td>CMS Medicare Ch.15 §220.2; Jimmo v. Sebelius</td>
+</tr>
+
+<tr>
+<td>Discharge Reason (if discharge)</td>
+<td>
+<code>"Reason: __ (goals met / patient request / physician order / plateau / insurance / non-compliance / moved / medical change) | Date of discharge: __"</code>
+</td>
+<td>APTA; CMS; Medicare Ch.15</td>
+</tr>
+
+<tr>
+<td>Discharge Recommendations</td>
+<td>
+<code>"HEP at discharge: __ | Community resources: __ | Follow-up: __ | Physician follow-up: __ | Return to PT criteria: __ | Activity restrictions: __"</code>
+</td>
+<td>APTA; CMS</td>
+</tr>
+
+<tr>
+<td>Discharge Equipment / DME</td>
+<td>
+<code>"Equipment at discharge: __ | DME provided: __ | DME training completed: Y/N | Assistive device: __ | Home modifications recommended: __"</code>
+</td>
+<td>CMS DME; APTA</td>
+</tr>
+
+<tr>
+<td>Patient/Caregiver Education at DC</td>
+<td>
+<code>"Education topics: __ | HEP instruction: __ | Precautions reviewed: __ | Signs to seek care: __ | Understanding confirmed: Y/N | Written materials: Y/N"</code>
+</td>
+<td>APTA; Health Literacy; CMS</td>
+</tr>
+
+<tr>
+<td>Fall Prevention Plan at DC</td>
+<td>
+<code>"Fall risk at discharge: low/moderate/high | Compared to admission: __ | Home safety: __ | Exercise program: __ | Follow-up recommended: __"</code>
+</td>
+<td>CDC STEADI; AGS/BGS; CMS</td>
+</tr>
+
+<tr>
+<td>Physician Notification</td>
+<td>
+<code>"Physician notified: Y/N | Method: __ | Discharge summary sent: Y/N | Date: __ | Recommendations communicated: __"</code>
+</td>
+<td>CMS 42 CFR 410.60; Medicare Ch.15</td>
+</tr>
+
+<tr>
+<td>Patient Satisfaction</td>
+<td>
+<code>"Satisfaction survey: Y/N | Score: __/10 | Comments: __ | Areas for improvement: __ | Would recommend: Y/N"</code>
+</td>
+<td>APTA; Press Ganey; CMS QPP</td>
+</tr>
+
+<tr>
+<td>Therapist Signature / Credentials</td>
+<td>
+<code>"Therapist: __ | Credentials: PT/DPT | License #: __ | NPI: __ | Date signed: __ | Supervising PT (if applicable): __"</code>
+</td>
+<td>CMS; State Practice Acts; APTA</td>
+</tr>
+
+</tbody>
+</table>
+
+<h3>2. PTA Re-evaluation / Discharge (→ PT Alias)</h3>
+<p><strong>PTA uses the PT Re-evaluation/Discharge data set. PTAs do not perform re-evaluations independently — re-evaluations must be performed by the supervising PT. PTAs may contribute data collection. Discharge summaries by PTAs must be co-signed by the supervising PT.</strong></p>
+<p>When PTA is selected as the provider type, the system loads the PT Re-evaluation/Discharge data set with co-signature fields activated.</p>
+<hr />
+<h3>3. OT Re-evaluation / Discharge (CPT 97168)</h3>
+<p><strong>Purpose:</strong> Comprehensive re-assessment of occupational therapy treatment effectiveness, comparing current occupational performance to initial evaluation. Determines whether to continue services with revised goals/plan or discharge. Documents ADL/IADL gains, goal achievement, outcome measure changes, and medical necessity for continued care or discharge rationale.</p>
+<p><strong>Applicable Code:</strong> 97168 (OT re-evaluation) &mdash; used when the therapist performs a formal re-evaluation; additional treatment codes may be billed in the same session</p>
+<hr />
+<h4>OT Re-evaluation / Discharge &mdash; Items</h4>
+
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Format Template</th>
+<th>Source</th>
+</tr>
+</thead>
+
+<tbody>
+
+<tr>
+<td>Re-evaluation / Discharge Type</td>
+<td>
+<code>"Type: Re-evaluation / Discharge | Date: __ | Reason: __ | Episode start date: __ | Total visits completed: __ | Total weeks: __"</code>
+</td>
+<td>CMS 42 CFR 410.60; AOTA; Medicare Ch.15 §230</td>
+</tr>
+
+<tr>
+<td>Re-evaluation Trigger</td>
+<td>
+<code>"Trigger: __ (significant change / insurance requirement / certification period / planned re-eval / plateau / new diagnosis) | Days since last eval: __"</code>
+</td>
+<td>AOTA Standards; CMS Medicare Ch.15 §230.2</td>
+</tr>
+
+<tr>
+<td>Subjective — Client Report at Re-eval/DC</td>
+<td>
+<code>"Client reports: __ | Satisfaction with progress: __ | Remaining concerns: __ | Occupational goals achieved: __ | Pain NRS: __/10 | Compared to initial: __/10"</code>
+</td>
+<td>AOTA; NRS; Patient-Centered Care</td>
+</tr>
+
+<tr>
+<td>Subjective — Occupational Performance Self-Report</td>
+<td>
+<code>"Current ADL status: __ | Current IADL status: __ | Work/school status: __ | Leisure: __ | Social participation: __ | Quality of life: __"</code>
+</td>
+<td>AOTA OTPF-4; ICF Model</td>
+</tr>
+
+<tr>
+<td>Objective — COPM Re-assessment</td>
+<td>
+<code>"COPM Performance current: __/10 | Initial: __/10 | Change: __ | COPM Satisfaction current: __/10 | Initial: __/10 | Change: __ | MCID met: Y/N"</code>
+</td>
+<td>COPM (Law 2014); MCID = 2.0</td>
+</tr>
+
+<tr>
+<td>Objective — ROM Re-assessment (UE Comprehensive)</td>
+<td>
+<code>"Shoulder: flex __° (init __°) | abd __° (init __°) | Elbow: flex __° (init __°) | Wrist: flex __° (init __°) ext __° (init __°) | Digits: __"</code>
+</td>
+<td>Norkin & White 6th ed.; AOTA</td>
+</tr>
+
+<tr>
+<td>Objective — Strength Re-assessment (UE Comprehensive)</td>
+<td>
+<code>"Shoulder flex: __/5 (init __/5) | Grip R: __ kg (init __ kg) | Grip L: __ kg (init __ kg) | Pinch: __ kg (init __ kg) | Overall change: __"</code>
+</td>
+<td>Daniels & Worthingham; Jamar; AOTA</td>
+</tr>
+
+<tr>
+<td>Objective — Sensation Re-assessment</td>
+<td>
+<code>"Light touch: current __ initial __ | Two-point: current __ mm initial __ mm | Monofilament: current __ initial __ | Proprioception: __ | Change: __"</code>
+</td>
+<td>Semmes-Weinstein; AOTA; ASHT</td>
+</tr>
+
+<tr>
+<td>Objective — Coordination Re-assessment</td>
+<td>
+<code>"9HPT R: __ sec (init __ sec) | 9HPT L: __ sec (init __ sec) | Box & Block R: __ (init __) | Box & Block L: __ (init __) | Functional change: __"</code>
+</td>
+<td>9HPT; Box & Block; AOTA</td>
+</tr>
+
+<tr>
+<td>Objective — Cognitive Re-assessment</td>
+<td>
+<code>"MoCA current: __/30 | Initial: __/30 | ACLS current: __ | Initial: __ | Functional cognition change: __ | Safety awareness: __"</code>
+</td>
+<td>MoCA; ACLS; AOTA</td>
+</tr>
+
+<tr>
+<td>Objective — ADL Re-assessment (Basic)</td>
+<td>
+<code>"Feeding: current __ initial __ | Grooming: __→__ | Bathing: __→__ | UB dressing: __→__ | LB dressing: __→__ | Toileting: __→__ | FIM Self-Care: __/42 (init __/42)"</code>
+</td>
+<td>FIM; Barthel; AOTA; CMS Section GG</td>
+</tr>
+
+<tr>
+<td>Objective — ADL Re-assessment (Instrumental)</td>
+<td>
+<code>"Meal prep: current __ initial __ | Laundry: __→__ | Shopping: __→__ | Money mgmt: __→__ | Med mgmt: __→__ | Transportation: __→__"</code>
+</td>
+<td>Lawton IADL; AOTA</td>
+</tr>
+
+<tr>
+<td>CMS Section GG — Self-Care Comparison</td>
+<td>
+<code>"Eating: __→__ | Oral hygiene: __→__ | Toileting: __→__ | Bathing: __→__ | UB dressing: __→__ | LB dressing: __→__ | Footwear: __→__"</code>
+</td>
+<td>CMS Section GG (IMPACT Act 2014)</td>
+</tr>
+
+<tr>
+<td>CMS Section GG — Mobility Comparison (OT items)</td>
+<td>
+<code>"Sit to stand: __→__ | Chair transfer: __→__ | Toilet transfer: __→__ | Car transfer: __→__ | Picking up object: __→__"</code>
+</td>
+<td>CMS Section GG (IMPACT Act 2014)</td>
+</tr>
+
+<tr>
+<td>Functional Outcome Measure Comparison</td>
+<td>
+<code>"Tool: __ | Initial score: __ | Current score: __ | Change: __ | MCID: __ | MCID met: Y/N"</code>
+</td>
+<td>AOTA; Specific tool validation</td>
+</tr>
+
+<tr>
+<td>Functional Outcome Measure — General Comparison</td>
+<td>
+<code>"DASH: __→__ | QuickDASH: __→__ | FIM Total: __→__ | Barthel: __→__ | COPM P: __→__ S: __→__ | PROMIS: __→__"</code>
+</td>
+<td>DASH; FIM; COPM; AOTA</td>
+</tr>
+
+<tr>
+<td>Goal Achievement Summary</td>
+<td>
+<code>"STG 1: met/not met | STG 2: met/not met | STG 3: met/not met | LTG 1: met/not met | LTG 2: met/not met | LTG 3: met/not met | Overall: __%"</code>
+</td>
+<td>AOTA; CMS; SMART Goals</td>
+</tr>
+
+<tr>
+<td>Goals — Revised (if re-eval)</td>
+<td>
+<code>"New STG 1: __ in __ weeks | New STG 2: __ in __ weeks | New LTG: __ by discharge | Justification: __"</code>
+</td>
+<td>AOTA; CMS Medicare Ch.15 §230.2</td>
+</tr>
+
+<tr>
+<td>Clinical Impression / Summary</td>
+<td>
+<code>"Initial presentation: __ | Current status: __ | Overall improvement: __ | Occupational performance gains: __ | Remaining deficits: __"</code>
+</td>
+<td>AOTA OTPF-4; ICF; Medicare Ch.15</td>
+</tr>
+
+<tr>
+<td>Rehab Prognosis — Updated</td>
+<td>
+<code>"Initial prognosis: __ | Current prognosis: __ | Rationale: __ | Remaining rehab potential: __"</code>
+</td>
+<td>AOTA; Medicare Ch.15 §230.2</td>
+</tr>
+
+<tr>
+<td>Plan of Care — Revised (if re-eval)</td>
+<td>
+<code>"Revised interventions: __ | New interventions: __ | Discontinued: __ | Frequency change: __→__ | Duration extension: __ weeks | Justification: __"</code>
+</td>
+<td>AOTA; CMS; 42 CFR 410.60</td>
+</tr>
+
+<tr>
+<td>Medical Necessity — Continued (if re-eval)</td>
+<td>
+<code>"Continued skilled OT is necessary because: __ | Progress supporting continuation: __ | Expected additional gains: __ | Discharge criteria not yet met: __"</code>
+</td>
+<td>CMS Medicare Ch.15 §230.2; Jimmo v. Sebelius</td>
+</tr>
+
+<tr>
+<td>Discharge Reason (if discharge)</td>
+<td>
+<code>"Reason: __ (goals met / patient request / physician order / plateau / insurance / non-compliance / moved / medical change) | Date: __"</code>
+</td>
+<td>AOTA; CMS; Medicare Ch.15</td>
+</tr>
+
+<tr>
+<td>Discharge Recommendations</td>
+<td>
+<code>"HEP at discharge: __ | Adaptive equipment: __ | Community resources: __ | Follow-up: __ | Return to OT criteria: __"</code>
+</td>
+<td>AOTA; CMS</td>
+</tr>
+
+<tr>
+<td>Discharge Equipment / DME / Adaptive Devices</td>
+<td>
+<code>"Equipment at discharge: __ | Adaptive devices: __ | Splint/orthotic: __ | DME: __ | Training completed: Y/N | Home modifications: __"</code>
+</td>
+<td>CMS DME; AOTA; ASHT</td>
+</tr>
+
+<tr>
+<td>Patient/Caregiver Education at DC</td>
+<td>
+<code>"Education topics: __ | HEP instruction: __ | Precautions: __ | Signs to seek care: __ | Understanding: Y/N | Written materials: Y/N"</code>
+</td>
+<td>AOTA; Health Literacy; CMS</td>
+</tr>
+
+<tr>
+<td>Home Safety at DC</td>
+<td>
+<code>"Home assessment completed: Y/N | Barriers addressed: __ | Modifications recommended: __ | Caregiver training: __ | Fall risk at discharge: __"</code>
+</td>
+<td>AOTA Home Assessment; CMS</td>
+</tr>
+
+<tr>
+<td>Physician Notification</td>
+<td>
+<code>"Physician notified: Y/N | Method: __ | Discharge summary sent: Y/N | Date: __ | Recommendations communicated: __"</code>
+</td>
+<td>CMS 42 CFR 410.60; Medicare Ch.15</td>
+</tr>
+
+<tr>
+<td>Patient Satisfaction</td>
+<td>
+<code>"Satisfaction survey: Y/N | Score: __/10 | Comments: __ | Would recommend: Y/N"</code>
+</td>
+<td>AOTA; CMS QPP</td>
+</tr>
+
+<tr>
+<td>Therapist Signature / Credentials</td>
+<td>
+<code>"Therapist: __ | Credentials: OT/OTR/L | License #: __ | NPI: __ | Date signed: __ | Supervising OT (if applicable): __"</code>
+</td>
+<td>CMS; State Practice Acts; AOTA</td>
+</tr>
+
+</tbody>
+</table>
+
+<h3>4. OTA Re-evaluation / Discharge (→ OT Alias)</h3>
+<p><strong>OTA uses the OT Re-evaluation/Discharge data set. OTAs do not perform re-evaluations independently — re-evaluations must be performed by the supervising OT. OTAs may contribute data collection. Discharge summaries by OTAs must be co-signed by the supervising OT.</strong></p>
+<p>When OTA is selected as the provider type, the system loads the OT Re-evaluation/Discharge data set with co-signature fields activated.</p>
+<hr />
+<h3>5. SLP Re-evaluation / Discharge (CPT 92521-92524)</h3>
+<p><strong>Purpose:</strong> Comprehensive re-assessment of speech-language pathology treatment effectiveness, comparing current communication, cognitive-communication, and swallowing function to initial evaluation. Documents goal achievement, ASHA NOMS changes, diet level changes (IDDSI), and medical necessity for continued care or discharge rationale.</p>
+<p><strong>Applicable Codes:</strong> 92521-92524 (SLP re-evaluation by area) &mdash; code selection based on area of re-assessment; additional treatment codes may be billed in the same session</p>
+<hr />
+<h4>SLP Re-evaluation / Discharge &mdash; Items</h4>
+
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Format Template</th>
+<th>Source</th>
+</tr>
+</thead>
+
+<tbody>
+
+<tr>
+<td>Re-evaluation / Discharge Type</td>
+<td>
+<code>"Type: Re-evaluation / Discharge | Date: __ | Reason: __ | Episode start date: __ | Total visits completed: __ | Total weeks: __"</code>
+</td>
+<td>CMS 42 CFR 410.62; ASHA; Medicare Ch.15 §220</td>
+</tr>
+
+<tr>
+<td>Re-evaluation Trigger</td>
+<td>
+<code>"Trigger: __ (significant change / insurance requirement / certification period / planned re-eval / plateau / new diagnosis) | Days since last eval: __"</code>
+</td>
+<td>ASHA Standards; CMS Medicare Ch.15 §220.2</td>
+</tr>
+
+<tr>
+<td>Subjective — Patient/Caregiver Report at Re-eval/DC</td>
+<td>
+<code>"Patient/caregiver reports: __ | Satisfaction: __ | Remaining concerns: __ | Goals achieved per patient: __ | Communication change: __ | Swallowing change: __"</code>
+</td>
+<td>ASHA; Patient-Centered Care</td>
+</tr>
+
+<tr>
+<td>Subjective — Functional Communication Self-Report</td>
+<td>
+<code>"Communication effectiveness: __ | AAC satisfaction: __ | Social participation: __ | Work/school: __ | Quality of life: __"</code>
+</td>
+<td>ASHA; ICF Model</td>
+</tr>
+
+<tr>
+<td>Subjective — Swallowing Self-Report</td>
+<td>
+<code>"Diet satisfaction: __ | Swallowing difficulty: __ | Choking frequency: __ | Weight status: __ | Meal enjoyment: __"</code>
+</td>
+<td>ASHA; EAT-10; DHI</td>
+</tr>
+
+<tr>
+<td>Objective — Oral-Motor Re-assessment</td>
+<td>
+<code>"Lip ROM/strength: current __ initial __ | Tongue ROM/strength: current __ initial __ | Jaw: __ | Velum: __ | Change: __"</code>
+</td>
+<td>ASHA; Duffy Motor Speech</td>
+</tr>
+
+<tr>
+<td>Objective — Voice Re-assessment</td>
+<td>
+<code>"GRBAS current: G__R__B__A__S__ | Initial: G__R__B__A__S__ | MPT current: __ sec | Initial: __ sec | VHI current: __ | Initial: __"</code>
+</td>
+<td>GRBAS; CAPE-V; VHI; ASHA</td>
+</tr>
+
+<tr>
+<td>Objective — Speech Re-assessment</td>
+<td>
+<code>"Intelligibility current: __% | Initial: __% | Articulation errors current: __ | Initial: __ | Motor speech current: __ | Initial: __"</code>
+</td>
+<td>ASHA; GFTA-3; Duffy</td>
+</tr>
+
+<tr>
+<td>Objective — Language Re-assessment (Expressive)</td>
+<td>
+<code>"Naming current: __ | Initial: __ | Sentence formulation: current __ initial __ | Word-finding: __ | WAB-R AQ current: __ | Initial: __"</code>
+</td>
+<td>WAB-R; BDAE-3; ASHA</td>
+</tr>
+
+<tr>
+<td>Objective — Language Re-assessment (Receptive)</td>
+<td>
+<code>"Auditory comprehension current: __ | Initial: __ | Following commands: __ step (init __ step) | Reading: __ | Yes/no reliability: __%"</code>
+</td>
+<td>WAB-R; Token Test; ASHA</td>
+</tr>
+
+<tr>
+<td>Objective — Cognitive-Communication Re-assessment</td>
+<td>
+<code>"MoCA current: __/30 | Initial: __/30 | Attention: __ | Memory: __ | Executive function: __ | Problem-solving: __ | Change: __"</code>
+</td>
+<td>MoCA; RBANS; ASHA</td>
+</tr>
+
+<tr>
+<td>Objective — Swallowing Re-assessment (Clinical)</td>
+<td>
+<code>"Oral phase: current __ initial __ | Pharyngeal phase: current __ initial __ | Aspiration signs: __ | Diet level change: IDDSI __ → __"</code>
+</td>
+<td>ASHA; MASA</td>
+</tr>
+
+<tr>
+<td>Objective — Swallowing Re-assessment (Instrumental)</td>
+<td>
+<code>"MBSS date: __ | FEES date: __ | PAS score current: __ | Initial: __ | Recommendations: __ | Diet change: __"</code>
+</td>
+<td>ASHA; PAS (Rosenbek 1996); MBSS/FEES</td>
+</tr>
+
+<tr>
+<td>Objective — IDDSI Level Change</td>
+<td>
+<code>"Food texture: IDDSI __ → __ | Liquid: IDDSI __ → __ | Upgrades: __ | Downgrades: __ | Rationale: __"</code>
+</td>
+<td>IDDSI Framework 2.0; ASHA</td>
+</tr>
+
+<tr>
+<td>ASHA NOMS Comparison</td>
+<td>
+<code>"FCM current: __/7 | Initial: __/7 | Change: __ | Swallowing NOMS current: __/7 | Initial: __/7 | Change: __"</code>
+</td>
+<td>ASHA NOMS</td>
+</tr>
+
+<tr>
+<td>CMS Section GG Comparison (SLP)</td>
+<td>
+<code>"Expression: __→__ | Comprehension: __→__ | Eating (if applicable): __→__"</code>
+</td>
+<td>CMS Section GG (IMPACT Act 2014)</td>
+</tr>
+
+<tr>
+<td>Functional Outcome Measure Comparison</td>
+<td>
+<code>"Tool: __ | Initial score: __ | Current score: __ | Change: __ | MCID: __ | MCID met: Y/N"</code>
+</td>
+<td>ASHA; Specific validation</td>
+</tr>
+
+<tr>
+<td>Goal Achievement Summary</td>
+<td>
+<code>"STG 1: met/not met | STG 2: met/not met | STG 3: met/not met | LTG 1: met/not met | LTG 2: met/not met | LTG 3: met/not met | Overall: __%"</code>
+</td>
+<td>ASHA; CMS; SMART Goals</td>
+</tr>
+
+<tr>
+<td>Goals — Revised (if re-eval)</td>
+<td>
+<code>"New STG 1: __ in __ weeks | New STG 2: __ in __ weeks | New LTG: __ by discharge | Justification: __"</code>
+</td>
+<td>ASHA; CMS Medicare Ch.15 §220.2</td>
+</tr>
+
+<tr>
+<td>Clinical Impression / Summary</td>
+<td>
+<code>"Initial presentation: __ | Current status: __ | Communication gains: __ | Swallowing gains: __ | Remaining deficits: __"</code>
+</td>
+<td>ASHA; ICF; Medicare Ch.15</td>
+</tr>
+
+<tr>
+<td>Rehab Prognosis — Updated</td>
+<td>
+<code>"Initial prognosis: __ | Current prognosis: __ | Rationale: __ | Remaining potential: __"</code>
+</td>
+<td>ASHA; Medicare Ch.15 §220.2</td>
+</tr>
+
+<tr>
+<td>Plan of Care — Revised (if re-eval)</td>
+<td>
+<code>"Revised interventions: __ | New interventions: __ | Discontinued: __ | Frequency change: __→__ | Duration: __ weeks | Justification: __"</code>
+</td>
+<td>ASHA; CMS; 42 CFR 410.62</td>
+</tr>
+
+<tr>
+<td>Medical Necessity — Continued (if re-eval)</td>
+<td>
+<code>"Continued skilled SLP is necessary because: __ | Progress: __ | Aspiration risk: __ | Expected gains: __ | Discharge criteria not met: __"</code>
+</td>
+<td>CMS Medicare Ch.15 §220.2; Jimmo v. Sebelius</td>
+</tr>
+
+<tr>
+<td>Discharge Reason (if discharge)</td>
+<td>
+<code>"Reason: __ (goals met / patient request / physician order / plateau / insurance / non-compliance / moved / medical change) | Date: __"</code>
+</td>
+<td>ASHA; CMS; Medicare Ch.15</td>
+</tr>
+
+<tr>
+<td>Discharge Diet Recommendations</td>
+<td>
+<code>"Final diet: IDDSI Food Level __ | Final liquid: IDDSI Drink Level __ | Swallowing precautions: __ | Follow-up swallow study: Y/N"</code>
+</td>
+<td>IDDSI; ASHA; CMS</td>
+</tr>
+
+<tr>
+<td>Discharge Communication Recommendations</td>
+<td>
+<code>"Communication level at DC: __ | AAC at discharge: __ | Communication partner strategies: __ | Home practice: __ | Follow-up: __"</code>
+</td>
+<td>ASHA; CMS</td>
+</tr>
+
+<tr>
+<td>Patient/Caregiver Education at DC</td>
+<td>
+<code>"Education topics: __ | Swallowing precautions: __ | Communication strategies: __ | HEP: __ | Understanding: Y/N | Written materials: Y/N"</code>
+</td>
+<td>ASHA; Health Literacy; CMS</td>
+</tr>
+
+<tr>
+<td>Physician Notification</td>
+<td>
+<code>"Physician notified: Y/N | Method: __ | Discharge summary sent: Y/N | Date: __ | Diet recommendations: __ | Communication recommendations: __"</code>
+</td>
+<td>CMS 42 CFR 410.62; Medicare Ch.15</td>
+</tr>
+
+<tr>
+<td>Patient Satisfaction</td>
+<td>
+<code>"Satisfaction survey: Y/N | Score: __/10 | Comments: __ | Would recommend: Y/N"</code>
+</td>
+<td>ASHA; CMS QPP</td>
+</tr>
+
+<tr>
+<td>Therapist Signature / Credentials</td>
+<td>
+<code>"Therapist: __ | Credentials: SLP/CCC-SLP/CF-SLP | License #: __ | NPI: __ | ASHA #: __ | Date signed: __"</code>
+</td>
+<td>CMS; State Practice Acts; ASHA</td>
+</tr>
+
+</tbody>
+</table>
+
+<hr />
+<h2>PART 4: REHABILITATION SPECIALTY ADD-ONS</h2>
+<p>Specialty add-ons are supplemental item sets that layer on top of the base framework templates. When a provider's practice area or a specific patient's condition requires specialized documentation beyond the base template, the appropriate add-on is activated. Add-ons are discipline-aware &mdash; some apply primarily to PT (e.g., Sports Rehab), some to OT (e.g., Hand Therapy), some to SLP (e.g., Voice/Swallowing is already in the base SLP template), and some cross disciplines (e.g., Wound Care, Aquatic Therapy).</p>
+<p>Each add-on provides 10-15 additional items with the same format: Item Label | <code>"format template"</code> | Source. These items supplement &mdash; they do not replace &mdash; the base framework items.</p>
+<hr />
+<h3>Specialty Add-On 1: Hand Therapy</h3>
+<p><strong>Disciplines:</strong> OT (primary), PT (when treating hand/UE conditions)</p>
+<p><strong>When activated:</strong> Any evaluation or treatment involving hand, wrist, or forearm conditions &mdash; fractures, tendon repairs, nerve injuries, replantation, Dupuytren's contracture, carpal tunnel, trigger finger, arthritis, burns, amputations, crush injuries, or complex regional pain syndrome (CRPS) of the upper extremity.</p>
+<p><strong>Key standards:</strong> ASHT (American Society of Hand Therapists), CHT (Certified Hand Therapist) scope of practice, AMA Guides to the Evaluation of Permanent Impairment 6th Edition, Kleinert/Duran/Modified Dorsal Block protocols for tendon repairs.</p>
+<hr />
+<h4>Hand Therapy Add-On &mdash; Items</h4>
+
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Format Template</th>
+<th>Source</th>
+</tr>
+</thead>
+
+<tbody>
+
+<tr>
+<td>Hand Injury Classification</td>
+<td>
+<code>"Injury type: __ | Zone: __ | Structures involved: __ | Surgical repair: Y/N | Protocol: __ | Precautions: __"</code>
+</td>
+<td>ASHT; Kleinert/Duran/Modified Dorsal Block Protocols</td>
+</tr>
+
+<tr>
+<td>Edema Measurement — Hand</td>
+<td>
+<code>"Volumetric R: __ mL | L: __ mL | Circumferential: __ cm at __ | Comparison: __ | Change from prior: __"</code>
+</td>
+<td>ASHT; Volumetric Measurement; Figure-of-Eight Method</td>
+</tr>
+
+<tr>
+<td>Scar Assessment</td>
+<td>
+<code>"Location: __ | Length: __ cm | Width: __ cm | Vancouver Scar Scale: __/13 | Adherence: __ | Color: __ | Pliability: __ | Height: __"</code>
+</td>
+<td>Vancouver Scar Scale (Sullivan 1990); ASHT</td>
+</tr>
+
+<tr>
+<td>Digit ROM — Detailed</td>
+<td>
+<code>"Digit: __ | MCP flex: __° ext: __° | PIP flex: __° ext: __° | DIP flex: __° ext: __° | TAM: __° | TPM: __° | Composite fist: __"</code>
+</td>
+<td>ASHT; TAM (Total Active Motion); AMA Guides 6th ed.</td>
+</tr>
+
+<tr>
+<td>Wrist/Forearm ROM — Detailed</td>
+<td>
+<code>"Wrist flex: __° ext: __° | Radial dev: __° | Ulnar dev: __° | Forearm sup: __° pro: __° | Composite: __"</code>
+</td>
+<td>Norkin & White; ASHT</td>
+</tr>
+
+<tr>
+<td>Grip Strength — Detailed</td>
+<td>
+<code>"Jamar Position 1: __ kg | Pos 2: __ kg | Pos 3: __ kg | Pos 4: __ kg | Pos 5: __ kg | Rapid exchange: __ | Sincerity test: __"</code>
+</td>
+<td>ASHT; Mathiowetz; Jamar 5-Position Test</td>
+</tr>
+
+<tr>
+<td>Pinch Strength — Detailed</td>
+<td>
+<code>"Tip pinch R: __ kg L: __ kg | Lateral pinch R: __ kg L: __ kg | Palmar pinch R: __ kg L: __ kg | Norm comparison: __%"</code>
+</td>
+<td>ASHT; Mathiowetz; B&L Pinch Gauge</td>
+</tr>
+
+<tr>
+<td>Sensation — Detailed Hand</td>
+<td>
+<code>"Semmes-Weinstein: __ | Two-point static: __ mm | Two-point moving: __ mm | Stereognosis: __/12 | Proprioception: __ | Mapping: __"</code>
+</td>
+<td>Semmes-Weinstein; WEST; ASHT; Dellon</td>
+</tr>
+
+<tr>
+<td>Functional Dexterity</td>
+<td>
+<code>"Purdue Pegboard: __ | Jebsen-Taylor Hand Function: __ | Nine-Hole Peg: __ sec | Functional tasks: __ | In-hand manipulation: __"</code>
+</td>
+<td>Purdue Pegboard; Jebsen-Taylor; 9HPT; ASHT</td>
+</tr>
+
+<tr>
+<td>Splinting / Orthosis Assessment</td>
+<td>
+<code>"Type: __ (static/dynamic/serial static) | Purpose: __ | Wearing schedule: __ | Skin check: __ | Fit: __ | Modification needed: Y/N"</code>
+</td>
+<td>ASHT Splinting Guidelines; AOTA</td>
+</tr>
+
+<tr>
+<td>Work Simulation / FCE</td>
+<td>
+<code>"Job demands: __ | FCE tool: __ | Lifting capacity: __ lbs | Carrying: __ | Repetitive tasks: __ | Tolerance: __ | Return to work status: __"</code>
+</td>
+<td>ASHT; Matheson FCE; DOT; O*NET</td>
+</tr>
+
+<tr>
+<td>Tendon Gliding Exercises</td>
+<td>
+<code>"Protocol: __ | Position sequence: hook/straight fist/full fist/tabletop/straight | Tendon excursion: __ | Pain with: Y/N | Resistance: __"</code>
+</td>
+<td>ASHT; Wehbe & Hunter Tendon Gliding</td>
+</tr>
+
+<tr>
+<td>Desensitization Program</td>
+<td>
+<code>"Hypersensitivity level: __/10 | Textures tolerated: __ | Duration tolerance: __ | Modalities: __ | Progress: __ | Home program: __"</code>
+</td>
+<td>ASHT; Yerxa Desensitization; Downey Community Hospital</td>
+</tr>
+
+</tbody>
+</table>
+
+<h3>Specialty Add-On 2: Vestibular Rehabilitation</h3>
+<p><strong>Disciplines:</strong> PT (primary), OT (functional vestibular applications)</p>
+<p><strong>When activated:</strong> Any evaluation or treatment involving vestibular dysfunction &mdash; BPPV (benign paroxysmal positional vertigo), vestibular neuritis, labyrinthitis, Meniere's disease, vestibular migraine, post-concussion vestibular symptoms, bilateral vestibular hypofunction, acoustic neuroma, or age-related vestibular decline.</p>
+<p><strong>Key standards:</strong> APTA Vestibular Special Interest Group, Herdman Vestibular Rehabilitation 4th Edition, APTA Clinical Practice Guideline for BPPV, Epley/Semont/BBQ Roll canalith repositioning maneuvers.</p>
+<hr />
+<h4>Vestibular Rehabilitation Add-On &mdash; Items</h4>
+
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Format Template</th>
+<th>Source</th>
+</tr>
+</thead>
+
+<tbody>
+
+<tr>
+<td>Vestibular History</td>
+<td>
+<code>"Symptom onset: __ | Vertigo: Y/N | Duration of episodes: __ | Triggers: __ | Nausea/vomiting: Y/N | Hearing change: Y/N | Tinnitus: Y/N | Prior vestibular Dx: __"</code>
+</td>
+<td>APTA Vestibular SIG; Herdman Vestibular Rehabilitation 4th ed.</td>
+</tr>
+
+<tr>
+<td>Dizziness Handicap Inventory (DHI)</td>
+<td>
+<code>"DHI Total: __/100 | Physical: __/28 | Emotional: __/36 | Functional: __/36 | Severity: mild/moderate/severe | MCID: 18 points"</code>
+</td>
+<td>DHI (Jacobson & Newman 1990); MCID (Whitney 2005)</td>
+</tr>
+
+<tr>
+<td>ABC Scale (Activities-Specific Balance Confidence)</td>
+<td>
+<code>"ABC Score: __% | Interpretation: __ | Fall risk (< 67%): Y/N | Community ambulation concern (< 80%): Y/N"</code>
+</td>
+<td>ABC Scale (Powell & Myers 1995)</td>
+</tr>
+
+<tr>
+<td>Oculomotor Examination</td>
+<td>
+<code>"Saccades: __ | Smooth pursuit: __ | VOR cancellation: __ | Convergence: __ cm | Gaze stability: __ | Nystagmus: __ | Direction: __"</code>
+</td>
+<td>APTA Vestibular; Herdman</td>
+</tr>
+
+<tr>
+<td>Dix-Hallpike Test</td>
+<td>
+<code>"Right: positive/negative | Left: positive/negative | Nystagmus direction: __ | Latency: __ sec | Duration: __ sec | Fatigue: Y/N | Vertigo reproduced: Y/N"</code>
+</td>
+<td>Dix-Hallpike (1952); APTA CPG BPPV</td>
+</tr>
+
+<tr>
+<td>Roll Test (Supine)</td>
+<td>
+<code>"Right: positive/negative | Left: positive/negative | Nystagmus type: geotropic/apogeotropic | Intensity: __ | Canal: horizontal | Affected side: __"</code>
+</td>
+<td>Pagnini-McClure Roll Test; APTA Vestibular</td>
+</tr>
+
+<tr>
+<td>Head Impulse Test (HIT)</td>
+<td>
+<code>"Right: positive/negative | Left: positive/negative | Catch-up saccade: Y/N | Canal tested: __ | Interpretation: __ | VOR gain (if vHIT): __"</code>
+</td>
+<td>Halmagyi & Curthoys (1988); vHIT</td>
+</tr>
+
+<tr>
+<td>Dynamic Visual Acuity (DVA)</td>
+<td>
+<code>"Static VA: __ | Dynamic VA: __ | Loss: __ lines | Abnormal (>2 lines): Y/N | Direction: __ | Interpretation: __"</code>
+</td>
+<td>DVA (Herdman 1998); APTA Vestibular</td>
+</tr>
+
+<tr>
+<td>Canalith Repositioning Maneuver</td>
+<td>
+<code>"Maneuver: Epley/Semont/BBQ Roll/Appiani | Canal: __ | Side: R/L | Repetitions: __ | Post-maneuver nystagmus: __ | Patient response: __ | Post-maneuver restrictions: __"</code>
+</td>
+<td>Epley (1992); APTA CPG BPPV; Hilton & Pinder</td>
+</tr>
+
+<tr>
+<td>Gaze Stabilization Exercise</td>
+<td>
+<code>"Exercise: VORx1/VORx2 | Target: __ | Speed: __ | Duration: __ | Background: __ | Patient tolerance: __ | Symptom provocation: __/10"</code>
+</td>
+<td>Herdman Vestibular Rehab; APTA</td>
+</tr>
+
+<tr>
+<td>Habituation Exercise</td>
+<td>
+<code>"Position/movement: __ | Symptom intensity: __/10 | Duration of symptoms: __ sec | Repetitions until habituation: __ | Session-to-session change: __"</code>
+</td>
+<td>Brandt-Daroff; Herdman; Norré</td>
+</tr>
+
+<tr>
+<td>Motion Sensitivity Quotient (MSQ)</td>
+<td>
+<code>"MSQ Score: __/100 | Positions tested: __/16 | Intensity total: __ | Duration total: __ | Change from prior: __"</code>
+</td>
+<td>MSQ (Smith-Wheelock 1991); APTA Vestibular</td>
+</tr>
+
+<tr>
+<td>Vestibular Rehab Outcome Summary</td>
+<td>
+<code>"DHI change: __ → __ | ABC change: __ → __ | BBS change: __ → __ | Gait speed change: __ → __ | TUG change: __ → __ | Functional improvement: __"</code>
+</td>
+<td>APTA Vestibular; Specific outcome tools</td>
+</tr>
+
+</tbody>
+</table>
+
+<h3>Specialty Add-On 3: Pelvic Floor Rehabilitation</h3>
+<p><strong>Disciplines:</strong> PT (primary), OT (functional pelvic floor applications)</p>
+<p><strong>When activated:</strong> Any evaluation or treatment involving pelvic floor dysfunction &mdash; urinary incontinence (stress, urge, mixed), fecal incontinence, pelvic organ prolapse, pelvic pain syndromes, vulvodynia, vaginismus, dyspareunia, postpartum pelvic floor recovery, pre/post prostatectomy, or coccydynia.</p>
+<p><strong>Key standards:</strong> APTA Pelvic Health Section, ICS (International Continence Society), AUA (American Urological Association), ACOG, Modified Oxford Scale, Laycock PERFECT Scheme, Glazer biofeedback protocol.</p>
+<hr />
+<h4>Pelvic Floor Rehabilitation Add-On &mdash; Items</h4>
+
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Format Template</th>
+<th>Source</th>
+</tr>
+</thead>
+
+<tbody>
+
+<tr>
+<td>Pelvic Floor History</td>
+<td>
+<code>"Urinary symptoms: __ | Fecal symptoms: __ | Pelvic pain: Y/N | Sexual dysfunction: Y/N | Obstetric history: G__P__ | Surgeries: __ | Medications: __"</code>
+</td>
+<td>APTA Pelvic Health Section; ICS Terminology</td>
+</tr>
+
+<tr>
+<td>Bladder Diary Summary</td>
+<td>
+<code>"Voids/24h: __ | Nighttime voids: __ | Leakage episodes: __ | Pad use: __ | Fluid intake: __ oz | Urgency episodes: __"</code>
+</td>
+<td>ICS; APTA Pelvic Health</td>
+</tr>
+
+<tr>
+<td>Validated Symptom Questionnaire</td>
+<td>
+<code>"Tool: __ (PFDI-20/PFIQ-7/UDI-6/IIQ-7/ICIQ) | Score: __ | Severity: __ | Subscales: __ | MCID: __"</code>
+</td>
+<td>PFDI-20; UDI-6; IIQ-7; ICIQ; ICS</td>
+</tr>
+
+<tr>
+<td>External Pelvic Assessment</td>
+<td>
+<code>"Posture: __ | Hip ROM: __ | Lumbar ROM: __ | SIJ assessment: __ | Abdominal wall: __ | Diastasis recti: __ cm at __ | Scar assessment: __"</code>
+</td>
+<td>APTA Pelvic Health; APTA Ortho</td>
+</tr>
+
+<tr>
+<td>Internal Pelvic Floor Examination</td>
+<td>
+<code>"Consent obtained: Y/N | Tone: normal/increased/decreased | Symmetry: __ | Trigger points: __ | Strength: Modified Oxford __/5 | Endurance: __ sec | Coordination: __"</code>
+</td>
+<td>Modified Oxford Scale; APTA Pelvic Health; ICS</td>
+</tr>
+
+<tr>
+<td>Pelvic Floor Muscle Assessment</td>
+<td>
+<code>"PFM contraction: present/absent/reversed | Strength: __/5 | Endurance: __ sec hold × __ reps | Quick flicks: __ reps | Relaxation: complete/incomplete | Bearing down: __"</code>
+</td>
+<td>Laycock PERFECT Scheme; Modified Oxford; APTA</td>
+</tr>
+
+<tr>
+<td>Biofeedback Assessment</td>
+<td>
+<code>"sEMG baseline: __ μV | Peak contraction: __ μV | Endurance: __ sec | Relaxation: __ μV | Quick flicks: __ reps | Coordination pattern: __"</code>
+</td>
+<td>APTA Pelvic Health; Glazer Protocol</td>
+</tr>
+
+<tr>
+<td>Pelvic Pain Assessment</td>
+<td>
+<code>"Location: __ | NRS: __/10 | Provocation: __ | Pain with intercourse: Y/N | Pain with voiding: Y/N | Pain with defecation: Y/N | Vulvodynia screen: __"</code>
+</td>
+<td>NRS; ISSVD; APTA Pelvic Health</td>
+</tr>
+
+<tr>
+<td>Pelvic Floor Treatment — PFM Training</td>
+<td>
+<code>"Exercise: Kegel/reverse Kegel/quick flicks | Position: __ | Hold time: __ sec | Reps: __ | Sets: __ | Biofeedback: Y/N | Verbal cuing: __"</code>
+</td>
+<td>APTA Pelvic Health; Bø PFM Training</td>
+</tr>
+
+<tr>
+<td>Pelvic Floor Treatment — Manual Therapy</td>
+<td>
+<code>"Technique: __ (myofascial release/trigger point/scar mobilization/visceral) | Location: __ | Duration: __ min | Response: __ | Pain change: __"</code>
+</td>
+<td>APTA Pelvic Health; Barral Visceral Manipulation</td>
+</tr>
+
+<tr>
+<td>Pelvic Floor Treatment — Behavioral</td>
+<td>
+<code>"Bladder training: Y/N | Voiding schedule: __ | Urgency suppression: __ | Fluid management: __ | Bowel regimen: __ | Toileting posture: __"</code>
+</td>
+<td>ICS; APTA Pelvic Health; AUA Guidelines</td>
+</tr>
+
+<tr>
+<td>Pelvic Floor Outcome Measure</td>
+<td>
+<code>"Tool: __ | Initial: __ | Current: __ | Change: __ | MCID met: Y/N | Leakage change: __ episodes | Pad use change: __"</code>
+</td>
+<td>PFDI-20; UDI-6; ICIQ; APTA</td>
+</tr>
+
+</tbody>
+</table>
+
+<h3>Specialty Add-On 4: Aquatic Therapy</h3>
+<p><strong>Disciplines:</strong> PT (primary), OT (functional aquatic applications)</p>
+<p><strong>When activated:</strong> Any treatment utilizing aquatic environment for therapeutic benefit &mdash; post-surgical rehabilitation with weight-bearing restrictions, chronic pain conditions, neurological conditions requiring buoyancy support, arthritis, fibromyalgia, spinal cord injury aquatic training, or pediatric aquatic therapy.</p>
+<p><strong>Key standards:</strong> APTA Aquatic Physical Therapy Section, Becker &amp; Cole Comprehensive Aquatic Therapy, Bad Ragaz Ring Method, Halliwick Concept, Ai Chi.</p>
+<hr />
+<h4>Aquatic Therapy Add-On &mdash; Items</h4>
+
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Format Template</th>
+<th>Source</th>
+</tr>
+</thead>
+
+<tbody>
+
+<tr>
+<td>Aquatic Therapy Screening</td>
+<td>
+<code>"Pool clearance: Y/N | Contraindications: __ | Open wounds: Y/N | Incontinence: Y/N | Fear of water: Y/N | Seizure hx: Y/N | Cardiac precautions: __ | Physician approval: Y/N"</code>
+</td>
+<td>APTA Aquatic Section; Becker & Cole Aquatic Therapy</td>
+</tr>
+
+<tr>
+<td>Water-Specific Vital Signs</td>
+<td>
+<code>"Pre-immersion HR: __ | Post-immersion HR: __ | Pre BP: __/__ | Post BP: __/__ | SpO2 pre: __% | SpO2 post: __% | Temperature: __°F | Depth: __"</code>
+</td>
+<td>APTA Aquatic; AHA; Hydrostatic Pressure Effects</td>
+</tr>
+
+<tr>
+<td>Aquatic Assessment — Comfort/Skills</td>
+<td>
+<code>"Water comfort level: __/10 | Swimming ability: __ | Floating ability: __ | Pool entry/exit method: __ | Safety awareness: __ | Supervision level: __"</code>
+</td>
+<td>APTA Aquatic Section; Becker & Cole</td>
+</tr>
+
+<tr>
+<td>Aquatic Intervention — Therapeutic Exercise</td>
+<td>
+<code>"Exercise: __ | Water depth: __ | Resistance: buoyancy assisted/supported/resisted | Equipment: __ | Sets: __ | Reps: __ | Patient response: __ | RPE: __/10"</code>
+</td>
+<td>APTA Aquatic; Bad Ragaz Ring Method; Ai Chi</td>
+</tr>
+
+<tr>
+<td>Aquatic Intervention — Gait Training</td>
+<td>
+<code>"Gait activity: __ | Water depth: __ | Speed: __ | Distance: __ | Assistive device: __ | Weight-bearing: __% | Assist level: __ | Gait deviations: __"</code>
+</td>
+<td>APTA Aquatic; Becker & Cole</td>
+</tr>
+
+<tr>
+<td>Aquatic Intervention — Balance</td>
+<td>
+<code>"Activity: __ | Water depth: __ | Perturbation: __ | Surface: __ | Eyes open/closed: __ | Assist level: __ | Safety: __ | Halliwick concept: __"</code>
+</td>
+<td>APTA Aquatic; Halliwick Concept; Becker & Cole</td>
+</tr>
+
+<tr>
+<td>Aquatic Properties Utilized</td>
+<td>
+<code>"Buoyancy: __ | Hydrostatic pressure: __ | Viscosity: __ | Thermodynamics: __ | Turbulence: __ | Specific clinical application: __"</code>
+</td>
+<td>APTA Aquatic; Archimedes; Becker & Cole</td>
+</tr>
+
+<tr>
+<td>Aquatic Intervention — Pain/Relaxation</td>
+<td>
+<code>"Technique: __ | Water temperature: __°F | Duration: __ min | Pain pre: __/10 | Pain post: __/10 | Relaxation technique: __ | Patient response: __"</code>
+</td>
+<td>APTA Aquatic; Warm water immersion literature</td>
+</tr>
+
+<tr>
+<td>Aquatic Session — Functional Outcomes</td>
+<td>
+<code>"Land-equivalent task: __ | Aquatic performance: __ | Carryover to land: __ | ROM change pre/post: __ | Gait speed change: __ | Balance change: __"</code>
+</td>
+<td>APTA Aquatic; Evidence synthesis</td>
+</tr>
+
+<tr>
+<td>Aquatic Therapy Medical Necessity</td>
+<td>
+<code>"Aquatic over land justified because: __ | Weight-bearing restriction: __ | Pain limitation on land: __ | Balance safety: __ | Thermal benefits needed: __ | Expected transition to land: __"</code>
+</td>
+<td>CMS LCD; APTA Aquatic; Medicare Ch.15</td>
+</tr>
+
+</tbody>
+</table>
+
+<h3>Specialty Add-On 5: Wound Care</h3>
+<p><strong>Disciplines:</strong> PT (primary), OT (hand/UE wound management)</p>
+<p><strong>When activated:</strong> Any evaluation or treatment involving wound management &mdash; pressure injuries (stages I-IV, unstageable, deep tissue), venous stasis ulcers, arterial insufficiency ulcers, diabetic/neuropathic ulcers, surgical wounds, traumatic wounds, burns, or skin grafts requiring rehabilitation.</p>
+<p><strong>Key standards:</strong> NPUAP/EPUAP Pressure Injury Guidelines, Bates-Jensen Wound Assessment Tool (BWAT), PUSH Tool 3.0, WOCN (Wound, Ostomy and Continence Nurses Society), CMS MDS 3.0, CMS Wound Care LCD.</p>
+<hr />
+<h4>Wound Care Add-On &mdash; Items</h4>
+
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Format Template</th>
+<th>Source</th>
+</tr>
+</thead>
+
+<tbody>
+
+<tr>
+<td>Wound Assessment — Initial</td>
+<td>
+<code>"Location: __ | Etiology: __ (pressure/venous/arterial/diabetic/surgical/traumatic) | Stage/classification: __ | Length: __ cm | Width: __ cm | Depth: __ cm | Tunneling: __ | Undermining: __"</code>
+</td>
+<td>NPUAP/EPUAP Staging; APTA; CMS MDS 3.0</td>
+</tr>
+
+<tr>
+<td>Wound Bed Assessment</td>
+<td>
+<code>"Tissue type: __ (granulation/slough/eschar/epithelial/mixed) | % granulation: __% | % slough: __% | % eschar: __% | % epithelial: __% | Color: __"</code>
+</td>
+<td>NPUAP/EPUAP; Bates-Jensen Wound Assessment Tool (BWAT)</td>
+</tr>
+
+<tr>
+<td>Wound Margins & Periwound</td>
+<td>
+<code>"Wound edges: __ (attached/unattached/rolled/fibrotic) | Periwound skin: __ | Maceration: Y/N | Induration: __ | Erythema: __ cm | Temperature: __"</code>
+</td>
+<td>BWAT; NPUAP/EPUAP; APTA</td>
+</tr>
+
+<tr>
+<td>Wound Exudate</td>
+<td>
+<code>"Amount: none/scant/small/moderate/large | Type: serous/sanguineous/serosanguineous/purulent | Color: __ | Odor: Y/N | Dressing saturation: __%"</code>
+</td>
+<td>BWAT; NPUAP/EPUAP; WoundSource</td>
+</tr>
+
+<tr>
+<td>Vascular Assessment</td>
+<td>
+<code>"Dorsalis pedis pulse: __ | Posterior tibial pulse: __ | ABI R: __ L: __ | Capillary refill: __ sec | Edema: __ | Skin color: __ | Hair growth: __ | Temperature: __"</code>
+</td>
+<td>AHA; APTA; CMS Wound Care LCD</td>
+</tr>
+
+<tr>
+<td>Wound Infection Screening</td>
+<td>
+<code>"Clinical signs of infection: Y/N | Erythema: Y/N | Warmth: Y/N | Edema: Y/N | Pain increase: Y/N | Purulent drainage: Y/N | Fever: Y/N | Culture obtained: Y/N | Results: __"</code>
+</td>
+<td>NPUAP/EPUAP; IDSA; CDC</td>
+</tr>
+
+<tr>
+<td>Wound Measurement Tracking</td>
+<td>
+<code>"Date: __ | L×W×D: __×__×__ cm | Area: __ cm² | Volume: __ cm³ | % change from prior: __% | Trajectory: healing/stalled/deteriorating | Photo: Y/N"</code>
+</td>
+<td>BWAT; NPUAP; PUSH Tool; CMS</td>
+</tr>
+
+<tr>
+<td>Wound Treatment — Debridement</td>
+<td>
+<code>"Type: sharp/enzymatic/autolytic/mechanical | Tissue removed: __ | Instrument: __ | Anesthesia: __ | Hemostasis: __ | Post-debridement bed: __ | CPT code: __"</code>
+</td>
+<td>CMS; NPUAP; APTA; CPT 97597-97598</td>
+</tr>
+
+<tr>
+<td>Wound Treatment — Dressing</td>
+<td>
+<code>"Primary dressing: __ | Secondary dressing: __ | Frequency of change: __ | Wound cleanser: __ | Skin protectant: __ | Compression: Y/N | Type: __"</code>
+</td>
+<td>NPUAP/EPUAP; WOCN; CMS</td>
+</tr>
+
+<tr>
+<td>Wound Treatment — Modalities</td>
+<td>
+<code>"Modality: __ (E-stim/ultrasound/negative pressure/hyperbaric) | Parameters: __ | Duration: __ min | Frequency: __ | Wound response: __ | CPT code: __"</code>
+</td>
+<td>APTA; CMS LCD; NPUAP</td>
+</tr>
+
+<tr>
+<td>Wound Outcome Measure</td>
+<td>
+<code>"BWAT score: initial __ → current __ | PUSH score: initial __ → current __ | Wound area change: __% | Healing rate: __ cm²/week | Expected closure: __ weeks"</code>
+</td>
+<td>BWAT; PUSH Tool 3.0; NPUAP</td>
+</tr>
+
+<tr>
+<td>Wound Care Education</td>
+<td>
+<code>"Topics: __ | Dressing change technique: __ | Signs of infection: __ | Offloading: __ | Nutrition counseling: __ | Diabetic foot care: __ | Compression compliance: __"</code>
+</td>
+<td>NPUAP; ADA; APTA; CMS</td>
+</tr>
+
+</tbody>
+</table>
+
+<h3>Specialty Add-On 6: Lymphedema Management</h3>
+<p><strong>Disciplines:</strong> PT, OT (both certified lymphedema therapists)</p>
+<p><strong>When activated:</strong> Any evaluation or treatment involving lymphedema &mdash; primary lymphedema, secondary lymphedema (post-cancer treatment, post-surgical, post-radiation), chronic venous insufficiency with lymphatic component, lipedema with lymphedema, or lymphedema risk monitoring in cancer survivors.</p>
+<p><strong>Key standards:</strong> ISL (International Society of Lymphology) Consensus Document, NLN (National Lymphedema Network), CLT (Certified Lymphedema Therapist) scope of practice, Vodder/Leduc/F&ouml;ldi MLD techniques, CDT (Complete Decongestive Therapy) protocols.</p>
+<hr />
+<h4>Lymphedema Management Add-On &mdash; Items</h4>
+
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Format Template</th>
+<th>Source</th>
+</tr>
+</thead>
+
+<tbody>
+
+<tr>
+<td>Lymphedema History</td>
+<td>
+<code>"Onset: __ | Type: primary/secondary | Stage: I/II/III (ISL) | Etiology: __ | Cancer treatment: __ | Lymph node dissection: Y/N | Radiation: Y/N | Episodes of cellulitis: __"</code>
+</td>
+<td>ISL Consensus Document 2020; NLN; APTA</td>
+</tr>
+
+<tr>
+<td>Circumferential Measurements</td>
+<td>
+<code>"Limb: __ | Landmarks: __ | Measurements (4 cm intervals): __ | Comparison to contralateral: __ | Volume calculation: __ mL | % excess volume: __%"</code>
+</td>
+<td>ISL; NLN; Truncated Cone Formula; APTA</td>
+</tr>
+
+<tr>
+<td>Bioimpedance Spectroscopy</td>
+<td>
+<code>"L-Dex score: __ | Normal range: -10 to +10 | Change from baseline: __ | Interpretation: __ | Monitoring frequency: __"</code>
+</td>
+<td>L-Dex (ImpediMed); Cornish 2001; APTA</td>
+</tr>
+
+<tr>
+<td>Skin Assessment — Lymphedema</td>
+<td>
+<code>"Pitting edema: grade __/4 | Stemmer sign: positive/negative | Skin folds: __ | Fibrosis: __ | Papillomatosis: Y/N | Skin color: __ | Fungal infection: Y/N"</code>
+</td>
+<td>ISL; NLN; APTA</td>
+</tr>
+
+<tr>
+<td>Complete Decongestive Therapy (CDT) — MLD</td>
+<td>
+<code>"MLD technique: __ (Vodder/Leduc/Földi) | Duration: __ min | Areas treated: __ | Drainage pathways: __ | Patient response: __ | Contraindications checked: Y/N"</code>
+</td>
+<td>ISL; NLN; Vodder/Leduc/Földi Methods</td>
+</tr>
+
+<tr>
+<td>CDT — Compression Bandaging</td>
+<td>
+<code>"Layers: __ | Bandage type: __ (short-stretch) | Padding: __ | Pressure gradient: __ | Skin check: __ | Patient tolerance: __ | Duration worn: __ hours"</code>
+</td>
+<td>ISL; NLN; APTA</td>
+</tr>
+
+<tr>
+<td>CDT — Compression Garment</td>
+<td>
+<code>"Type: __ | Class: __ (mmHg) | Custom/off-the-shelf: __ | Fit check: __ | Donning/doffing ability: __ | Wearing schedule: __ | Replacement schedule: __"</code>
+</td>
+<td>ISL; NLN; RAL Standards</td>
+</tr>
+
+<tr>
+<td>Lymphedema Exercise</td>
+<td>
+<code>"Exercise type: __ | With compression: Y/N | Sets: __ | Reps: __ | Diaphragmatic breathing: Y/N | Precautions: __ | Response: __"</code>
+</td>
+<td>ISL; NLN; APTA; Schmitz Exercise Guidelines</td>
+</tr>
+
+<tr>
+<td>Lymphedema Skin Care</td>
+<td>
+<code>"Skin care routine: __ | Moisturizer: __ | Nail care: __ | Infection prevention: __ | Sun protection: __ | Insect bite prevention: __"</code>
+</td>
+<td>ISL; NLN; APTA</td>
+</tr>
+
+<tr>
+<td>Lymphedema Risk Reduction Education</td>
+<td>
+<code>"Risk factors reviewed: __ | Skin care: __ | Activity modification: __ | Travel precautions: __ | BP cuff restriction: __ | Venipuncture restriction: __ | Weight management: __"</code>
+</td>
+<td>NLN Risk Reduction Guidelines; ISL; APTA</td>
+</tr>
+
+<tr>
+<td>Lymphedema Outcome Measure</td>
+<td>
+<code>"Volume change: __ mL → __ mL | % reduction: __% | Circumference change: __ | Skin condition: __ | Function change: __ | Quality of life (LYMQOL): __ → __"</code>
+</td>
+<td>ISL; NLN; LYMQOL (Keeley 2010)</td>
+</tr>
+
+</tbody>
+</table>
+
+<h3>Specialty Add-On 7: Sports Rehabilitation</h3>
+<p><strong>Disciplines:</strong> PT (primary), OT (UE sport injuries)</p>
+<p><strong>When activated:</strong> Any evaluation or treatment involving sport-related injuries with return-to-sport goals &mdash; ACL reconstruction, rotator cuff repair, ankle sprains, stress fractures, concussion (physical rehabilitation component), muscle strains, tendinopathies, or any condition where the patient's goal is return to competitive or recreational sport.</p>
+<p><strong>Key standards:</strong> APTA Sports Physical Therapy Section, NSCA (National Strength and Conditioning Association), NATA (National Athletic Trainers' Association), consensus return-to-sport criteria, Noyes hop tests, ACL-RSI, limb symmetry index ≥90%.</p>
+<hr />
+<h4>Sports Rehabilitation Add-On &mdash; Items</h4>
+
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Format Template</th>
+<th>Source</th>
+</tr>
+</thead>
+
+<tbody>
+
+<tr>
+<td>Sport-Specific History</td>
+<td>
+<code>"Sport: __ | Position: __ | Level: __ (recreational/high school/college/professional) | Injury mechanism: __ | Time of season: __ | Prior similar injury: Y/N | Surgery: Y/N"</code>
+</td>
+<td>APTA Sports Section; NATA</td>
+</tr>
+
+<tr>
+<td>Return to Sport Criteria Screen</td>
+<td>
+<code>"Pain-free: Y/N | Full ROM: Y/N | Strength ≥90% contralateral: Y/N | Functional testing passed: Y/N | Sport-specific drills: Y/N | Physician clearance: Y/N | Psychological readiness: Y/N"</code>
+</td>
+<td>APTA Sports; MOON Group; ACL-RSI</td>
+</tr>
+
+<tr>
+<td>Limb Symmetry Index (LSI)</td>
+<td>
+<code>"Single-leg hop R: __ cm L: __ cm | LSI: __% | Triple hop R: __ cm L: __ cm | LSI: __% | Crossover hop R: __ L: __ | LSI: __% | 6m timed hop R: __ L: __ | LSI: __%"</code>
+</td>
+<td>Noyes Hop Tests; APTA Sports; LSI ≥90%</td>
+</tr>
+
+<tr>
+<td>Y-Balance Test / Star Excursion</td>
+<td>
+<code>"Anterior R: __ cm L: __ cm | Posteromedial R: __ cm L: __ cm | Posterolateral R: __ cm L: __ cm | Composite R: __% L: __% | Asymmetry: __% | Risk threshold (>4 cm): Y/N"</code>
+</td>
+<td>Y-Balance Test (Plisky 2009); APTA Sports; Star Excursion</td>
+</tr>
+
+<tr>
+<td>Isokinetic Testing</td>
+<td>
+<code>"Joint: __ | Speed: __°/s | Peak torque R: __ Nm L: __ Nm | Deficit: __% | H:Q ratio: __ | Bilateral comparison: __ | Power: __ | Endurance ratio: __"</code>
+</td>
+<td>Biodex; Cybex; APTA Sports; Isokinetic Norms</td>
+</tr>
+
+<tr>
+<td>Sport-Specific Functional Test</td>
+<td>
+<code>"Test: __ | Result: __ | Comparison to normative: __ | Pass/fail criteria: __ | Sport relevance: __ | Limiting factor: __"</code>
+</td>
+<td>APTA Sports; Sport-specific literature</td>
+</tr>
+
+<tr>
+<td>Agility Assessment</td>
+<td>
+<code>"T-test: __ sec | Pro agility: __ sec | Illinois agility: __ sec | Hexagon: __ sec | Change-of-direction deficit: __ sec | Comparison to norms: __"</code>
+</td>
+<td>NSCA; APTA Sports; Normative data</td>
+</tr>
+
+<tr>
+<td>Plyometric Assessment</td>
+<td>
+<code>"Activity: __ | Height: __ inches | Distance: __ | Landing quality: __ | Knee valgus: Y/N | Trunk control: __ | Asymmetry: __ | Readiness for sport: __"</code>
+</td>
+<td>APTA Sports; Myer LESS; NSCA</td>
+</tr>
+
+<tr>
+<td>ACL-RSI (Psychological Readiness)</td>
+<td>
+<code>"ACL-RSI Score: __/100 | Emotions: __ | Confidence in performance: __ | Risk appraisal: __ | Interpretation: __ | Ready for RTS: Y/N"</code>
+</td>
+<td>ACL-RSI (Webster 2008); APTA Sports</td>
+</tr>
+
+<tr>
+<td>Throwing Assessment (UE Sports)</td>
+<td>
+<code>"Throwing velocity: __ mph | Accuracy: __% | Pain with throwing: Y/N | ROM: ER __° IR __° | GIRD: __° | Total arc: __° | Posterior shoulder tightness: Y/N"</code>
+</td>
+<td>APTA Sports; Wilk Thrower's Ten; ASMI</td>
+</tr>
+
+<tr>
+<td>Running Analysis</td>
+<td>
+<code>"Cadence: __ steps/min | Contact time: __ ms | Stride length: __ m | Foot strike pattern: __ | Pronation/supination: __ | Trunk position: __ | Hip drop: __° | Knee window: __"</code>
+</td>
+<td>APTA Sports; Running Clinic; Novacheck Gait Analysis</td>
+</tr>
+
+<tr>
+<td>Return to Sport Progression</td>
+<td>
+<code>"Phase: __ of __ | Current activity level: __ | Next milestone: __ | Timeline: __ | Clearance pending: __ | Sport-specific drills completed: __ | Game simulation: Y/N"</code>
+</td>
+<td>APTA Sports; Consensus RTS Criteria</td>
+</tr>
+
+<tr>
+<td>Sport Rehab Outcome Summary</td>
+<td>
+<code>"LSI: __% | Functional tests passed: __/__ | Isokinetic deficit: __% | ACL-RSI: __ | Pain: __/10 | ROM: __% of normal | Strength: __% of contralateral | Cleared for RTS: Y/N"</code>
+</td>
+<td>APTA Sports; Systematic RTS Criteria</td>
+</tr>
+
+</tbody>
+</table>
+
+<hr />
+<h2>PART 5: CROSS-FRAMEWORK REHABILITATION ADD-ONS</h2>
+<p>Cross-framework add-ons apply to <strong>all three frameworks</strong> (Initial Evaluation, Progress Note, Re-evaluation/Discharge) and <strong>all provider subtypes</strong> (PT, PTA, OT, OTA, SLP). These items address documentation requirements that span rehabilitation disciplines and settings, including pain management, fall prevention, social determinants of health, telehealth, infection control, medication reconciliation, advance care planning, and cultural competency.</p>
+<p>These items are always available regardless of framework, subtype, or specialty add-on selection. They represent documentation standards required by CMS, Joint Commission, and professional associations that apply universally across rehabilitation practice.</p>
+<hr />
+<h3>Cross-Framework Add-On: Pain Assessment & Management</h3>
+<p><strong>Disciplines:</strong> All (PT, OT, SLP)</p>
+<p><strong>When activated:</strong> Every rehabilitation encounter where pain is present or pain management is part of the treatment plan. These items supplement the pain items already in each discipline's base template with additional depth for complex pain presentations.</p>
+<hr />
+<h4>Pain Assessment &amp; Management &mdash; Items</h4>
+
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Format Template</th>
+<th>Source</th>
+</tr>
+</thead>
+
+<tbody>
+
+<tr>
+<td>Pain Assessment — Comprehensive</td>
+<td>
+<code>"Location(s): __ | NRS: __/10 | Onset: __ | Character: __ | Aggravating: __ | Alleviating: __ | Radiation: __ | Timing: __ | Impact on function: __"</code>
+</td>
+<td>NRS (Jensen 2003); APTA/AOTA/ASHA Pain Guidelines</td>
+</tr>
+
+<tr>
+<td>Pain Assessment — Pediatric</td>
+<td>
+<code>"FLACC Score: __/10 | Wong-Baker FACES: __/10 | Behavioral indicators: __ | Parent report: __ | Age-appropriate tool used: __"</code>
+</td>
+<td>FLACC (Merkel 1997); Wong-Baker FACES; AAP Pain Guidelines</td>
+</tr>
+
+<tr>
+<td>Pain Assessment — Cognitive Impairment</td>
+<td>
+<code>"PAINAD Score: __/10 | Behavioral indicators: __ | Facial expression: __ | Vocalizations: __ | Body language: __ | Consolability: __"</code>
+</td>
+<td>PAINAD (Warden 2003); AGS Persistent Pain Guidelines</td>
+</tr>
+
+<tr>
+<td>Pain Catastrophizing Screen</td>
+<td>
+<code>"PCS Score: __/52 | Rumination: __/16 | Magnification: __/12 | Helplessness: __/24 | Risk level: low/moderate/high"</code>
+</td>
+<td>PCS (Sullivan 1995); Fear-Avoidance Model</td>
+</tr>
+
+<tr>
+<td>Fear-Avoidance Assessment</td>
+<td>
+<code>"FABQ-PA: __/24 | FABQ-W: __/42 | TSK: __/68 | Kinesiophobia level: __ | Impact on rehab: __"</code>
+</td>
+<td>FABQ (Waddell 1993); TSK (Kori 1990); APTA</td>
+</tr>
+
+<tr>
+<td>Pain Education Provided</td>
+<td>
+<code>"Neuroscience education: Y/N | Pain mechanisms explained: __ | Self-management strategies: __ | Activity pacing: __ | Graded exposure: __ | Patient understanding: __"</code>
+</td>
+<td>IASP Pain Education; Explain Pain (Butler & Moseley); APTA</td>
+</tr>
+
+<tr>
+<td>Pain Outcome Tracking</td>
+<td>
+<code>"NRS initial: __/10 | NRS current: __/10 | Change: __ | MCID (2 points): met Y/N | Functional pain interference: initial __ current __ | Medication changes: __"</code>
+</td>
+<td>NRS MCID; PROMIS Pain Interference; APTA</td>
+</tr>
+
+</tbody>
+</table>
+
+<h3>Cross-Framework Add-On: Fall Risk & Prevention</h3>
+<p><strong>Disciplines:</strong> All (PT, OT, SLP)</p>
+<p><strong>When activated:</strong> Every rehabilitation encounter where fall risk is present. Required by CMS Quality Payment Program (QPP) and Joint Commission National Patient Safety Goals.</p>
+<hr />
+<h4>Fall Risk &amp; Prevention &mdash; Items</h4>
+
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Format Template</th>
+<th>Source</th>
+</tr>
+</thead>
+
+<tbody>
+
+<tr>
+<td>Fall Risk Screening — Comprehensive</td>
+<td>
+<code>"Falls in past 12 months: __ | Injurious falls: __ | Near-falls: __ | Fear of falling (FES-I): __/64 | Medications (>4): Y/N | Polypharmacy review: Y/N"</code>
+</td>
+<td>CDC STEADI; AGS/BGS Fall Prevention; FES-I (Yardley 2005)</td>
+</tr>
+
+<tr>
+<td>Fall Risk — Multifactorial Assessment</td>
+<td>
+<code>"Vision: __ | Footwear: __ | Home hazards: __ | Orthostatic hypotension: Y/N | Neuropathy: Y/N | Cognitive impairment: Y/N | Continence: __ | Gait aid: __"</code>
+</td>
+<td>CDC STEADI; AGS/BGS; CMS Fall Risk QPP</td>
+</tr>
+
+<tr>
+<td>Fall Risk — Standardized Screen Battery</td>
+<td>
+<code>"TUG: __ sec | 30-sec Chair Stand: __ reps | 4-Stage Balance: __ sec | Gait speed: __ m/s | Overall risk: low/moderate/high"</code>
+</td>
+<td>CDC STEADI Algorithm; CMS QPP</td>
+</tr>
+
+<tr>
+<td>Fall Prevention Interventions</td>
+<td>
+<code>"Balance training: __ | Strength training: __ | Gait training: __ | Home modification: __ | Medication review referral: Y/N | Vision referral: Y/N | Education: __"</code>
+</td>
+<td>CDC STEADI; AGS/BGS; APTA CPG Falls</td>
+</tr>
+
+<tr>
+<td>Fall Prevention Education</td>
+<td>
+<code>"Fall risk factors discussed: __ | Home safety checklist: Y/N | Exercise program: __ | When to seek help: __ | Emergency plan: __ | Caregiver education: Y/N"</code>
+</td>
+<td>CDC STEADI; AGS/BGS; CMS</td>
+</tr>
+
+</tbody>
+</table>
+
+<h3>Cross-Framework Add-On: Social Determinants of Health (SDOH)</h3>
+<p><strong>Disciplines:</strong> All (PT, OT, SLP)</p>
+<p><strong>When activated:</strong> Every rehabilitation encounter. CMS encourages SDOH Z-code documentation. SDOH factors directly impact rehabilitation outcomes, adherence, and discharge planning.</p>
+<hr />
+<h4>Social Determinants of Health &mdash; Items</h4>
+
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Format Template</th>
+<th>Source</th>
+</tr>
+</thead>
+
+<tbody>
+
+<tr>
+<td>Social Determinants of Health Screen</td>
+<td>
+<code>"Housing stability: __ | Food security: __ | Transportation: __ | Financial strain: __ | Social isolation: __ | Education level: __ | Health literacy: __"</code>
+</td>
+<td>CMS SDOH Z-codes; APTA/AOTA/ASHA; Healthy People 2030</td>
+</tr>
+
+<tr>
+<td>SDOH — Housing & Environment</td>
+<td>
+<code>"Home type: __ | Stairs: __ | Bathroom accessibility: __ | Living alone: Y/N | Caregiver available: Y/N | Neighborhood safety: __ | DME accessibility: __"</code>
+</td>
+<td>ICF Environmental Factors; CMS; AOTA Home Assessment</td>
+</tr>
+
+<tr>
+<td>SDOH — Transportation & Access</td>
+<td>
+<code>"Transportation to therapy: __ | Reliable: Y/N | Distance to clinic: __ | Telehealth feasible: Y/N | Community mobility: __ | Barriers: __"</code>
+</td>
+<td>CMS SDOH; APTA; Healthy People 2030</td>
+</tr>
+
+<tr>
+<td>SDOH — Financial & Insurance</td>
+<td>
+<code>"Insurance type: __ | Copay barrier: Y/N | Visit limit: __ | Prior authorization: needed/obtained/pending | Financial assistance: __ | Equipment affordability: __"</code>
+</td>
+<td>CMS; APTA/AOTA/ASHA; Social Work referral</td>
+</tr>
+
+<tr>
+<td>SDOH — Social Support</td>
+<td>
+<code>"Support system: __ | Caregiver: __ | Caregiver burden screen: __ | Community resources: __ | Support groups: __ | Referrals made: __"</code>
+</td>
+<td>ICF; AOTA; Zarit Caregiver Burden Interview</td>
+</tr>
+
+<tr>
+<td>Health Literacy Assessment</td>
+<td>
+<code>"Health literacy level: __ | Preferred language: __ | Interpreter needed: Y/N | Learning style: __ | Communication barriers: __ | Teach-back method used: Y/N"</code>
+</td>
+<td>Health Literacy Guidelines; AHRQ; CMS</td>
+</tr>
+
+</tbody>
+</table>
+
+<h3>Cross-Framework Add-On: Telehealth Documentation</h3>
+<p><strong>Disciplines:</strong> All (PT, OT, SLP)</p>
+<p><strong>When activated:</strong> Any rehabilitation encounter conducted via telehealth/telepractice. Requires specific documentation of technology, consent, clinical limitations, and billing modifiers.</p>
+<hr />
+<h4>Telehealth Documentation &mdash; Items</h4>
+
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Format Template</th>
+<th>Source</th>
+</tr>
+</thead>
+
+<tbody>
+
+<tr>
+<td>Telehealth Encounter Documentation</td>
+<td>
+<code>"Platform: __ | HIPAA-compliant: Y/N | Consent for telehealth: Y/N | Patient location: __ | Provider location: __ | Technology issues: __ | Visit type: synchronous/asynchronous"</code>
+</td>
+<td>CMS Telehealth Policy; APTA/AOTA/ASHA Telehealth Guidelines</td>
+</tr>
+
+<tr>
+<td>Telehealth — Technology Assessment</td>
+<td>
+<code>"Device: __ | Internet quality: __ | Camera/audio adequate: Y/N | Patient comfort with technology: __ | Caregiver assistance needed: Y/N | Alternative plan if tech fails: __"</code>
+</td>
+<td>APTA Telehealth; AOTA Telehealth; ASHA Telepractice</td>
+</tr>
+
+<tr>
+<td>Telehealth — Clinical Limitations</td>
+<td>
+<code>"Unable to assess: __ | Modified assessments: __ | Palpation substitute: __ | Balance safety concern: Y/N | Spotter present: Y/N | Referral for in-person: Y/N"</code>
+</td>
+<td>CMS; APTA/AOTA/ASHA Telehealth Standards</td>
+</tr>
+
+<tr>
+<td>Telehealth — Objective Adaptations</td>
+<td>
+<code>"Visual gait assessment: __ | Patient-reported ROM: __ | Functional demo observed: __ | HEP review via video: __ | Outcome measure adapted: __ | Limitation noted: __"</code>
+</td>
+<td>APTA/AOTA/ASHA Telehealth; CMS</td>
+</tr>
+
+<tr>
+<td>Telehealth — Billing Documentation</td>
+<td>
+<code>"Place of service: __ | Modifier: 95/GT | Time: __ minutes | State licensure confirmed: Y/N | Patient consent documented: Y/N | Parity state: Y/N"</code>
+</td>
+<td>CMS Telehealth Billing; CPT Modifiers; State Telehealth Laws</td>
+</tr>
+
+</tbody>
+</table>
+
+<h3>Cross-Framework Add-On: Infection Control</h3>
+<p><strong>Disciplines:</strong> All (PT, OT, SLP)</p>
+<p><strong>When activated:</strong> All rehabilitation encounters per CMS Conditions of Participation and Joint Commission requirements. Enhanced items for wound care, respiratory, and aquatic settings.</p>
+<hr />
+<h4>Infection Control &mdash; Items</h4>
+
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Format Template</th>
+<th>Source</th>
+</tr>
+</thead>
+
+<tbody>
+
+<tr>
+<td>Infection Control Screening</td>
+<td>
+<code>"COVID-19 screen: __ | Temperature: __°F | Symptoms: __ | Exposure: Y/N | Vaccination status: __ | Isolation precautions: __ | PPE used: __"</code>
+</td>
+<td>CDC Infection Control; CMS CoPs; OSHA</td>
+</tr>
+
+<tr>
+<td>Infection Control — Wound/Skin</td>
+<td>
+<code>"Open wound: Y/N | Wound infection signs: __ | MRSA history: Y/N | Contact precautions: Y/N | Hand hygiene: __ | Equipment disinfection: __"</code>
+</td>
+<td>CDC; NPUAP/EPUAP; CMS; Joint Commission</td>
+</tr>
+
+<tr>
+<td>Infection Control — Respiratory (SLP)</td>
+<td>
+<code>"Aspiration risk: __ | Oral care status: __ | Pneumonia history: Y/N | Suction equipment: Y/N | Tracheostomy care: __ | Isolation: __"</code>
+</td>
+<td>ASHA; CDC; CMS; Pneumonia Prevention</td>
+</tr>
+
+<tr>
+<td>Infection Control — Aquatic</td>
+<td>
+<code>"Pool clearance checklist: __ | Open wound: Y/N | Incontinence: Y/N | Active infection: Y/N | Chlorine levels: __ | Water temperature: __°F | Post-pool hygiene: __"</code>
+</td>
+<td>APTA Aquatic; CDC Pool Safety; State Health Codes</td>
+</tr>
+
+</tbody>
+</table>
+
+<h3>Cross-Framework Add-On: Medication Reconciliation</h3>
+<p><strong>Disciplines:</strong> All (PT, OT, SLP)</p>
+<p><strong>When activated:</strong> Every rehabilitation encounter. Joint Commission NPSG requires medication reconciliation. Rehabilitation therapists identify medication impacts on therapy and fall risk.</p>
+<hr />
+<h4>Medication Reconciliation &mdash; Items</h4>
+
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Format Template</th>
+<th>Source</th>
+</tr>
+</thead>
+
+<tbody>
+
+<tr>
+<td>Medication Reconciliation</td>
+<td>
+<code>"Current medications: __ | Changes since last visit: __ | New medications: __ | Discontinued: __ | Side effects affecting rehab: __ | Fall-risk medications: __"</code>
+</td>
+<td>CMS Medication Reconciliation; Joint Commission NPSG; APTA/AOTA/ASHA</td>
+</tr>
+
+<tr>
+<td>Medication Impact on Rehab</td>
+<td>
+<code>"Pain medications: __ | Muscle relaxants: __ | Sedating medications: __ | Anticoagulants: __ | Cardiac medications: __ | Impact on therapy: __ | MD notification needed: Y/N"</code>
+</td>
+<td>CMS; AGS Beers Criteria; APTA</td>
+</tr>
+
+<tr>
+<td>Medication Education</td>
+<td>
+<code>"Medication purpose explained: __ | Side effects reviewed: __ | Timing relative to therapy: __ | Adherence: __ | Patient questions: __ | Pharmacist referral: Y/N"</code>
+</td>
+<td>CMS; Joint Commission; Health Literacy</td>
+</tr>
+
+</tbody>
+</table>
+
+<h3>Cross-Framework Add-On: Advance Care Planning & Goals of Care</h3>
+<p><strong>Disciplines:</strong> All (PT, OT, SLP)</p>
+<p><strong>When activated:</strong> Rehabilitation encounters involving serious illness, end-of-life considerations, or complex care coordination. Ensures patient-centered rehabilitation aligned with life goals.</p>
+<hr />
+<h4>Advance Care Planning &amp; Goals of Care &mdash; Items</h4>
+
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Format Template</th>
+<th>Source</th>
+</tr>
+</thead>
+
+<tbody>
+
+<tr>
+<td>Advance Care Planning</td>
+<td>
+<code>"Advance directive: Y/N | Type: __ | Healthcare proxy: __ | POLST: Y/N | Code status: __ | Goals of care discussed: Y/N | Document location: __"</code>
+</td>
+<td>CMS ACP; Joint Commission; State Laws</td>
+</tr>
+
+<tr>
+<td>Goals of Care — Rehab Context</td>
+<td>
+<code>"Patient's life goals: __ | Functional priorities: __ | Quality of life priorities: __ | Family input: __ | Realistic expectations discussed: Y/N | Cultural considerations: __"</code>
+</td>
+<td>APTA/AOTA/ASHA; ICF; Person-Centered Care</td>
+</tr>
+
+<tr>
+<td>Caregiver Training & Burden</td>
+<td>
+<code>"Caregiver: __ | Relationship: __ | Training needs: __ | Training provided: __ | Zarit Burden score: __ | Respite resources: __ | Follow-up: __"</code>
+</td>
+<td>Zarit Caregiver Burden; AOTA; CMS</td>
+</tr>
+
+</tbody>
+</table>
+
+<h3>Cross-Framework Add-On: Cultural Competency & Health Equity</h3>
+<p><strong>Disciplines:</strong> All (PT, OT, SLP)</p>
+<p><strong>When activated:</strong> All rehabilitation encounters per Joint Commission cultural competency standards and CMS CLAS (Culturally and Linguistically Appropriate Services) Standards. Enhanced items for IHS/Tribal health settings.</p>
+<hr />
+<h4>Cultural Competency &amp; Health Equity &mdash; Items</h4>
+
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Format Template</th>
+<th>Source</th>
+</tr>
+</thead>
+
+<tbody>
+
+<tr>
+<td>Cultural Competency Assessment</td>
+<td>
+<code>"Cultural background: __ | Health beliefs: __ | Traditional healing practices: __ | Dietary considerations: __ | Gender preferences for care: __ | Interpreter needed: Y/N"</code>
+</td>
+<td>Joint Commission Cultural Competency; CLAS Standards; CMS</td>
+</tr>
+
+<tr>
+<td>IHS / Tribal Health Considerations</td>
+<td>
+<code>"Tribal affiliation: __ | IHS eligible: Y/N | PRC/CHS referral: __ | Traditional medicine integration: __ | Community health resources: __ | Transportation from reservation: __"</code>
+</td>
+<td>IHS; 42 CFR 136; Indian Health Manual; CMS Tribal</td>
+</tr>
+
+<tr>
+<td>Language & Communication Preferences</td>
+<td>
+<code>"Preferred language: __ | English proficiency: __ | Interpreter: __ | Written materials language: __ | Communication style preferences: __ | Family involvement preferences: __"</code>
+</td>
+<td>CLAS Standards; CMS; Title VI</td>
+</tr>
+
+</tbody>
+</table>
+
+<hr />
+<h2>EVIDENCE SOURCES MASTER LIST</h2>
+<p>The following is a comprehensive list of all evidence sources referenced across all rehabilitation documentation frameworks and specialty add-ons in this document. Sources are organized by category.</p>
+
+<h3>Federal Regulations &amp; CMS</h3>
+<table>
+<thead>
+<tr><th>Source</th><th>Full Citation / Description</th></tr>
+</thead>
+<tbody>
+<tr><td>CMS 42 CFR 410.60</td><td>Outpatient physical therapy services: Conditions of coverage; physician certification; plan of care requirements</td></tr>
+<tr><td>CMS 42 CFR 410.62</td><td>Outpatient speech-language pathology services: Conditions of coverage; physician certification; plan of care requirements</td></tr>
+<tr><td>CMS 42 CFR 410.59</td><td>Outpatient occupational therapy services: Conditions of coverage; physician certification; plan of care requirements</td></tr>
+<tr><td>CMS 42 CFR 409.44</td><td>Skilled nursing facility coverage criteria; skilled therapy services; maintenance therapy under Jimmo v. Sebelius</td></tr>
+<tr><td>CMS 42 CFR 485.645</td><td>Conditions of participation for CAHs and LTCHs; standardized patient assessment data (Section GG)</td></tr>
+<tr><td>Medicare Benefit Policy Manual Ch.15 §220</td><td>Coverage of PT and SLP services; medical necessity; documentation requirements; certification periods; plan of care standards</td></tr>
+<tr><td>Medicare Benefit Policy Manual Ch.15 §230</td><td>Coverage of OT services; medical necessity; documentation requirements; certification periods</td></tr>
+<tr><td>Medicare Claims Processing Manual Ch.5 §20.2</td><td>8-Minute Rule for time-based rehabilitation billing; unit calculation methodology</td></tr>
+<tr><td>CMS Section GG (IMPACT Act 2014)</td><td>Standardized functional assessment for self-care and mobility across post-acute care settings</td></tr>
+<tr><td>Jimmo v. Sebelius (2013)</td><td>Settlement clarifying Medicare coverage based on need for skilled services, not expectation of improvement</td></tr>
+<tr><td>CMS CARE Tool</td><td>Continuity Assessment Record and Evaluation; standardized assessment items across PAC settings</td></tr>
+</tbody>
+</table>
+
+<h3>Professional Associations &amp; Practice Frameworks</h3>
+<table>
+<thead>
+<tr><th>Source</th><th>Full Citation / Description</th></tr>
+</thead>
+<tbody>
+<tr><td>APTA Guide to PT Practice 3.0</td><td>American Physical Therapy Association. Guide to Physical Therapist Practice 3.0. Alexandria, VA: APTA; 2014 (updated).</td></tr>
+<tr><td>APTA Movement System</td><td>Sahrmann SA. Diagnosis and Treatment of Movement Impairment Syndromes. Mosby; 2002. APTA movement system framework.</td></tr>
+<tr><td>AOTA OTPF-4</td><td>American Occupational Therapy Association. Occupational Therapy Practice Framework: Domain and Process, 4th Edition. AJOT. 2020;74(Suppl.2).</td></tr>
+<tr><td>ASHA Practice Portal</td><td>American Speech-Language-Hearing Association. Practice Portal: Evidence-based clinical resources for SLP practice areas.</td></tr>
+<tr><td>ASHA NOMS</td><td>ASHA National Outcomes Measurement System. Functional Communication Measures (FCM) and Swallowing levels (1-7 scale).</td></tr>
+<tr><td>ICF (WHO)</td><td>World Health Organization. International Classification of Functioning, Disability and Health. Geneva: WHO; 2001.</td></tr>
+<tr><td>CARF Standards</td><td>Commission on Accreditation of Rehabilitation Facilities. Medical Rehabilitation Standards Manual. Current edition.</td></tr>
+<tr><td>FIM (UDS 1997)</td><td>Uniform Data System for Medical Rehabilitation. The FIM Instrument. Buffalo, NY: UDSmr; 1997.</td></tr>
+</tbody>
+</table>
+
+<h3>Outcome Measures &amp; Assessment Tools</h3>
+<table>
+<thead>
+<tr><th>Source</th><th>Full Citation / Description</th></tr>
+</thead>
+<tbody>
+<tr><td>BBS (Berg 1992)</td><td>Berg KO, et al. Measuring balance in the elderly: validation of an instrument. Can J Public Health. 1992;83(Suppl 2):S7-11.</td></tr>
+<tr><td>Mini-BESTest (Franchignoni 2010)</td><td>Franchignoni F, et al. Using psychometric techniques to improve the BESTest. Phys Ther. 2010;90(9):1268-79.</td></tr>
+<tr><td>TUG (Podsiadlo 1991)</td><td>Podsiadlo D, Richardson S. The timed "Up & Go": a test of basic functional mobility. J Am Geriatr Soc. 1991;39(2):142-8.</td></tr>
+<tr><td>10MWT (Graham 2008)</td><td>Graham JE, et al. Walking speed threshold for classifying walking independence. Phys Ther. 2008;88(11):1268-76.</td></tr>
+<tr><td>6MWT (ATS 2002)</td><td>ATS Committee on Proficiency Standards. ATS Statement: Guidelines for the six-minute walk test. Am J Respir Crit Care Med. 2002;166(1):111-7.</td></tr>
+<tr><td>30-Second Chair Stand (Jones 1999)</td><td>Jones CJ, et al. A 30-s chair-stand test as a measure of lower body strength. Res Q Exerc Sport. 1999;70(2):113-9.</td></tr>
+<tr><td>CDC STEADI</td><td>Centers for Disease Control and Prevention. STEADI (Stopping Elderly Accidents, Deaths & Injuries) toolkit. Current edition.</td></tr>
+<tr><td>DASH (Hudak 1996)</td><td>Hudak PL, et al. Development of an upper extremity outcome measure: the DASH. Am J Ind Med. 1996;29(6):602-8.</td></tr>
+<tr><td>LEFS (Binkley 1999)</td><td>Binkley JM, et al. The Lower Extremity Functional Scale: scale development and psychometric properties. Phys Ther. 1999;79(4):371-83.</td></tr>
+<tr><td>NDI (Vernon 1991)</td><td>Vernon H, Mior S. The Neck Disability Index: a study of reliability and validity. J Manipulative Physiol Ther. 1991;14(7):409-15.</td></tr>
+<tr><td>ODI (Fairbank 1980)</td><td>Fairbank JCT, et al. The Oswestry Low Back Pain Disability Questionnaire. Physiotherapy. 1980;66(8):271-3.</td></tr>
+<tr><td>NRS (Jensen 2003)</td><td>Jensen MP, et al. Interpretation of VAS and NRS in clinical trials of pain. J Pain. 2003;4(7):407-14.</td></tr>
+<tr><td>COPM (Law 2014)</td><td>Law M, et al. Canadian Occupational Performance Measure, 5th ed. Ottawa: CAOT Publications; 2014.</td></tr>
+<tr><td>9HPT (Mathiowetz 1985)</td><td>Mathiowetz V, et al. Adult norms for the Nine Hole Peg Test. OTJR. 1985;5(1):24-38.</td></tr>
+<tr><td>Box & Block (Mathiowetz 1985)</td><td>Mathiowetz V, et al. Adult norms for the Box and Block Test of manual dexterity. Am J Occup Ther. 1985;39(6):386-91.</td></tr>
+<tr><td>MoCA (Nasreddine 2005)</td><td>Nasreddine ZS, et al. The Montreal Cognitive Assessment (MoCA). J Am Geriatr Soc. 2005;53(4):695-9.</td></tr>
+<tr><td>Barthel Index</td><td>Mahoney FI, Barthel DW. Functional evaluation: the Barthel Index. Md State Med J. 1965;14:61-5.</td></tr>
+<tr><td>Lawton IADL (Lawton 1969)</td><td>Lawton MP, Brody EM. Assessment of older people: self-maintaining and instrumental activities of daily living. Gerontologist. 1969;9(3):179-86.</td></tr>
+<tr><td>WAB-R (Kertesz 2006)</td><td>Kertesz A. Western Aphasia Battery-Revised. San Antonio, TX: PsychCorp; 2006.</td></tr>
+<tr><td>SSI-4 (Riley 2009)</td><td>Riley GD. Stuttering Severity Instrument, 4th ed. Austin, TX: PRO-ED; 2009.</td></tr>
+<tr><td>GRBAS (Hirano 1981)</td><td>Hirano M. Clinical examination of voice. Disorders of Human Communication 5. New York: Springer; 1981.</td></tr>
+<tr><td>IDDSI Framework 2.0</td><td>International Dysphagia Diet Standardisation Initiative. The IDDSI Framework. 2019. www.iddsi.org.</td></tr>
+<tr><td>FOIS (Crary 2005)</td><td>Crary MA, et al. Initial psychometric assessment of a functional oral intake scale for dysphagia. Arch Phys Med Rehabil. 2005;86(8):1516-20.</td></tr>
+<tr><td>PAS (Rosenbek 1996)</td><td>Rosenbek JC, et al. A penetration-aspiration scale. Dysphagia. 1996;11(2):93-8.</td></tr>
+<tr><td>DHI (Jacobson 1990)</td><td>Jacobson GP, Newman CW. The development of the Dizziness Handicap Inventory. Arch Otolaryngol Head Neck Surg. 1990;116(4):424-7.</td></tr>
+<tr><td>ABC Scale (Powell 1995)</td><td>Powell LE, Myers AM. The Activities-specific Balance Confidence (ABC) Scale. J Gerontol A Biol Sci Med Sci. 1995;50A(1):M28-34.</td></tr>
+<tr><td>PFDI-20</td><td>Barber MD, et al. Short forms of two condition-specific quality-of-life questionnaires for pelvic floor disorders (PFDI-20 and PFIQ-7). Am J Obstet Gynecol. 2005;193(1):103-13.</td></tr>
+<tr><td>BWAT</td><td>Bates-Jensen BM. Bates-Jensen Wound Assessment Tool. 2001 revision.</td></tr>
+<tr><td>PUSH Tool 3.0</td><td>National Pressure Ulcer Advisory Panel. Pressure Ulcer Scale for Healing (PUSH Tool 3.0).</td></tr>
+<tr><td>Vancouver Scar Scale (Sullivan 1990)</td><td>Sullivan T, et al. Rating the burn scar. J Burn Care Rehabil. 1990;11(3):256-60.</td></tr>
+<tr><td>ACL-RSI (Webster 2008)</td><td>Webster KE, et al. Factors associated with returning to sport after ACL reconstruction. Knee Surg Sports Traumatol Arthrosc. 2008;16(8):752-8.</td></tr>
+<tr><td>Y-Balance (Plisky 2009)</td><td>Plisky PJ, et al. Star Excursion Balance Test. J Orthop Sports Phys Ther. 2009;39(6):A43.</td></tr>
+</tbody>
+</table>
+
+<h3>Textbooks &amp; Clinical References</h3>
+<table>
+<thead>
+<tr><th>Source</th><th>Full Citation / Description</th></tr>
+</thead>
+<tbody>
+<tr><td>Norkin & White 6th ed.</td><td>Norkin CC, White DJ. Measurement of Joint Motion: A Guide to Goniometry, 6th ed. Philadelphia: F.A. Davis; 2016.</td></tr>
+<tr><td>Daniels & Worthingham 10th ed.</td><td>Hislop HJ, et al. Daniels and Worthingham's Muscle Testing: Techniques of Manual Examination and Performance Testing, 10th ed. Elsevier; 2018.</td></tr>
+<tr><td>Kendall et al. 5th ed.</td><td>Kendall FP, et al. Muscles: Testing and Function with Posture and Pain, 5th ed. Baltimore: Lippincott Williams & Wilkins; 2005.</td></tr>
+<tr><td>Herdman Vestibular Rehab 4th ed.</td><td>Herdman SJ, Clendaniel RA. Vestibular Rehabilitation, 4th ed. Philadelphia: F.A. Davis; 2014.</td></tr>
+<tr><td>Duffy Motor Speech 4th ed.</td><td>Duffy JR. Motor Speech Disorders: Substrates, Differential Diagnosis, and Management, 4th ed. Elsevier; 2019.</td></tr>
+<tr><td>Cleland Orthopedic 3rd ed.</td><td>Cleland JA, Koppenhaver S. Netter's Orthopaedic Clinical Examination, 3rd ed. Elsevier; 2015.</td></tr>
+<tr><td>Travell & Simons</td><td>Travell JG, Simons DG. Myofascial Pain and Dysfunction: The Trigger Point Manual. Lippincott Williams & Wilkins.</td></tr>
+<tr><td>Becker & Cole Aquatic Therapy</td><td>Becker BE, Cole AJ. Comprehensive Aquatic Therapy, 3rd ed. Butterworth-Heinemann; 2010.</td></tr>
+<tr><td>Mathiowetz Grip/Pinch Norms</td><td>Mathiowetz V, et al. Grip and pinch strength: normative data for adults. Arch Phys Med Rehabil. 1985;66(2):69-74.</td></tr>
+<tr><td>Rancho Los Amigos</td><td>Observational Gait Analysis Handbook. Rancho Los Amigos National Rehabilitation Center. Downey, CA.</td></tr>
+<tr><td>Modified Ashworth Scale</td><td>Bohannon RW, Smith MB. Interrater reliability of a modified Ashworth scale of muscle spasticity. Phys Ther. 1987;67(2):206-7.</td></tr>
+</tbody>
+</table>
+<hr />
+<p><strong>End of Document</strong></p>
+<p>OmniScribe AI &mdash; Rehabilitation Documentation Frameworks v1.0</p>
+<p>This document contains evidence-based rehabilitation documentation items for three frameworks (Initial Evaluation, Progress Note, Re-evaluation/Discharge) across five provider subtypes (PT, PTA→PT, OT, OTA→OT, SLP) with seven specialty add-ons (Hand Therapy, Vestibular Rehabilitation, Pelvic Floor, Aquatic Therapy, Wound Care, Lymphedema, Sports Rehabilitation). All items are grounded in federal regulations (CMS 42 CFR 410.59-410.62, Medicare Ch.15), professional standards (APTA, AOTA, ASHA), and validated outcome measures.</p>
+</body>
+</html>

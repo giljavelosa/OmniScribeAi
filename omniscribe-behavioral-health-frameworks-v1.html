@@ -1,0 +1,6280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OmniScribe — Behavioral Health Documentation Frameworks v1</title>
+<style>
+  :root {
+    --bg: #0f172a;
+    --surface: #1e293b;
+    --surface2: #334155;
+    --border: #475569;
+    --text: #e2e8f0;
+    --text-muted: #94a3b8;
+    --accent: #38bdf8;
+    --accent2: #818cf8;
+    --accent3: #34d399;
+    --accent4: #f472b6;
+    --warning: #fbbf24;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.7;
+    padding: 2rem;
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+  h1 {
+    font-size: 2.5rem;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 0.5rem;
+    padding-bottom: 0.5rem;
+  }
+  h2 {
+    font-size: 1.8rem;
+    color: var(--accent);
+    border-bottom: 2px solid var(--accent);
+    padding-bottom: 0.5rem;
+    margin-top: 3rem;
+    margin-bottom: 1.5rem;
+  }
+  h3 {
+    font-size: 1.4rem;
+    color: var(--accent2);
+    margin-top: 2.5rem;
+    margin-bottom: 1rem;
+    padding-left: 0.75rem;
+    border-left: 4px solid var(--accent2);
+  }
+  h4 {
+    font-size: 1.15rem;
+    color: var(--accent3);
+    margin-top: 2rem;
+    margin-bottom: 0.75rem;
+  }
+  h5 {
+    font-size: 1rem;
+    color: var(--accent4);
+    margin-top: 1.5rem;
+    margin-bottom: 0.5rem;
+  }
+  p {
+    margin-bottom: 1rem;
+    color: var(--text-muted);
+  }
+  strong { color: var(--text); }
+  hr {
+    border: none;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--border), transparent);
+    margin: 3rem 0;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1.5rem 0;
+    font-size: 0.9rem;
+    background: var(--surface);
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+  }
+  thead {
+    background: linear-gradient(135deg, var(--surface2), var(--surface));
+  }
+  th {
+    padding: 0.85rem 1rem;
+    text-align: left;
+    font-weight: 600;
+    color: var(--accent);
+    border-bottom: 2px solid var(--accent);
+    white-space: nowrap;
+  }
+  td {
+    padding: 0.7rem 1rem;
+    border-bottom: 1px solid var(--surface2);
+    vertical-align: top;
+  }
+  tr:hover td {
+    background: rgba(56, 189, 248, 0.05);
+  }
+  tr:last-child td {
+    border-bottom: none;
+  }
+  code {
+    background: var(--surface2);
+    color: var(--warning);
+    padding: 0.15rem 0.4rem;
+    border-radius: 4px;
+    font-size: 0.85em;
+    font-family: 'Cascadia Code', 'Fira Code', monospace;
+  }
+  pre {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1.25rem;
+    overflow-x: auto;
+    margin: 1rem 0;
+  }
+  pre code {
+    background: none;
+    padding: 0;
+    color: var(--text);
+  }
+  blockquote {
+    border-left: 4px solid var(--accent2);
+    padding: 0.75rem 1.25rem;
+    margin: 1rem 0;
+    background: rgba(129, 140, 248, 0.08);
+    border-radius: 0 8px 8px 0;
+  }
+  blockquote p { color: var(--text); margin: 0; }
+  ol, ul {
+    margin: 0.75rem 0 0.75rem 2rem;
+    color: var(--text-muted);
+  }
+  li { margin-bottom: 0.4rem; }
+  li strong { color: var(--accent); }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  .toc-toggle {
+    position: fixed;
+    top: 1rem;
+    right: 1rem;
+    z-index: 1000;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--accent);
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+  }
+  .toc-toggle:hover { background: var(--surface2); }
+  @media (max-width: 768px) {
+    body { padding: 1rem; }
+    table { font-size: 0.8rem; }
+    td, th { padding: 0.5rem; }
+    h1 { font-size: 1.8rem; }
+  }
+  @media print {
+    body { background: #fff; color: #000; }
+    table { box-shadow: none; border: 1px solid #ccc; }
+    th { color: #333; border-bottom-color: #333; }
+    td { border-bottom-color: #ddd; }
+    h1, h2, h3, h4 { color: #333; -webkit-text-fill-color: #333; }
+  }
+</style>
+</head>
+<body>
+
+<button class="toc-toggle" onclick="toggleToc()">☰ Table of Contents</button>
+
+<h1>OmniScribe — Behavioral Health Documentation Frameworks</h1>
+<p><strong>Version 1.0</strong> — Comprehensive behavioral health documentation templates covering psychiatric evaluation, therapy progress notes, and treatment review/discharge planning. Each template provides structured format strings with regulatory source citations.</p>
+<hr>
+
+<div id="toc-panel" style="display:none; position:fixed; top:3.5rem; right:1rem; z-index:999; background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:1.5rem; max-height:80vh; overflow-y:auto; width:420px; box-shadow:0 8px 24px rgba(0,0,0,0.5);">
+<h3 style="margin-top:0; border:none; padding:0;">Table of Contents</h3>
+<ol>
+<li><a href="#framework-1">Framework 1: Psychiatric & Psychological Evaluation</a>
+<ol style="margin-top:0.25rem;">
+<li><a href="#11-comprehensive-psychiatric-evaluation">1.1 Comprehensive Psychiatric Evaluation</a> <span style="color:var(--text-muted);font-size:0.8em;">(56 items)</span></li>
+<li><a href="#12-psychological-neuropsychological-testing-report">1.2 Psychological/Neuropsychological Testing Report</a> <span style="color:var(--text-muted);font-size:0.8em;">(30 items)</span></li>
+<li><a href="#13-substance-use-disorder-evaluation">1.3 Substance Use Disorder Evaluation</a> <span style="color:var(--text-muted);font-size:0.8em;">(30 items)</span></li>
+<li><a href="#14-child-and-adolescent-evaluation">1.4 Child & Adolescent Evaluation</a> <span style="color:var(--text-muted);font-size:0.8em;">(30 items)</span></li>
+<li><a href="#15-crisis-and-emergency-evaluation">1.5 Crisis & Emergency Evaluation</a> <span style="color:var(--text-muted);font-size:0.8em;">(27 items)</span></li>
+</ol>
+</li>
+<li><a href="#framework-2">Framework 2: Therapy & Progress Notes</a>
+<ol style="margin-top:0.25rem;">
+<li><a href="#21-individual-therapy-progress-note">2.1 Individual Therapy Progress Note</a> <span style="color:var(--text-muted);font-size:0.8em;">(26 items)</span></li>
+<li><a href="#22-group-therapy-progress-note">2.2 Group Therapy Progress Note</a> <span style="color:var(--text-muted);font-size:0.8em;">(23 items)</span></li>
+<li><a href="#23-family-and-couples-therapy-note">2.3 Family & Couples Therapy Note</a> <span style="color:var(--text-muted);font-size:0.8em;">(24 items)</span></li>
+<li><a href="#24-sud-treatment-progress-note">2.4 SUD Treatment Progress Note</a> <span style="color:var(--text-muted);font-size:0.8em;">(25 items)</span></li>
+<li><a href="#25-psychiatric-medication-management-note">2.5 Psychiatric Medication Management Note</a> <span style="color:var(--text-muted);font-size:0.8em;">(25 items)</span></li>
+</ol>
+</li>
+<li><a href="#framework-3">Framework 3: Treatment Review & Discharge Planning</a>
+<ol style="margin-top:0.25rem;">
+<li><a href="#31-treatment-plan-review">3.1 Treatment Plan Review</a> <span style="color:var(--text-muted);font-size:0.8em;">(23 items)</span></li>
+<li><a href="#32-utilization-review-documentation">3.2 Utilization Review Documentation</a> <span style="color:var(--text-muted);font-size:0.8em;">(18 items)</span></li>
+<li><a href="#33-discharge-summary">3.3 Discharge Summary</a> <span style="color:var(--text-muted);font-size:0.8em;">(23 items)</span></li>
+<li><a href="#34-aftercare-and-continuing-care-plan">3.4 Aftercare & Continuing Care Plan</a> <span style="color:var(--text-muted);font-size:0.8em;">(16 items)</span></li>
+<li><a href="#35-outcomes-and-quality-reporting">3.5 Outcomes & Quality Reporting</a> <span style="color:var(--text-muted);font-size:0.8em;">(14 items)</span></li>
+</ol>
+</li>
+</ol>
+</div>
+
+<h2>Quick Reference</h2>
+<p>This document contains <strong>3 major frameworks</strong> with <strong>15 documentation subtypes</strong> and over <strong>400 structured format templates</strong> for behavioral health clinical documentation.</p>
+
+<table>
+<thead><tr><th>Framework</th><th>Subtypes</th><th>Total Items</th><th>Focus</th></tr></thead>
+<tbody>
+<tr><td><strong>Framework 1: Psychiatric & Psychological Evaluation</strong></td><td>5</td><td>173</td><td>Comprehensive templates for psychiatric evaluations, psychological testing, substance use disorder assessments, child/adolescent evaluations, and crisis/emergency psychiatric assessments.</td></tr>
+<tr><td><strong>Framework 2: Therapy & Progress Notes</strong></td><td>5</td><td>123</td><td>Structured templates for individual therapy sessions, group therapy documentation, family/couples therapy, SUD-specific treatment notes, and psychiatric medication management encounters.</td></tr>
+<tr><td><strong>Framework 3: Treatment Review & Discharge Planning</strong></td><td>5</td><td>94</td><td>Templates for periodic treatment plan reviews, utilization review documentation, discharge summaries, aftercare planning, and program-level outcome reporting.</td></tr>
+</tbody>
+</table>
+<hr>
+
+<h2>Regulatory & Standards References</h2>
+<p>All templates include source citations from the following regulatory bodies and clinical standards:</p>
+<ul>
+<li><strong>APA</strong> — American Psychiatric Association Practice Guidelines & Ethics Code</li>
+<li><strong>DSM-5-TR</strong> — Diagnostic and Statistical Manual of Mental Disorders, 5th Edition, Text Revision (2022)</li>
+<li><strong>ICD-10-CM</strong> — International Classification of Diseases, 10th Revision, Clinical Modification</li>
+<li><strong>Joint Commission</strong> — The Joint Commission Behavioral Health Standards</li>
+<li><strong>CARF</strong> — Commission on Accreditation of Rehabilitation Facilities</li>
+<li><strong>CMS</strong> — Centers for Medicare & Medicaid Services</li>
+<li><strong>SAMHSA</strong> — Substance Abuse and Mental Health Services Administration</li>
+<li><strong>ASAM</strong> — American Society of Addiction Medicine Criteria, 4th Edition</li>
+<li><strong>42 CFR Part 2</strong> — Federal Confidentiality of SUD Patient Records</li>
+<li><strong>HIPAA</strong> — Health Insurance Portability and Accountability Act</li>
+<li><strong>EMTALA</strong> — Emergency Medical Treatment and Labor Act</li>
+<li><strong>MHPAEA</strong> — Mental Health Parity and Addiction Equity Act</li>
+<li><strong>HEDIS</strong> — Healthcare Effectiveness Data and Information Set</li>
+<li><strong>C-SSRS</strong> — Columbia Suicide Severity Rating Scale</li>
+<li><strong>AACAP</strong> — American Academy of Child & Adolescent Psychiatry</li>
+<li><strong>AAMFT</strong> — American Association for Marriage and Family Therapy</li>
+<li><strong>AGPA</strong> — American Group Psychotherapy Association</li>
+</ul>
+<hr>
+
+<h2>How to Use These Templates</h2>
+<ol>
+<li><strong>Select the Framework</strong> — Choose from Psychiatric Evaluation, Therapy Notes, or Treatment Review/Discharge based on the clinical encounter type.</li>
+<li><strong>Choose the Subtype</strong> — Each framework has 5 specialized subtypes for different clinical scenarios.</li>
+<li><strong>Use the Format Templates</strong> — Each item provides a structured format string with labeled fields (marked with __) ready for clinical data entry.</li>
+<li><strong>Reference the Sources</strong> — Source citations identify the regulatory basis for each documentation element.</li>
+<li><strong>Customize as Needed</strong> — Templates can be adapted to your EHR, payer requirements, and state-specific regulations.</li>
+</ol>
+
+<blockquote><p><strong>Note:</strong> These templates are designed to meet the most stringent documentation standards across accreditation bodies. Not all items are required for every encounter — select those relevant to your clinical setting, patient population, and payer requirements.</p></blockquote>
+<hr>
+
+<h2 id="framework-1">Framework 1: Psychiatric & Psychological Evaluation</h2>
+<p>Comprehensive templates for psychiatric evaluations, psychological testing, substance use disorder assessments, child/adolescent evaluations, and crisis/emergency psychiatric assessments.</p>
+
+<!-- 1.1 Comprehensive Psychiatric Evaluation -->
+
+<h4>1.1 Comprehensive Psychiatric Evaluation</h4>
+
+<p>Full biopsychosocial psychiatric evaluation including history, MSE, risk assessment, standardized measures, DSM-5-TR diagnostic formulation, and treatment recommendations.</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>Item</th>
+      <th>Format Template</th>
+      <th>Source</th>
+    </tr>
+  </thead>
+  <tbody>
+
+<tr>
+  <td>
+    Identifying Information
+  </td>
+  <td>
+    <code>
+      "Patient: __ | Age: __ | Gender Identity: __ | Preferred Pronouns: __ | DOB: __ | MRN: __"
+    </code>
+  </td>
+  <td>
+    APA Practice Guidelines; Joint Commission BH Standards
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Referral Source
+  </td>
+  <td>
+    <code>
+      "Referred by: __ | Reason for referral: __ | Referral date: __ | Urgency: __"
+    </code>
+  </td>
+  <td>
+    APA Practice Guidelines 2022
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Reason for Evaluation
+  </td>
+  <td>
+    <code>
+      "Presenting concern: __ | Duration of current episode: __ | Precipitating events: __"
+    </code>
+  </td>
+  <td>
+    APA Practice Guidelines; DSM-5-TR Introduction
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Informed Consent for Evaluation
+  </td>
+  <td>
+    <code>
+      "Consent obtained: Y/N | Risks/benefits discussed: __ | Limits of confidentiality reviewed: Y/N | 42 CFR Part 2 consent (if SUD): Y/N"
+    </code>
+  </td>
+  <td>
+    42 CFR Part 2; APA Ethics Code 3.10; HIPAA
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Patient's Chief Complaint
+  </td>
+  <td>
+    <code>
+      "In patient's own words: __ | Primary concern: __ | Secondary concerns: __"
+    </code>
+  </td>
+  <td>
+    DSM-5-TR Clinical Assessment
+  </td>
+</tr>
+
+<tr>
+  <td>
+    History of Present Illness — Onset & Course
+  </td>
+  <td>
+    <code>
+      "Onset: __ | Acute vs. gradual: __ | Course: episodic/chronic/deteriorating | Current episode duration: __"
+    </code>
+  </td>
+  <td>
+    DSM-5-TR; APA Practice Guidelines
+  </td>
+</tr>
+
+<tr>
+  <td>
+    History of Present Illness — Symptom Inventory
+  </td>
+  <td>
+    <code>
+      "Primary symptoms: __ | Frequency: __ | Severity (0-10): __ | Impact on functioning: __"
+    </code>
+  </td>
+  <td>
+    DSM-5-TR Diagnostic Criteria
+  </td>
+</tr>
+
+<tr>
+  <td>
+    History of Present Illness — Triggers & Stressors
+  </td>
+  <td>
+    <code>
+      "Identified triggers: __ | Psychosocial stressors: __ | Recent life changes: __ | Relationship to symptom onset: __"
+    </code>
+  </td>
+  <td>
+    DSM-5-TR; APA Stress & Adjustment
+  </td>
+</tr>
+
+<tr>
+  <td>
+    History of Present Illness — Protective Factors
+  </td>
+  <td>
+    <code>
+      "Social supports: __ | Coping skills: __ | Spiritual/cultural resources: __ | Treatment engagement history: __"
+    </code>
+  </td>
+  <td>
+    SAMHSA Recovery Model; APA Guidelines
+  </td>
+</tr>
+
+<tr>
+  <td>
+    History of Present Illness — Functional Impact
+  </td>
+  <td>
+    <code>
+      "Occupational functioning: __ | Academic functioning: __ | Social functioning: __ | Self-care/ADL impact: __ | Legal involvement: __"
+    </code>
+  </td>
+  <td>
+    DSM-5-TR Level of Functioning; WHO-DAS 2.0
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Past Psychiatric History — Diagnoses
+  </td>
+  <td>
+    <code>
+      "Previous diagnoses: __ | Age at first diagnosis: __ | Diagnostic revisions: __ | Most recent diagnosis: __ | Diagnosing provider: __"
+    </code>
+  </td>
+  <td>
+    DSM-5-TR; APA Practice Guidelines
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Past Psychiatric History — Hospitalizations
+  </td>
+  <td>
+    <code>
+      "Number of psychiatric hospitalizations: __ | Dates: __ | Facilities: __ | Reason for each admission: __ | Length of stay: __ | Discharge disposition: __"
+    </code>
+  </td>
+  <td>
+    APA Practice Guidelines; Joint Commission BH
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Past Psychiatric History — Outpatient Treatment
+  </td>
+  <td>
+    <code>
+      "Previous therapists/psychiatrists: __ | Treatment modalities: __ | Duration of treatment: __ | Reason for termination: __ | Perceived helpfulness: __"
+    </code>
+  </td>
+  <td>
+    APA Practice Guidelines
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Medication History — Psychiatric
+  </td>
+  <td>
+    <code>
+      "Current psych medications: __ | Doses: __ | Prescriber: __ | Start dates: __ | Past psych medications: __ | Reasons for discontinuation: __ | Adverse effects: __ | Best response to: __"
+    </code>
+  </td>
+  <td>
+    APA Practice Guidelines; FDA labeling
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Medication History — Non-Psychiatric
+  </td>
+  <td>
+    <code>
+      "Current non-psych medications: __ | OTC medications: __ | Supplements/herbals: __ | Drug interactions noted: __"
+    </code>
+  </td>
+  <td>
+    APA Practice Guidelines; FDA
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Suicide Risk Assessment — Ideation
+  </td>
+  <td>
+    <code>
+      "Current suicidal ideation: Y/N | Frequency: __ | Intensity (0-10): __ | Duration: __ | Plan: Y/N | Plan details: __ | Intent: Y/N | Means access: Y/N | Means type: __"
+    </code>
+  </td>
+  <td>
+    Columbia Suicide Severity Rating Scale (C-SSRS); Joint Commission NPSG 15.01.01
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Suicide Risk Assessment — History
+  </td>
+  <td>
+    <code>
+      "Previous attempts: __ | Number: __ | Methods: __ | Medical lethality: __ | Most recent attempt date: __ | Non-suicidal self-injury (NSSI): Y/N | NSSI methods: __ | NSSI frequency: __"
+    </code>
+  </td>
+  <td>
+    C-SSRS; APA Suicide Assessment Guidelines 2024
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Suicide Risk Assessment — Risk & Protective Factors
+  </td>
+  <td>
+    <code>
+      "Static risk factors: __ | Dynamic risk factors: __ | Protective factors: __ | Overall risk level: Low/Moderate/High/Imminent | Safety plan in place: Y/N"
+    </code>
+  </td>
+  <td>
+    APA Suicide Risk Assessment Guide; C-SSRS; Stanley-Brown Safety Plan
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Violence/Homicide Risk Assessment
+  </td>
+  <td>
+    <code>
+      "Homicidal ideation: Y/N | Identified target: Y/N | Plan: Y/N | Access to weapons: Y/N | History of violence: __ | Tarasoff/duty to warn assessed: Y/N | Duty to warn triggered: Y/N"
+    </code>
+  </td>
+  <td>
+    Tarasoff v. Regents; APA Ethics Code; State-specific duty to warn
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Substance Use History — Alcohol
+  </td>
+  <td>
+    <code>
+      "Current use: Y/N | Type: __ | Quantity/frequency: __ | Age of first use: __ | Pattern: social/binge/daily | AUDIT score: __/40 | CAGE score: __/4 | Withdrawal hx: Y/N | DTs hx: Y/N | Seizure hx: Y/N"
+    </code>
+  </td>
+  <td>
+    AUDIT; CAGE; ASAM Criteria; DSM-5-TR Alcohol Use Disorder
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Substance Use History — Drugs
+  </td>
+  <td>
+    <code>
+      "Current substances: __ | Route of administration: __ | Frequency: __ | Age of first use: __ | IV drug use: Y/N | Overdose hx: Y/N | Naloxone available: Y/N | DAST-10 score: __/10"
+    </code>
+  </td>
+  <td>
+    DAST-10; ASAM Criteria; DSM-5-TR Substance Use Disorders
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Substance Use History — Tobacco & Cannabis
+  </td>
+  <td>
+    <code>
+      "Tobacco: __ | Pack-years: __ | Vaping: Y/N | Cannabis: __ | Method: __ | Frequency: __ | Synthetic cannabinoids: Y/N"
+    </code>
+  </td>
+  <td>
+    DSM-5-TR; SAMHSA
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Substance Use Treatment History
+  </td>
+  <td>
+    <code>
+      "Previous SUD treatment: Y/N | Programs attended: __ | Level of care (ASAM): __ | MAT history: __ | Sobriety periods: __ | Longest sobriety: __ | 12-step involvement: Y/N | Sponsor: Y/N"
+    </code>
+  </td>
+  <td>
+    ASAM Criteria 4th Ed.; SAMHSA TIP Series
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Medical History
+  </td>
+  <td>
+    <code>
+      "Active medical conditions: __ | Chronic illnesses: __ | Neurological conditions: __ | Endocrine disorders: __ | Chronic pain: Y/N | TBI history: Y/N | Seizure disorder: Y/N | HIV/Hepatitis status: __"
+    </code>
+  </td>
+  <td>
+    APA Practice Guidelines; DSM-5-TR Medical Conditions
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Developmental History
+  </td>
+  <td>
+    <code>
+      "Prenatal/birth complications: __ | Developmental milestones: __ | Early childhood temperament: __ | Learning disabilities: Y/N | Special education: Y/N | ADHD diagnosis: Y/N | ASD screening: __"
+    </code>
+  </td>
+  <td>
+    DSM-5-TR Neurodevelopmental Disorders; AAP
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Family Psychiatric History
+  </td>
+  <td>
+    <code>
+      "First-degree relatives with MH dx: __ | Specific diagnoses: __ | Substance use in family: __ | Suicide in family: Y/N | Relationship: __ | Psychiatric hospitalizations in family: __"
+    </code>
+  </td>
+  <td>
+    DSM-5-TR; APA Practice Guidelines
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Social History — Education & Employment
+  </td>
+  <td>
+    <code>
+      "Highest education level: __ | Current employment: __ | Occupation: __ | Work functioning: __ | Disability status: Y/N | Type: __ | Military service: Y/N | Branch: __ | Combat exposure: Y/N | Discharge type: __"
+    </code>
+  </td>
+  <td>
+    APA Practice Guidelines; VA/DoD Guidelines
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Social History — Relationships & Living
+  </td>
+  <td>
+    <code>
+      "Marital/relationship status: __ | Relationship quality: __ | Children: __ | Ages: __ | Custody status: __ | Living situation: __ | Roommates/family in home: __ | Housing stability: __"
+    </code>
+  </td>
+  <td>
+    APA Practice Guidelines; SDOH Screening
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Social History — Legal
+  </td>
+  <td>
+    <code>
+      "Current legal involvement: Y/N | Pending charges: __ | Probation/parole: Y/N | PO name: __ | Court-ordered treatment: Y/N | Restraining orders: Y/N | CPS/APS involvement: Y/N"
+    </code>
+  </td>
+  <td>
+    APA Forensic Guidelines; State Regulations
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Trauma History
+  </td>
+  <td>
+    <code>
+      "Childhood trauma: Y/N | ACE score: __/10 | Physical abuse: Y/N | Sexual abuse: Y/N | Emotional abuse/neglect: Y/N | Domestic violence: Y/N | Current DV: Y/N | Combat trauma: Y/N | Other trauma: __ | Age at trauma: __"
+    </code>
+  </td>
+  <td>
+    ACE Study (Felitti 1998); APA PTSD Guidelines; VA/DoD PTSD CPG
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Cultural & Spiritual Assessment
+  </td>
+  <td>
+    <code>
+      "Cultural identity: __ | Cultural explanatory model of illness: __ | Cultural stressors: __ | Religious/spiritual affiliation: __ | Spiritual practices relevant to care: __ | Language preference: __ | Interpreter needed: Y/N"
+    </code>
+  </td>
+  <td>
+    DSM-5-TR Cultural Formulation Interview; Joint Commission Cultural Competency
+  </td>
+</tr>
+
+<tr>
+  <td>
+    MSE — Appearance
+  </td>
+  <td>
+    <code>
+      "Grooming: __ | Hygiene: __ | Dress: __ | Apparent age vs. stated age: __ | Body habitus: __ | Distinguishing features: __ | Eye contact: __"
+    </code>
+  </td>
+  <td>
+    Trzepacz & Baker MSE; APA Practice Guidelines
+  </td>
+</tr>
+
+<tr>
+  <td>
+    MSE — Behavior & Psychomotor Activity
+  </td>
+  <td>
+    <code>
+      "Psychomotor: normal/agitated/retarded | Activity level: __ | Abnormal movements: __ | Tremor: Y/N | Tics: Y/N | Akathisia: Y/N | Tardive dyskinesia screening: __ | AIMS score: __"
+    </code>
+  </td>
+  <td>
+    AIMS; Trzepacz & Baker MSE; APA Guidelines
+  </td>
+</tr>
+
+<tr>
+  <td>
+    MSE — Speech
+  </td>
+  <td>
+    <code>
+      "Rate: normal/rapid/slow/pressured | Volume: normal/loud/soft | Tone: __ | Rhythm: __ | Spontaneity: __ | Articulation: __ | Latency: normal/increased"
+    </code>
+  </td>
+  <td>
+    Trzepacz & Baker MSE
+  </td>
+</tr>
+
+<tr>
+  <td>
+    MSE — Mood & Affect
+  </td>
+  <td>
+    <code>
+      "Mood (patient's words): __ | Affect observed: __ | Range: full/constricted/flat/blunted/labile | Congruence with mood: Y/N | Congruence with content: Y/N | Reactivity: reactive/non-reactive"
+    </code>
+  </td>
+  <td>
+    Trzepacz & Baker MSE; DSM-5-TR
+  </td>
+</tr>
+
+<tr>
+  <td>
+    MSE — Thought Process
+  </td>
+  <td>
+    <code>
+      "Organization: logical/circumstantial/tangential/loose associations/flight of ideas/word salad | Coherence: __ | Goal-directedness: __ | Perseveration: Y/N | Thought blocking: Y/N | Neologisms: Y/N"
+    </code>
+  </td>
+  <td>
+    Trzepacz & Baker MSE; DSM-5-TR
+  </td>
+</tr>
+
+<tr>
+  <td>
+    MSE — Thought Content
+  </td>
+  <td>
+    <code>
+      "Suicidal ideation: Y/N | Homicidal ideation: Y/N | Delusions: Y/N | Type: paranoid/grandiose/somatic/referential/erotomanic/nihilistic | Overvalued ideas: __ | Obsessions: Y/N | Phobias: Y/N | Preoccupations: __"
+    </code>
+  </td>
+  <td>
+    DSM-5-TR; Trzepacz & Baker MSE
+  </td>
+</tr>
+
+<tr>
+  <td>
+    MSE — Perceptual Disturbances
+  </td>
+  <td>
+    <code>
+      "Auditory hallucinations: Y/N | Command: Y/N | Visual hallucinations: Y/N | Tactile hallucinations: Y/N | Olfactory hallucinations: Y/N | Illusions: Y/N | Derealization: Y/N | Depersonalization: Y/N"
+    </code>
+  </td>
+  <td>
+    DSM-5-TR; Trzepacz & Baker MSE
+  </td>
+</tr>
+
+<tr>
+  <td>
+    MSE — Cognition
+  </td>
+  <td>
+    <code>
+      "Orientation: person/place/time/situation | Attention: __ | Concentration: __ | Registration: __/3 | Recall: __/3 | MMSE score: __/30 | MoCA score: __/30 | Fund of knowledge: __"
+    </code>
+  </td>
+  <td>
+    MMSE; MoCA; Trzepacz & Baker MSE
+  </td>
+</tr>
+
+<tr>
+  <td>
+    MSE — Insight & Judgment
+  </td>
+  <td>
+    <code>
+      "Insight: good/fair/limited/poor/absent | Awareness of illness: __ | Understanding of need for treatment: __ | Judgment: good/fair/poor | Decision-making capacity: intact/impaired | Capacity assessment needed: Y/N"
+    </code>
+  </td>
+  <td>
+    Trzepacz & Baker MSE; APA Capacity Guidelines
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Standardized Screening — Depression
+  </td>
+  <td>
+    <code>
+      "PHQ-9 score: __/27 | Severity: minimal/mild/moderate/moderately severe/severe | PHQ-2 prescreen: __/6 | Beck Depression Inventory (BDI-II): __/63"
+    </code>
+  </td>
+  <td>
+    PHQ-9 (Kroenke 2001); BDI-II (Beck 1996)
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Standardized Screening — Anxiety
+  </td>
+  <td>
+    <code>
+      "GAD-7 score: __/21 | Severity: minimal/mild/moderate/severe | Beck Anxiety Inventory (BAI): __/63 | Panic Disorder Severity Scale: __"
+    </code>
+  </td>
+  <td>
+    GAD-7 (Spitzer 2006); BAI (Beck 1988)
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Standardized Screening — PTSD
+  </td>
+  <td>
+    <code>
+      "PCL-5 score: __/80 | Provisional PTSD dx (score >= 33): Y/N | LEC-5 trauma types endorsed: __ | CAPS-5 administered: Y/N | CAPS-5 severity: __"
+    </code>
+  </td>
+  <td>
+    PCL-5; CAPS-5; VA/DoD PTSD CPG 2023
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Standardized Screening — Mania/Bipolar
+  </td>
+  <td>
+    <code>
+      "MDQ score: __/13 | Positive screen: Y/N | YMRS score: __ | Mood Disorder Questionnaire items endorsed: __"
+    </code>
+  </td>
+  <td>
+    MDQ (Hirschfeld 2000); YMRS
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Standardized Screening — Psychosis
+  </td>
+  <td>
+    <code>
+      "PRIME Screen: __ | BPRS total: __ | PANSS total: __ | Positive symptoms: __ | Negative symptoms: __ | Reality testing: intact/impaired"
+    </code>
+  </td>
+  <td>
+    PRIME; BPRS; PANSS
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Functional Assessment
+  </td>
+  <td>
+    <code>
+      "GAF score: __/100 | WHODAS 2.0 score: __ | Sheehan Disability Scale: Work __/10, Social __/10, Family __/10 | Current functional level: __"
+    </code>
+  </td>
+  <td>
+    WHO-DAS 2.0; GAF (DSM-IV-TR); Sheehan
+  </td>
+</tr>
+
+<tr>
+  <td>
+    DSM-5-TR Diagnostic Formulation — Primary
+  </td>
+  <td>
+    <code>
+      "Primary diagnosis: __ | DSM-5-TR code: __ | ICD-10-CM: __ | Specifiers: __ | Severity: mild/moderate/severe | Course: __ | Onset: __"
+    </code>
+  </td>
+  <td>
+    DSM-5-TR; ICD-10-CM
+  </td>
+</tr>
+
+<tr>
+  <td>
+    DSM-5-TR Diagnostic Formulation — Secondary
+  </td>
+  <td>
+    <code>
+      "Secondary diagnosis: __ | DSM-5-TR code: __ | ICD-10-CM: __ | Specifiers: __ | Comorbidity relationship to primary: __"
+    </code>
+  </td>
+  <td>
+    DSM-5-TR; ICD-10-CM
+  </td>
+</tr>
+
+<tr>
+  <td>
+    DSM-5-TR Diagnostic Formulation — Additional
+  </td>
+  <td>
+    <code>
+      "Additional diagnoses: __ | Rule-out diagnoses: __ | Deferred diagnoses: __ | V/Z codes: __ | Medical conditions affecting MH: __"
+    </code>
+  </td>
+  <td>
+    DSM-5-TR; ICD-10-CM
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Differential Diagnosis
+  </td>
+  <td>
+    <code>
+      "Differentials considered: __ | Evidence for: __ | Evidence against: __ | Further workup needed: __ | Medical mimics ruled out: __"
+    </code>
+  </td>
+  <td>
+    DSM-5-TR Differential Diagnosis; APA Practice Guidelines
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Biopsychosocial Formulation
+  </td>
+  <td>
+    <code>
+      "Biological factors: __ | Psychological factors: __ | Social factors: __ | Cultural factors: __ | Developmental factors: __ | Integrative summary: __"
+    </code>
+  </td>
+  <td>
+    Engel Biopsychosocial Model; APA Practice Guidelines
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Treatment Recommendations — Medication
+  </td>
+  <td>
+    <code>
+      "Medication recommended: __ | Class: __ | Starting dose: __ | Target dose: __ | Rationale: __ | Expected onset of action: __ | Side effects discussed: __ | Monitoring plan: __"
+    </code>
+  </td>
+  <td>
+    APA Practice Guidelines; FDA labeling; Stahl's Psychopharmacology
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Treatment Recommendations — Psychotherapy
+  </td>
+  <td>
+    <code>
+      "Therapy modality recommended: __ | Evidence base: __ | Frequency: __ | Estimated duration: __ | Specific protocol: __ | Goals: __"
+    </code>
+  </td>
+  <td>
+    APA Practice Guidelines; Cochrane Reviews
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Treatment Recommendations — Level of Care
+  </td>
+  <td>
+    <code>
+      "Recommended level of care: outpatient/IOP/PHP/residential/inpatient | ASAM level (if SUD): __ | Rationale: __ | Criteria met: __ | Step-down plan: __"
+    </code>
+  </td>
+  <td>
+    ASAM Criteria 4th Ed.; APA LOC Guidelines; LOCUS
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Safety Plan
+  </td>
+  <td>
+    <code>
+      "Warning signs: __ | Internal coping strategies: __ | Social contacts for distraction: __ | Family/friends to contact: __ | Professionals/agencies to contact: __ | Means restriction plan: __ | Crisis line: 988"
+    </code>
+  </td>
+  <td>
+    Stanley-Brown Safety Plan; Joint Commission NPSG 15.01.01
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Disposition & Follow-Up
+  </td>
+  <td>
+    <code>
+      "Disposition: __ | Next appointment: __ | Follow-up provider: __ | Referrals placed: __ | Lab orders: __ | Release of information: Y/N | Coordination of care: __"
+    </code>
+  </td>
+  <td>
+    APA Practice Guidelines; Joint Commission Transitions of Care
+  </td>
+</tr>
+
+  </tbody>
+</table>
+
+
+<!-- 1.2 Psychological/Neuropsychological Testing Report -->
+
+<h4>1.2 Psychological/Neuropsychological Testing Report</h4>
+
+<p>Complete neuropsychological and psychological testing battery documentation including validity testing, cognitive/achievement measures, personality assessment, and integrated diagnostic conclusions.</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>Item</th>
+      <th>Format Template</th>
+      <th>Source</th>
+    </tr>
+  </thead>
+  <tbody>
+
+<tr>
+  <td>
+    Identifying Information
+  </td>
+  <td>
+    <code>
+      "Patient: __ | Age: __ | Gender Identity: __ | DOB: __ | MRN: __ | Education level: __ | Primary language: __ | Handedness: __"
+    </code>
+  </td>
+  <td>
+    APA Practice Guidelines; APA Ethical Principles
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Referral Information
+  </td>
+  <td>
+    <code>
+      "Referred by: __ | Referral question(s): __ | Specific concerns: __ | Previous testing: Y/N | Date of last testing: __"
+    </code>
+  </td>
+  <td>
+    APA Practice Guidelines; APA Assessment Standards
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Reason for Assessment
+  </td>
+  <td>
+    <code>
+      "Presenting problems: __ | Diagnostic clarification needed: __ | Functional questions to address: __ | Disability/accommodation determination: Y/N | Forensic purpose: Y/N"
+    </code>
+  </td>
+  <td>
+    APA Practice Guidelines; APA Testing Standards
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Informed Consent for Testing
+  </td>
+  <td>
+    <code>
+      "Consent obtained: Y/N | Nature of testing explained: __ | Approximate duration: __ | Limits of confidentiality: __ | Who receives results: __ | Fee structure discussed: Y/N"
+    </code>
+  </td>
+  <td>
+    APA Ethics Code 9.03; HIPAA
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Behavioral Observations During Testing
+  </td>
+  <td>
+    <code>
+      "Rapport: __ | Effort/engagement: __ | Attention/concentration: __ | Frustration tolerance: __ | Test-taking attitude: __ | Response style: __ | Need for breaks: __ | Validity concerns: __"
+    </code>
+  </td>
+  <td>
+    APA Assessment Guidelines
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Performance Validity Testing
+  </td>
+  <td>
+    <code>
+      "PVT administered: __ | TOMM Trial 1: __/50 | TOMM Trial 2: __/50 | MSVT: __ | RDS score: __ | Validity indicators embedded: __ | Overall effort classification: valid/invalid/questionable"
+    </code>
+  </td>
+  <td>
+    TOMM (Tombaugh 1996); MSVT; Larrabee PVT Guidelines
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Symptom Validity Testing
+  </td>
+  <td>
+    <code>
+      "SVT administered: __ | SIMS total: __/75 | SIRS-2 profile: __ | M-FAST score: __/25 | Atypical symptom endorsement: __ | Over-reporting indicators: __ | Classification: valid/over-reporting/indeterminate"
+    </code>
+  </td>
+  <td>
+    SIMS; SIRS-2; M-FAST; Rogers Malingering Guidelines
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Intellectual/Cognitive Testing — WAIS-IV/WISC-V
+  </td>
+  <td>
+    <code>
+      "Full Scale IQ (FSIQ): __ | Percentile: __ | Classification: __ | Verbal Comprehension Index (VCI): __ | Perceptual Reasoning Index (PRI): __ | Working Memory Index (WMI): __ | Processing Speed Index (PSI): __ | Significant discrepancies: __"
+    </code>
+  </td>
+  <td>
+    WAIS-IV (Wechsler 2008); WISC-V (Wechsler 2014)
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Intellectual/Cognitive Testing — Index Scores
+  </td>
+  <td>
+    <code>
+      "VCI subtests: Similarities __, Vocabulary __, Information __ | PRI subtests: Block Design __, Matrix Reasoning __, Visual Puzzles __ | WMI subtests: Digit Span __, Arithmetic __ | PSI subtests: Symbol Search __, Coding __"
+    </code>
+  </td>
+  <td>
+    WAIS-IV; WISC-V Administration Manual
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Academic Achievement — WIAT-4/WJ-IV
+  </td>
+  <td>
+    <code>
+      "Reading Composite: __ | Word Reading: __ | Reading Comprehension: __ | Math Composite: __ | Numerical Operations: __ | Math Problem Solving: __ | Written Expression: __ | Spelling: __ | Oral Language: __"
+    </code>
+  </td>
+  <td>
+    WIAT-4 (Wechsler 2020); WJ-IV (Schrank 2014)
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Memory Assessment — WMS-IV
+  </td>
+  <td>
+    <code>
+      "Immediate Memory Index: __ | Delayed Memory Index: __ | Auditory Memory Index: __ | Visual Memory Index: __ | Visual Working Memory Index: __ | Logical Memory I: __ | Logical Memory II: __ | Retention: __%"
+    </code>
+  </td>
+  <td>
+    WMS-IV (Wechsler 2009)
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Executive Functioning — Trail Making/WCST
+  </td>
+  <td>
+    <code>
+      "Trail Making Test A: __ sec (percentile __) | Trail Making Test B: __ sec (percentile __) | WCST Categories Completed: __ | Perseverative Errors: __ (percentile __) | DKEFS Tower: __ | DKEFS Color-Word: __"
+    </code>
+  </td>
+  <td>
+    TMT; WCST; DKEFS (Delis 2001)
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Executive Functioning — Verbal Fluency/Stroop
+  </td>
+  <td>
+    <code>
+      "FAS Total: __ (percentile __) | Category Fluency (Animals): __ (percentile __) | Stroop Color: __ | Stroop Word: __ | Stroop Color-Word: __ | Stroop Interference: __"
+    </code>
+  </td>
+  <td>
+    COWAT; Stroop Test
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Attention/Concentration — CPT-3/IVA-2
+  </td>
+  <td>
+    <code>
+      "CPT-3 Detectability: __ | Omissions: __ | Commissions: __ | Hit RT: __ | Hit RT Std Error: __ | Variability: __ | IVA-2 Full Scale Attention: __ | Full Scale Response Control: __"
+    </code>
+  </td>
+  <td>
+    CPT-3 (Conners 2014); IVA-2
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Personality Assessment — MMPI-3/MMPI-2-RF
+  </td>
+  <td>
+    <code>
+      "Validity scales: VRIN-r __, TRIN-r __, F-r __, Fp-r __, Fs __, FBS-r __, RBS __, L-r __, K-r __ | Higher-Order: EID __, THD __, BXD __ | RC scales: __ | Clinical significance: __"
+    </code>
+  </td>
+  <td>
+    MMPI-3 (Ben-Porath 2020); MMPI-2-RF (Ben-Porath 2008)
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Personality Assessment — PAI
+  </td>
+  <td>
+    <code>
+      "Validity: Inconsistency __, Infrequency __, Negative Impression __, Positive Impression __ | Clinical Scales: Somatic __, Anxiety __, Depression __, Mania __, Paranoia __, Schizophrenia __, Borderline __, Antisocial __, Alcohol __, Drug __ | Treatment: Aggression __, Suicidal Ideation __, Stress __, Treatment Rejection __"
+    </code>
+  </td>
+  <td>
+    PAI (Morey 2007)
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Projective/Performance-Based — Rorschach R-PAS
+  </td>
+  <td>
+    <code>
+      "R-PAS Summary Scores: Complexity __ | Human Movement (M): __ | Weighted Sum Color (WSumC): __ | Form Quality (FQ-%): __ | Thought & Perception Composite (TP-Comp): __ | Space Integration (SI): __ | Vigilance Composite (V-Comp): __"
+    </code>
+  </td>
+  <td>
+    R-PAS (Meyer 2011)
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Adaptive Functioning — Vineland-3/ABAS-3
+  </td>
+  <td>
+    <code>
+      "Vineland-3 Adaptive Behavior Composite: __ | Communication: __ | Daily Living Skills: __ | Socialization: __ | Motor Skills: __ | ABAS-3 GAC: __ | Conceptual: __ | Social: __ | Practical: __"
+    </code>
+  </td>
+  <td>
+    Vineland-3 (Sparrow 2016); ABAS-3 (Harrison 2015)
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Rating Scales — Self-Report
+  </td>
+  <td>
+    <code>
+      "BDI-II total: __/63 | BAI total: __/63 | PHQ-9: __/27 | GAD-7: __/21 | PCL-5: __/80 | AUDIT: __/40 | Conners Adult ADHD (CAARS): __ | Dissociative Experiences Scale (DES-II): __/100"
+    </code>
+  </td>
+  <td>
+    BDI-II; BAI; PHQ-9; GAD-7; PCL-5; CAARS; DES-II
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Rating Scales — Collateral/Observer
+  </td>
+  <td>
+    <code>
+      "Conners-3 Parent Rating: __ | Conners-3 Teacher Rating: __ | BRIEF-2 Parent/Teacher GEC: __ | BASC-3 Parent/Teacher Behavioral Symptoms Index: __ | Informant: __ | Relationship: __"
+    </code>
+  </td>
+  <td>
+    Conners-3; BRIEF-2; BASC-3
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Autism Spectrum Assessment
+  </td>
+  <td>
+    <code>
+      "ADOS-2 Module __: Comparison Score __ | ADI-R administered: Y/N | Social Communication Questionnaire (SCQ): __/40 | SRS-2 Total: __ | ADOS-2 algorithm classification: __"
+    </code>
+  </td>
+  <td>
+    ADOS-2 (Lord 2012); ADI-R; SCQ; SRS-2
+  </td>
+</tr>
+
+<tr>
+  <td>
+    ADHD-Specific Assessment
+  </td>
+  <td>
+    <code>
+      "Conners CPT-3: __ | CAARS Self-Report: Inattention __, Hyperactivity __, Impulsivity __, ADHD Index __ | WURS-25: __ | Barkley Functional Impairment Scale: __ | DSM-5 symptom count: Inattentive __/9, Hyperactive-Impulsive __/9"
+    </code>
+  </td>
+  <td>
+    Conners CPT-3; CAARS; WURS; Barkley FIS; DSM-5-TR ADHD
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Learning Disability Analysis
+  </td>
+  <td>
+    <code>
+      "Ability-Achievement Discrepancy: IQ __ vs. Reading __ (discrepancy __) | IQ __ vs. Math __ (discrepancy __) | Pattern of Strengths and Weaknesses (PSW): __ | RTI data reviewed: Y/N | DSM-5-TR SLD criteria met: Y/N"
+    </code>
+  </td>
+  <td>
+    DSM-5-TR Specific Learning Disorder; IDEA 2004
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Integrated Test Summary
+  </td>
+  <td>
+    <code>
+      "Overall cognitive level: __ | Cognitive strengths: __ | Cognitive weaknesses: __ | Personality/emotional functioning: __ | Behavioral patterns: __ | Adaptive functioning: __ | Neuropsychological patterns: __ | Consistency with referral question: __"
+    </code>
+  </td>
+  <td>
+    APA Practice Guidelines
+  </td>
+</tr>
+
+<tr>
+  <td>
+    DSM-5-TR Diagnostic Conclusions
+  </td>
+  <td>
+    <code>
+      "Primary diagnosis: __ | DSM-5-TR code: __ | ICD-10-CM: __ | Specifiers: __ | Severity: __ | Secondary diagnoses: __ | Rule-outs: __ | Deferred: __ | Medical conditions: __"
+    </code>
+  </td>
+  <td>
+    DSM-5-TR; ICD-10-CM
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Psychometric Summary Table
+  </td>
+  <td>
+    <code>
+      "Test: __ | Standard Score: __ | Percentile: __ | 95% CI: __ | Classification: __ | (Repeat for each test administered)"
+    </code>
+  </td>
+  <td>
+    APA Assessment Standards; Test-specific norms
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Clinical Impressions & Case Conceptualization
+  </td>
+  <td>
+    <code>
+      "Diagnostic conceptualization: __ | Etiology considerations: __ | Maintaining factors: __ | Prognosis: __ | Functional implications: __"
+    </code>
+  </td>
+  <td>
+    APA Practice Guidelines
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Recommendations
+  </td>
+  <td>
+    <code>
+      "Therapy recommendations: __ | Modality: __ | Medication consultation: Y/N | Accommodations: __ | School/workplace recommendations: __ | Follow-up testing: __ | Timeline: __ | Referrals: __"
+    </code>
+  </td>
+  <td>
+    APA Practice Guidelines; IDEA; ADA
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Accommodations Specified (if applicable)
+  </td>
+  <td>
+    <code>
+      "Educational accommodations: __ | Extended time: Y/N | Ratio: __ | Separate testing room: Y/N | Workplace accommodations: __ | ADA documentation provided: Y/N | 504 Plan recommended: Y/N | IEP recommended: Y/N"
+    </code>
+  </td>
+  <td>
+    ADA; IDEA 2004; Section 504
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Report Prepared By
+  </td>
+  <td>
+    <code>
+      "Evaluator: __ | Credentials: __ | License #: __ | NPI: __ | Date of evaluation: __ | Date of report: __ | Total testing time: __ hours | Signature: __"
+    </code>
+  </td>
+  <td>
+    APA Ethics Code; State Licensing
+  </td>
+</tr>
+
+  </tbody>
+</table>
+
+
+<!-- 1.3 Substance Use Disorder Evaluation -->
+
+<h4>1.3 Substance Use Disorder Evaluation</h4>
+
+<p>ASAM-aligned comprehensive SUD evaluation covering all six dimensions, DSM-5-TR SUD criteria, withdrawal assessment, treatment history, and level of care determination.</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>Item</th>
+      <th>Format Template</th>
+      <th>Source</th>
+    </tr>
+  </thead>
+  <tbody>
+
+<tr>
+  <td>
+    Identifying Information
+  </td>
+  <td>
+    <code>
+      "Patient: __ | Age: __ | Gender Identity: __ | DOB: __ | MRN: __ | Insurance: __ | Primary language: __"
+    </code>
+  </td>
+  <td>
+    ASAM Criteria 4th Ed.; 42 CFR Part 2
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Referral & Consent
+  </td>
+  <td>
+    <code>
+      "Referred by: __ | Referral reason: __ | 42 CFR Part 2 consent signed: Y/N | Consent date: __ | Disclosure restrictions: __ | Court-ordered evaluation: Y/N | Court order #: __"
+    </code>
+  </td>
+  <td>
+    42 CFR Part 2; SAMHSA; HIPAA
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Chief Complaint — SUD Focus
+  </td>
+  <td>
+    <code>
+      "Patient's stated concern: __ | Primary substance(s) of concern: __ | Motivation for seeking evaluation: __ | Stage of change: precontemplation/contemplation/preparation/action/maintenance"
+    </code>
+  </td>
+  <td>
+    Prochaska & DiClemente Stages of Change; SAMHSA
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Substance Use History — Primary Substance
+  </td>
+  <td>
+    <code>
+      "Substance: __ | Route: oral/nasal/IV/smoked/other | Age of first use: __ | Age of regular use: __ | Current quantity: __ | Current frequency: __ | Last use: __ | Duration of regular use: __ | Escalation pattern: __"
+    </code>
+  </td>
+  <td>
+    ASAM Criteria; DSM-5-TR SUD
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Substance Use History — Secondary Substances
+  </td>
+  <td>
+    <code>
+      "Substance 2: __ | Route: __ | Quantity/frequency: __ | Last use: __ | Substance 3: __ | Route: __ | Quantity/frequency: __ | Last use: __ | Polysubstance pattern: __"
+    </code>
+  </td>
+  <td>
+    ASAM Criteria; DSM-5-TR
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Substance Use History — All Substances Screened
+  </td>
+  <td>
+    <code>
+      "Alcohol: __ | Cannabis: __ | Opioids (heroin/Rx): __ | Stimulants (cocaine/meth/Rx): __ | Benzodiazepines: __ | Hallucinogens: __ | Inhalants: __ | Tobacco/nicotine: __ | Synthetic drugs: __ | Caffeine: __ | Other: __"
+    </code>
+  </td>
+  <td>
+    ASAM Criteria; NIDA Drug Screening
+  </td>
+</tr>
+
+<tr>
+  <td>
+    DSM-5-TR SUD Criteria Assessment
+  </td>
+  <td>
+    <code>
+      "Criteria met (list): __ | Impaired control (1-4): __ | Social impairment (5-7): __ | Risky use (8-9): __ | Pharmacological (10-11): __ | Total criteria: __/11 | Severity: mild (2-3)/moderate (4-5)/severe (6+) | Specifier: in early remission/in sustained remission/on MAT"
+    </code>
+  </td>
+  <td>
+    DSM-5-TR Substance Use Disorder Criteria
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Withdrawal History & Current Status
+  </td>
+  <td>
+    <code>
+      "Withdrawal hx: Y/N | Substances with withdrawal: __ | Most severe withdrawal: __ | Medical complications: __ | CIWA-Ar score: __/67 | COWS score: __/48 | Current withdrawal status: __ | Medically supervised detox hx: Y/N"
+    </code>
+  </td>
+  <td>
+    CIWA-Ar; COWS; ASAM Criteria Dimension 1
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Overdose History
+  </td>
+  <td>
+    <code>
+      "Lifetime overdoses: __ | Substances involved: __ | Most recent: __ | Medical intervention required: Y/N | ICU admission: Y/N | Naloxone administered: Y/N | Times: __ | Currently carries naloxone: Y/N"
+    </code>
+  </td>
+  <td>
+    SAMHSA Overdose Prevention; FDA Naloxone Guidelines
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Treatment History — SUD Specific
+  </td>
+  <td>
+    <code>
+      "Previous SUD treatments: __ | Programs/facilities: __ | Dates: __ | ASAM levels completed: __ | MAT history: methadone/buprenorphine/naltrexone/none | MAT dates: __ | MAT doses: __ | Reason for discharge: completed/AMA/administrative | Longest sobriety: __"
+    </code>
+  </td>
+  <td>
+    ASAM Criteria; SAMHSA TIP 63
+  </td>
+</tr>
+
+<tr>
+  <td>
+    12-Step/Mutual Aid Involvement
+  </td>
+  <td>
+    <code>
+      "AA/NA/other: __ | Current attendance: __ meetings/week | Sponsor: Y/N | Step work: through step __ | Home group: Y/N | SMART Recovery: Y/N | Refuge Recovery: Y/N | Other mutual aid: __"
+    </code>
+  </td>
+  <td>
+    SAMHSA Recovery Model; AA/NA
+  </td>
+</tr>
+
+<tr>
+  <td>
+    ASAM Dimension 1 — Withdrawal Potential
+  </td>
+  <td>
+    <code>
+      "Current intoxication: Y/N | Withdrawal risk: low/moderate/high | Medical monitoring needed: Y/N | Detox level recommended: __ | Seizure risk: Y/N | DT risk: Y/N"
+    </code>
+  </td>
+  <td>
+    ASAM Criteria Dimension 1
+  </td>
+</tr>
+
+<tr>
+  <td>
+    ASAM Dimension 2 — Biomedical Conditions
+  </td>
+  <td>
+    <code>
+      "Active medical conditions: __ | Chronic conditions: __ | Infectious disease: HIV __/HCV __/HBV __ | Pregnancy: Y/N | Nutritional status: __ | Medical complications of use: __ | Medications requiring monitoring: __"
+    </code>
+  </td>
+  <td>
+    ASAM Criteria Dimension 2
+  </td>
+</tr>
+
+<tr>
+  <td>
+    ASAM Dimension 3 — Emotional/Behavioral/Cognitive
+  </td>
+  <td>
+    <code>
+      "Co-occurring MH diagnoses: __ | Current psychiatric symptoms: __ | Cognitive impairment: Y/N | Emotional stability: __ | Behavioral concerns: __ | Psychiatric medication: __ | MH treatment engagement: __"
+    </code>
+  </td>
+  <td>
+    ASAM Criteria Dimension 3; SAMHSA TIP 42
+  </td>
+</tr>
+
+<tr>
+  <td>
+    ASAM Dimension 4 — Readiness to Change
+  </td>
+  <td>
+    <code>
+      "Stage of change: __ | Motivation level (1-10): __ | Ambivalence areas: __ | Previous change attempts: __ | Self-efficacy: __ | Barriers to change: __ | Motivational interviewing indicated: Y/N"
+    </code>
+  </td>
+  <td>
+    ASAM Criteria Dimension 4; Prochaska; MI (Miller & Rollnick)
+  </td>
+</tr>
+
+<tr>
+  <td>
+    ASAM Dimension 5 — Relapse/Continued Use Potential
+  </td>
+  <td>
+    <code>
+      "Relapse triggers: __ | High-risk situations: __ | Coping skills: __ | Relapse history: __ | Pattern of relapse: __ | Craving intensity (0-10): __ | Relapse prevention plan: Y/N"
+    </code>
+  </td>
+  <td>
+    ASAM Criteria Dimension 5
+  </td>
+</tr>
+
+<tr>
+  <td>
+    ASAM Dimension 6 — Recovery Environment
+  </td>
+  <td>
+    <code>
+      "Living environment supports recovery: Y/N | Sober living available: Y/N | Enabling relationships: __ | Supportive relationships: __ | Access to substances in environment: __ | Employment/school: __ | Transportation: __ | Financial resources: __ | Legal pressures: __"
+    </code>
+  </td>
+  <td>
+    ASAM Criteria Dimension 6
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Psychiatric Comorbidity Screen
+  </td>
+  <td>
+    <code>
+      "PHQ-9: __/27 | GAD-7: __/21 | PCL-5: __/80 | MDQ: __ | Columbia Suicide Screen: __ | Current SI: Y/N | Current HI: Y/N | Psychosis screen: Y/N | Personality disorder indicators: __"
+    </code>
+  </td>
+  <td>
+    PHQ-9; GAD-7; PCL-5; MDQ; C-SSRS
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Physical Examination Findings (SUD-relevant)
+  </td>
+  <td>
+    <code>
+      "Vital signs: BP __/__ | HR __ | Temp __ | RR __ | Weight __ | Track marks/injection sites: Y/N | Location: __ | Nasal septum: __ | Dental status: __ | Hepatomegaly: Y/N | Nutritional deficiency signs: __ | Skin findings: __"
+    </code>
+  </td>
+  <td>
+    ASAM; Physical Exam Standards
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Laboratory/Toxicology
+  </td>
+  <td>
+    <code>
+      "Urine drug screen: __ | Confirmation testing: __ | Blood alcohol level: __ | CBC: __ | CMP: __ | LFTs: AST __, ALT __, GGT __ | Hepatitis panel: __ | HIV: __ | TB: __ | Pregnancy test: __ | Fentanyl test strip: __"
+    </code>
+  </td>
+  <td>
+    ASAM; SAMHSA Drug Testing Guidelines
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Functional Assessment — SUD Impact
+  </td>
+  <td>
+    <code>
+      "Occupational impact: __ | Legal consequences: __ | DUI/DWI: __ times | Financial impact: __ | Relationship impact: __ | Housing impact: __ | Health impact: __ | Overall functional impairment: mild/moderate/severe"
+    </code>
+  </td>
+  <td>
+    ASAM Criteria; DSM-5-TR
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Risk Assessment — SUD Specific
+  </td>
+  <td>
+    <code>
+      "Overdose risk: low/moderate/high | Withdrawal complication risk: __ | IV drug use risks: __ | Infectious disease risk: __ | Suicide risk in context of SUD: __ | Violence risk: __ | Impaired driving risk: __ | Pregnancy/fetal risk: __"
+    </code>
+  </td>
+  <td>
+    SAMHSA; ASAM; CDC Opioid Guidelines
+  </td>
+</tr>
+
+<tr>
+  <td>
+    DSM-5-TR Diagnostic Formulation
+  </td>
+  <td>
+    <code>
+      "Primary SUD diagnosis: __ | DSM-5-TR code: __ | ICD-10-CM: __ | Severity: __ | Specifiers: __ | Co-occurring MH diagnosis: __ | Co-occurring medical: __ | Tobacco use disorder: Y/N"
+    </code>
+  </td>
+  <td>
+    DSM-5-TR; ICD-10-CM
+  </td>
+</tr>
+
+<tr>
+  <td>
+    ASAM Level of Care Determination
+  </td>
+  <td>
+    <code>
+      "Recommended ASAM level: __ | 0.5 Early Intervention / 1.0 Outpatient / 2.1 IOP / 2.5 PHP / 3.1 Clinically Managed Low-Intensity Residential / 3.5 Clinically Managed High-Intensity Residential / 3.7 Medically Monitored Inpatient / 4.0 Medically Managed Intensive Inpatient | Rationale by dimension: __"
+    </code>
+  </td>
+  <td>
+    ASAM Criteria 4th Ed.
+  </td>
+</tr>
+
+<tr>
+  <td>
+    MAT Recommendation
+  </td>
+  <td>
+    <code>
+      "MAT indicated: Y/N | Recommended medication: buprenorphine/methadone/naltrexone (oral)/naltrexone (XR)/none | Rationale: __ | Contraindications: __ | Patient preference: __ | Access/availability: __ | Induction plan: __"
+    </code>
+  </td>
+  <td>
+    SAMHSA TIP 63; FDA MAT Guidelines; ASAM National Practice Guideline
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Treatment Plan — SUD Specific
+  </td>
+  <td>
+    <code>
+      "Treatment goals: __ | Measurable objectives: __ | Interventions: __ | Frequency of services: __ | Expected duration: __ | Criteria for level of care change: __ | Discharge criteria: __ | Continuing care plan: __"
+    </code>
+  </td>
+  <td>
+    ASAM Criteria; SAMHSA TIP Series; Joint Commission BH
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Safety Plan — SUD Specific
+  </td>
+  <td>
+    <code>
+      "Overdose prevention plan: __ | Naloxone prescribed: Y/N | Naloxone training: Y/N | Triggers to use: __ | High-risk situations: __ | Sober support contacts: __ | Emergency contacts: __ | Crisis line: 988 | SAMHSA helpline: 1-800-662-4357"
+    </code>
+  </td>
+  <td>
+    SAMHSA; Stanley-Brown Safety Plan adapted for SUD
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Recovery Capital Assessment
+  </td>
+  <td>
+    <code>
+      "Personal recovery capital: __ | Social recovery capital: __ | Community recovery capital: __ | Cultural recovery capital: __ | Overall recovery capital: low/moderate/high | Areas to build: __"
+    </code>
+  </td>
+  <td>
+    SAMHSA Recovery Capital; White & Cloud 2008
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Coordination of Care
+  </td>
+  <td>
+    <code>
+      "PCP notified: Y/N | Psychiatrist notified: Y/N | Probation/parole notified: Y/N (with consent) | Pharmacy coordination: __ | PDMP checked: Y/N | PDMP findings: __ | Warm handoff to treatment: Y/N"
+    </code>
+  </td>
+  <td>
+    42 CFR Part 2; SAMHSA; State PDMP Requirements
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Disposition & Referrals
+  </td>
+  <td>
+    <code>
+      "Disposition: __ | Treatment facility referral: __ | Admission date: __ | MAT provider referral: __ | MH referral: __ | Medical referral: __ | Peer support specialist: Y/N | Follow-up plan: __ | Transportation arranged: Y/N"
+    </code>
+  </td>
+  <td>
+    ASAM Criteria; SAMHSA; Joint Commission Transitions of Care
+  </td>
+</tr>
+
+  </tbody>
+</table>
+
+
+<!-- 1.4 Child & Adolescent Evaluation -->
+
+<h4>1.4 Child & Adolescent Evaluation</h4>
+
+<p>Developmentally-informed pediatric psychiatric evaluation including developmental history, school functioning, family dynamics, trauma screening, and age-appropriate assessment tools.</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>Item</th>
+      <th>Format Template</th>
+      <th>Source</th>
+    </tr>
+  </thead>
+  <tbody>
+
+<tr>
+  <td>
+    Identifying Information
+  </td>
+  <td>
+    <code>
+      "Patient: __ | Age: __ | DOB: __ | Gender: __ | Grade: __ | School: __ | Legal guardian(s): __ | Informant(s): __ | Referred by: __"
+    </code>
+  </td>
+  <td>
+    AACAP Practice Parameters; AAP Guidelines
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Referral Information
+  </td>
+  <td>
+    <code>
+      "Referral source: __ | Referral question(s): __ | Specific concerns: __ | Onset of concerns: __ | Previous evaluations: Y/N | Previous diagnoses: __"
+    </code>
+  </td>
+  <td>
+    AACAP Practice Parameters
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Informed Consent & Assent
+  </td>
+  <td>
+    <code>
+      "Guardian consent obtained: Y/N | Guardian name: __ | Minor assent obtained (age 12+): Y/N | Limits of confidentiality explained to minor: Y/N | Mandatory reporting discussed: Y/N | Custody considerations: __"
+    </code>
+  </td>
+  <td>
+    AACAP Ethics; APA Ethics Code; State Minor Consent Laws
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Chief Complaint — Child/Guardian Perspectives
+  </td>
+  <td>
+    <code>
+      "Guardian's concern: __ | Child's concern (in own words): __ | Teacher/school concern: __ | Discrepancies between informants: __ | Duration: __"
+    </code>
+  </td>
+  <td>
+    AACAP Practice Parameters
+  </td>
+</tr>
+
+<tr>
+  <td>
+    History of Present Illness — Behavioral
+  </td>
+  <td>
+    <code>
+      "Target behaviors: __ | Frequency: __ | Duration: __ | Intensity: __ | Settings where behavior occurs: home/school/community/all | Antecedents: __ | Consequences: __ | Functional analysis: __"
+    </code>
+  </td>
+  <td>
+    AACAP; Applied Behavior Analysis Principles
+  </td>
+</tr>
+
+<tr>
+  <td>
+    History of Present Illness — Emotional
+  </td>
+  <td>
+    <code>
+      "Mood symptoms: __ | Anxiety symptoms: __ | Irritability: __ | Emotional regulation: __ | Crying frequency: __ | Anger outbursts: __ | Fearfulness: __ | Avoidance: __ | Sleep impact: __ | Appetite impact: __"
+    </code>
+  </td>
+  <td>
+    AACAP; DSM-5-TR Child/Adolescent Criteria
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Developmental History — Prenatal & Birth
+  </td>
+  <td>
+    <code>
+      "Pregnancy complications: __ | Substance exposure in utero: __ | Gestational age at birth: __ weeks | Birth weight: __ | Delivery complications: __ | NICU stay: Y/N | Duration: __ | Apgar scores: __"
+    </code>
+  </td>
+  <td>
+    AACAP; AAP Developmental Surveillance
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Developmental History — Milestones
+  </td>
+  <td>
+    <code>
+      "First words: __ months | First sentences: __ months | Walked independently: __ months | Toilet trained: __ months | Fine motor concerns: Y/N | Gross motor concerns: Y/N | Language delays: Y/N | Social milestones: __ | Regression noted: Y/N"
+    </code>
+  </td>
+  <td>
+    AAP Developmental Milestones; CDC Milestones
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Developmental History — Early Childhood
+  </td>
+  <td>
+    <code>
+      "Temperament: easy/slow-to-warm/difficult | Attachment pattern: __ | Separation anxiety (normal vs. excessive): __ | Feeding difficulties: Y/N | Sleep difficulties: Y/N | Behavioral concerns in preschool: Y/N | Daycare/preschool adjustment: __"
+    </code>
+  </td>
+  <td>
+    AACAP; Bowlby Attachment Theory
+  </td>
+</tr>
+
+<tr>
+  <td>
+    School History
+  </td>
+  <td>
+    <code>
+      "Current grade: __ | Academic performance: __ | Grades: __ | Behavior in school: __ | IEP: Y/N | 504 Plan: Y/N | Special education services: __ | Suspensions: __ | Expulsions: __ | Bullying (victim/perpetrator): __ | School refusal: Y/N | Peer relationships at school: __"
+    </code>
+  </td>
+  <td>
+    IDEA 2004; Section 504; AACAP
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Family History & Dynamics
+  </td>
+  <td>
+    <code>
+      "Family structure: __ | Parents' marital status: __ | Custody arrangement: __ | Siblings: __ | Family psychiatric history: __ | SUD in family: __ | Family stressors: __ | Parenting style: __ | Discipline methods: __ | Family strengths: __"
+    </code>
+  </td>
+  <td>
+    AACAP Practice Parameters; Genogram Assessment
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Trauma & Adversity Screening
+  </td>
+  <td>
+    <code>
+      "ACE score: __/10 | Physical abuse: Y/N | Sexual abuse: Y/N | Emotional abuse: Y/N | Neglect: Y/N | Domestic violence exposure: Y/N | Community violence: Y/N | Foster care: Y/N | Number of placements: __ | CSEC risk: Y/N | Human trafficking screen: __"
+    </code>
+  </td>
+  <td>
+    ACE Study; AACAP Trauma Guidelines; NCTSN
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Social History — Child
+  </td>
+  <td>
+    <code>
+      "Peer relationships: __ | Number of close friends: __ | Social skills: __ | Extracurricular activities: __ | Hobbies/interests: __ | Screen time: __ hours/day | Social media use: __ | Online safety concerns: Y/N | Gang involvement: Y/N"
+    </code>
+  </td>
+  <td>
+    AACAP; AAP Screen Time Guidelines
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Substance Use Screening (Adolescent)
+  </td>
+  <td>
+    <code>
+      "CRAFFT score: __/6 | Alcohol use: __ | Cannabis use: __ | Vaping/e-cigarettes: __ | Other substances: __ | Age of first use: __ | Peer substance use: __ | Risk level: low/moderate/high"
+    </code>
+  </td>
+  <td>
+    CRAFFT 2.1; AAP Adolescent SUD Guidelines
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Suicide/Self-Harm Assessment — Pediatric
+  </td>
+  <td>
+    <code>
+      "Suicidal ideation: Y/N | Ask Suicide-Screening Questions (ASQ): __ | Plan: Y/N | Attempt history: __ | Non-suicidal self-injury: Y/N | Methods: __ | Frequency: __ | Function: __ | Means restriction discussed with parents: Y/N | Safety plan: Y/N"
+    </code>
+  </td>
+  <td>
+    ASQ (NIMH); C-SSRS Pediatric; AACAP Suicide Guidelines
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Mental Status Exam — Child/Adolescent
+  </td>
+  <td>
+    <code>
+      "Appearance: __ | Behavior during interview: __ | Cooperation: __ | Separation from parent: __ | Activity level: __ | Speech: __ | Mood (child's words): __ | Affect: __ | Thought content (age-appropriate): __ | Fantasy/play themes: __ | Insight (developmental): __ | Judgment: __"
+    </code>
+  </td>
+  <td>
+    AACAP; MSE Modified for Children
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Play/Behavioral Observation
+  </td>
+  <td>
+    <code>
+      "Play quality: __ | Play themes: __ | Symbolic/imaginative play: __ | Social play skills: __ | Frustration tolerance: __ | Attention span during play: __ | Aggression during play: Y/N | Attachment behavior observed: __ | Parent-child interaction observed: __"
+    </code>
+  </td>
+  <td>
+    AACAP; Developmental Play Assessment
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Standardized Rating Scales — Parent
+  </td>
+  <td>
+    <code>
+      "CBCL Total: __ | Internalizing: __ | Externalizing: __ | Conners-3 Parent ADHD Index: __ | SCARED Parent: __ | Vanderbilt Parent: Inattention __/9, Hyperactivity __/9 | SDQ Parent Total: __/40"
+    </code>
+  </td>
+  <td>
+    CBCL (Achenbach); Conners-3; SCARED; Vanderbilt; SDQ
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Standardized Rating Scales — Teacher
+  </td>
+  <td>
+    <code>
+      "TRF Total: __ | Internalizing: __ | Externalizing: __ | Conners-3 Teacher ADHD Index: __ | Vanderbilt Teacher: Inattention __/9, Hyperactivity __/9 | SNAP-IV Teacher: __ | SDQ Teacher Total: __/40"
+    </code>
+  </td>
+  <td>
+    TRF (Achenbach); Conners-3; Vanderbilt; SNAP-IV; SDQ
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Standardized Rating Scales — Self-Report (Adolescent)
+  </td>
+  <td>
+    <code>
+      "YSR Total: __ | CDI-2 Total: __ | SCARED Self: __ | RCADS Self: __ | PHQ-A: __/27 | GAD-7: __/21 | Conners-3 Self: __"
+    </code>
+  </td>
+  <td>
+    YSR (Achenbach); CDI-2; SCARED; RCADS; PHQ-A
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Autism Screening (if indicated)
+  </td>
+  <td>
+    <code>
+      "M-CHAT-R/F score: __/20 (toddler) | SCQ score: __/40 | SRS-2 Total: __ | ADOS-2 Module __: Comparison Score __ | Social Communication: __ | Restricted/Repetitive Behaviors: __ | ASD classification: __"
+    </code>
+  </td>
+  <td>
+    M-CHAT-R/F; SCQ; SRS-2; ADOS-2
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Cognitive/Academic Screening
+  </td>
+  <td>
+    <code>
+      "Estimated IQ (if tested): __ | Academic functioning: on grade level/below/above | Specific learning concerns: __ | Speech-language screening: __ | Full neuropsychological testing recommended: Y/N"
+    </code>
+  </td>
+  <td>
+    WISC-V; WJ-IV; AAP; AACAP
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Physical/Medical Review
+  </td>
+  <td>
+    <code>
+      "Growth parameters: Height __ percentile, Weight __ percentile, BMI __ percentile | Chronic medical conditions: __ | Medications: __ | Allergies: __ | Vision screened: __ | Hearing screened: __ | Lead level: __ | Thyroid: __ | Sleep study indicated: Y/N"
+    </code>
+  </td>
+  <td>
+    AAP; AACAP
+  </td>
+</tr>
+
+<tr>
+  <td>
+    DSM-5-TR Diagnostic Formulation
+  </td>
+  <td>
+    <code>
+      "Primary diagnosis: __ | DSM-5-TR code: __ | ICD-10-CM: __ | Specifiers: __ | Severity: __ | Secondary diagnoses: __ | Rule-outs: __ | Developmental considerations: __ | Functional impact: __"
+    </code>
+  </td>
+  <td>
+    DSM-5-TR; ICD-10-CM; AACAP
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Biopsychosocial Formulation — Pediatric
+  </td>
+  <td>
+    <code>
+      "Biological: __ | Psychological: __ | Social: __ | Developmental: __ | Family system: __ | School system: __ | Strengths: __ | Risk factors: __ | Protective factors: __ | Cultural considerations: __"
+    </code>
+  </td>
+  <td>
+    Engel Model adapted for pediatrics; AACAP
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Treatment Recommendations — Child/Adolescent
+  </td>
+  <td>
+    <code>
+      "Therapy: __ | Modality: individual/family/group/play therapy | Evidence base: __ | Frequency: __ | Medication: __ | School interventions: __ | IEP/504 recommendation: __ | Parenting intervention: __ | Family therapy: Y/N | Referrals: __"
+    </code>
+  </td>
+  <td>
+    AACAP Practice Parameters; AAP; Evidence-Based Treatment Guidelines
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Medication Recommendations (if applicable)
+  </td>
+  <td>
+    <code>
+      "Medication: __ | Class: __ | Starting dose: __ | Titration plan: __ | Black box warnings discussed: Y/N | FDA approval status for age: __ | Metabolic monitoring plan: __ | Growth monitoring: Y/N | Guardian consent for medication: Y/N"
+    </code>
+  </td>
+  <td>
+    AACAP Medication Guidelines; FDA Pediatric Labeling
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Safety Planning — Pediatric
+  </td>
+  <td>
+    <code>
+      "Means restriction with parents: __ | Firearm safety: __ | Medication safety: __ | Supervision plan: __ | School safety plan: __ | Crisis contacts: __ | Crisis text line (741741): reviewed | 988 Suicide & Crisis Lifeline: reviewed"
+    </code>
+  </td>
+  <td>
+    AACAP; Stanley-Brown adapted for youth; Sandy Hook Promise
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Coordination of Care — Pediatric
+  </td>
+  <td>
+    <code>
+      "Parents/guardians: __ | Pediatrician/PCP: __ | School counselor: __ | Teacher notification (with consent): __ | CPS (if applicable): __ | Other providers: __ | Release of information: Y/N"
+    </code>
+  </td>
+  <td>
+    AACAP; FERPA; HIPAA; State Minor Consent Laws
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Follow-Up Plan
+  </td>
+  <td>
+    <code>
+      "Next appointment: __ | Follow-up provider: __ | Monitoring plan: __ | Re-evaluation timeline: __ | Parent guidance provided: __ | Psychoeducation: __ | Written materials provided: __"
+    </code>
+  </td>
+  <td>
+    AACAP Practice Parameters; AAP
+  </td>
+</tr>
+
+  </tbody>
+</table>
+
+
+<!-- 1.5 Crisis & Emergency Evaluation -->
+
+<h4>1.5 Crisis & Emergency Evaluation</h4>
+
+<p>Emergency psychiatric assessment for crisis presentations including triage, acute risk assessment, restraint documentation, involuntary hold criteria, and disposition planning.</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>Item</th>
+      <th>Format Template</th>
+      <th>Source</th>
+    </tr>
+  </thead>
+  <tbody>
+
+<tr>
+  <td>
+    Patient Identification
+  </td>
+  <td>
+    <code>
+      "Patient: __ | Age: __ | DOB: __ | MRN: __ | Gender: __ | Arrival time: __ | Mode of arrival: ambulance/police/walk-in/transfer | Accompanied by: __ | Legal status: voluntary/involuntary"
+    </code>
+  </td>
+  <td>
+    EMTALA; Joint Commission BH; APA Emergency Guidelines
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Legal Status & Authorization
+  </td>
+  <td>
+    <code>
+      "Voluntary presentation: Y/N | Involuntary hold: Y/N | Hold type: __ | Hold initiated by: __ | Hold expiration: __ | Legal authority: __ | Patient rights reviewed: Y/N | Attorney requested: Y/N | Guardian/conservator: Y/N"
+    </code>
+  </td>
+  <td>
+    State Mental Health Code; 42 CFR 482.13; Patient Rights
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Presenting Crisis
+  </td>
+  <td>
+    <code>
+      "Nature of crisis: __ | Immediate precipitant: __ | Time of onset: __ | Informant(s): __ | Patient's account: __ | Collateral account: __ | Law enforcement involvement: Y/N | Report #: __"
+    </code>
+  </td>
+  <td>
+    EMTALA; APA Emergency Psychiatry
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Triage & Acuity
+  </td>
+  <td>
+    <code>
+      "Triage level: 1 (immediate)/2 (emergent)/3 (urgent)/4 (less urgent)/5 (non-urgent) | ESI level: __ | Behavioral acuity: agitated/calm/withdrawn/psychotic/intoxicated | 1:1 observation needed: Y/N | Seclusion/restraint: Y/N"
+    </code>
+  </td>
+  <td>
+    ESI Triage; Joint Commission Restraint Standards
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Safety Assessment — Immediate
+  </td>
+  <td>
+    <code>
+      "Belongings search: Y/N | Contraband found: __ | Sharps removed: Y/N | Ligature risk assessment: __ | Elopement risk: __ | Assault risk: __ | Environment secured: Y/N | Safety precautions initiated: __"
+    </code>
+  </td>
+  <td>
+    Joint Commission Environment of Care; NPSG 15.01.01
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Suicide Risk Assessment — Acute
+  </td>
+  <td>
+    <code>
+      "Current suicidal ideation: Y/N | Plan: Y/N | Plan details: __ | Intent: Y/N | Means access: __ | Timeline: __ | Rehearsal: Y/N | Suicide note: Y/N | Recent attempt: Y/N | Method: __ | Lethality: __ | C-SSRS Severity: __/5 | C-SSRS Intensity: __/25"
+    </code>
+  </td>
+  <td>
+    C-SSRS; APA Suicide Assessment 2024; Joint Commission NPSG 15.01.01
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Suicide Risk Stratification
+  </td>
+  <td>
+    <code>
+      "Static risk factors: __ | Dynamic risk factors: __ | Acute warning signs: __ | Protective factors: __ | Modifiable risk factors: __ | Risk level: low/moderate/high/imminent | Disposition implication: __"
+    </code>
+  </td>
+  <td>
+    C-SSRS; APA Practice Guidelines; Joiner Interpersonal Theory
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Homicide/Violence Risk — Acute
+  </td>
+  <td>
+    <code>
+      "Homicidal ideation: Y/N | Identified victim: Y/N | Plan: Y/N | Means: __ | History of violence: __ | Current intoxication: Y/N | Psychosis with command hallucinations: Y/N | Agitation level: __ | STAMP assessment: __ | Duty to warn triggered: Y/N | Notification: __"
+    </code>
+  </td>
+  <td>
+    Tarasoff; STAMP; APA Emergency Guidelines; State Duty to Warn
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Agitation Assessment
+  </td>
+  <td>
+    <code>
+      "Richmond Agitation Sedation Scale (RASS): __ (-5 to +4) | Brøset Violence Checklist (BVC): __/6 | BARS score: __ | Verbal de-escalation attempted: Y/N | Response: __ | Chemical restraint needed: Y/N | Physical restraint needed: Y/N"
+    </code>
+  </td>
+  <td>
+    RASS; BVC; BARS; BETA Project Guidelines
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Restraint/Seclusion Documentation (if applicable)
+  </td>
+  <td>
+    <code>
+      "Type: chemical/physical/seclusion | Justification: __ | Least restrictive alternative attempted: __ | Order time: __ | Physician face-to-face within 1 hour: Y/N | 15-minute checks: Y/N | Patient condition: __ | Release criteria: __ | Duration: __ | Renewed: Y/N"
+    </code>
+  </td>
+  <td>
+    CMS 42 CFR 482.13; Joint Commission PC.03.05; State Regulations
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Substance Intoxication/Withdrawal — Acute
+  </td>
+  <td>
+    <code>
+      "Substances suspected: __ | Blood alcohol level: __ | UDS results: __ | Intoxication signs: __ | Withdrawal signs: __ | CIWA-Ar: __/67 | COWS: __/48 | Medical clearance status: __ | Monitoring protocol: __"
+    </code>
+  </td>
+  <td>
+    CIWA-Ar; COWS; ASAM; EMTALA Medical Screening
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Medical Screening Exam
+  </td>
+  <td>
+    <code>
+      "Medical clearance: pending/cleared/abnormal | Vital signs: BP __/__ HR __ Temp __ RR __ SpO2 __ | Glucose: __ | Acute medical conditions: __ | Medication toxicity: __ | Head CT needed: Y/N | Labs ordered: __ | Medical consultation needed: Y/N"
+    </code>
+  </td>
+  <td>
+    EMTALA; ACEP Medical Clearance Guidelines
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Mental Status Exam — Crisis
+  </td>
+  <td>
+    <code>
+      "Appearance: __ | Behavior: __ | Cooperation: __ | Psychomotor: __ | Speech: __ | Mood: __ | Affect: __ | Thought process: __ | Thought content: __ | Perceptions: __ | Cognition: __ | Orientation: __ | Insight: __ | Judgment: __"
+    </code>
+  </td>
+  <td>
+    Trzepacz & Baker MSE; APA Emergency Psychiatry
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Psychiatric History — Rapid Review
+  </td>
+  <td>
+    <code>
+      "Known diagnoses: __ | Current medications: __ | Current prescriber: __ | Last psychiatric hospitalization: __ | Previous crisis presentations: __ | Outpatient provider: __ | Compliance with current treatment: __"
+    </code>
+  </td>
+  <td>
+    APA Emergency Psychiatry; Joint Commission
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Collateral Information
+  </td>
+  <td>
+    <code>
+      "Collateral contacted: __ | Relationship: __ | Information obtained: __ | Discrepancies with patient report: __ | Previous records reviewed: Y/N | EHR review: __ | State MH database checked: Y/N | PMP checked: Y/N"
+    </code>
+  </td>
+  <td>
+    APA Emergency Guidelines; State MH Records
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Social/Environmental Crisis Factors
+  </td>
+  <td>
+    <code>
+      "Housing status: housed/homeless/shelter/about to lose housing | DV situation: Y/N | Safety if discharged: __ | Support persons available: __ | Financial crisis: Y/N | Food insecurity: Y/N | Dependent children/elders at home: Y/N | CPS/APS needed: Y/N"
+    </code>
+  </td>
+  <td>
+    SAMHSA; SDOH; Joint Commission
+  </td>
+</tr>
+
+<tr>
+  <td>
+    De-escalation Interventions
+  </td>
+  <td>
+    <code>
+      "Verbal de-escalation: __ | Environmental modifications: __ | PRN medication offered: Y/N | Accepted: Y/N | Medication given: __ | Route: __ | Time: __ | Response: __ | Additional interventions: __"
+    </code>
+  </td>
+  <td>
+    BETA Project; APA De-escalation Guidelines
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Crisis Intervention
+  </td>
+  <td>
+    <code>
+      "Crisis intervention modality: __ | Therapeutic rapport established: Y/N | Problem identification: __ | Coping strategies reviewed: __ | Safety planning: __ | Brief supportive therapy: __ | Reality testing: __ | Psychoeducation: __ | Duration: __"
+    </code>
+  </td>
+  <td>
+    Roberts Crisis Intervention Model; APA
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Diagnostic Impression
+  </td>
+  <td>
+    <code>
+      "Working diagnosis: __ | DSM-5-TR: __ | ICD-10-CM: __ | Rule-outs: __ | Medical conditions contributing: __ | Substance contribution: __"
+    </code>
+  </td>
+  <td>
+    DSM-5-TR; ICD-10-CM
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Risk-Benefit Analysis for Disposition
+  </td>
+  <td>
+    <code>
+      "Risk of discharge: __ | Benefit of discharge: __ | Risk of admission: __ | Benefit of admission: __ | Patient preference: __ | Least restrictive setting: __ | Capacity to make treatment decisions: intact/impaired"
+    </code>
+  </td>
+  <td>
+    APA Ethics; CMS; Joint Commission
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Disposition Determination
+  </td>
+  <td>
+    <code>
+      "Disposition: discharge/admit voluntary/admit involuntary/transfer/observation | Level of care: __ | If admit: unit __ | If transfer: facility __ | If discharge: safe to discharge: Y/N | Discharge criteria met: __"
+    </code>
+  </td>
+  <td>
+    EMTALA; APA Emergency Guidelines; State MH Code
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Safety Plan — Crisis
+  </td>
+  <td>
+    <code>
+      "Warning signs: __ | Internal coping strategies: __ | People/places for distraction: __ | People to ask for help: __ | Professionals/agencies: __ | Making the environment safe: __ | My reason for living: __ | 988 reviewed: Y/N"
+    </code>
+  </td>
+  <td>
+    Stanley-Brown Safety Plan; Joint Commission NPSG 15.01.01
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Involuntary Commitment Documentation (if applicable)
+  </td>
+  <td>
+    <code>
+      "Criteria met: Y/N | Danger to self: Y/N | Evidence: __ | Danger to others: Y/N | Evidence: __ | Gravely disabled: Y/N | Evidence: __ | Least restrictive alternative considered: __ | Hold type: __ | Expiration: __ | Court hearing date: __ | Patient advocate notified: Y/N"
+    </code>
+  </td>
+  <td>
+    State Mental Health Code; 42 CFR; Constitutional Due Process
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Medication Orders — Emergency
+  </td>
+  <td>
+    <code>
+      "Emergency medications administered: __ | Dose: __ | Route: __ | Time: __ | Indication: __ | Response: __ | Adverse effects: __ | New prescriptions: __ | Continued home medications: __ | Held medications: __"
+    </code>
+  </td>
+  <td>
+    APA Emergency Psychopharm; FDA; BETA Project
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Discharge Instructions (if discharged)
+  </td>
+  <td>
+    <code>
+      "Follow-up appointment: __ | Provider: __ | Date/time: __ | Medications: __ | Safety plan copy given: Y/N | Crisis resources: 988, Crisis Text Line (741741), local crisis team __ | Precautions: __ | Return-to-ED criteria: __ | Patient verbalized understanding: Y/N"
+    </code>
+  </td>
+  <td>
+    APA; Joint Commission Transitions of Care; EMTALA
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Coordination & Notifications
+  </td>
+  <td>
+    <code>
+      "Outpatient provider notified: Y/N | PCP notified: Y/N | Family/supports notified (with consent): Y/N | Law enforcement notified (if applicable): Y/N | CPS/APS report filed (if applicable): Y/N | Receiving facility contacted (if transfer): Y/N | Warm handoff: Y/N"
+    </code>
+  </td>
+  <td>
+    APA; Joint Commission; EMTALA; Mandatory Reporting Laws
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Attending Physician Documentation
+  </td>
+  <td>
+    <code>
+      "Attending psychiatrist: __ | NPI: __ | Evaluation time: __ | Total time: __ | Complexity: __ | Supervision of trainees (if applicable): __ | Co-signature: __"
+    </code>
+  </td>
+  <td>
+    CMS E/M; APA; ACGME Supervision Requirements
+  </td>
+</tr>
+
+  </tbody>
+</table>
+
+
+<hr>
+
+<h2 id="framework-2">Framework 2: Therapy & Progress Notes</h2>
+<p>Structured templates for individual therapy sessions, group therapy documentation, family/couples therapy, SUD-specific treatment notes, and psychiatric medication management encounters.</p>
+
+<!-- 2.1 Individual Therapy Progress Note -->
+
+<h4>2.1 Individual Therapy Progress Note</h4>
+
+<p>Session-by-session individual therapy documentation including patient presentation, interventions, therapeutic alliance, outcome measures, and treatment progress.</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>Item</th>
+      <th>Format Template</th>
+      <th>Source</th>
+    </tr>
+  </thead>
+  <tbody>
+
+<tr>
+  <td>
+    Session Identification
+  </td>
+  <td>
+    <code>
+      "Patient: __ | Date: __ | Session #: __ | Session duration: __ min | Start time: __ | End time: __ | Session type: in-person/telehealth/phone | CPT code: __"
+    </code>
+  </td>
+  <td>
+    APA Practice Guidelines; AMA CPT
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Provider Information
+  </td>
+  <td>
+    <code>
+      "Clinician: __ | Credentials: __ | License #: __ | NPI: __ | Supervision status (if applicable): __ | Supervisor: __"
+    </code>
+  </td>
+  <td>
+    State Licensing Boards; CMS
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Diagnosis — Current
+  </td>
+  <td>
+    <code>
+      "Primary diagnosis: __ | ICD-10-CM: __ | Secondary diagnoses: __ | Medical conditions affecting treatment: __ | Changes since last session: __"
+    </code>
+  </td>
+  <td>
+    DSM-5-TR; ICD-10-CM
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Treatment Plan Reference
+  </td>
+  <td>
+    <code>
+      "Treatment plan date: __ | Goals addressed this session: __ | Objectives targeted: __ | Interventions planned: __"
+    </code>
+  </td>
+  <td>
+    Joint Commission BH; CARF BH Standards
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Patient Presentation
+  </td>
+  <td>
+    <code>
+      "Appearance: __ | Behavior: __ | Mood (patient's words): __ | Affect: __ | Orientation: __ | Speech: __ | Thought process: __ | Eye contact: __ | Engagement level: __"
+    </code>
+  </td>
+  <td>
+    APA Practice Guidelines; MSE
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Subjective — Patient Report
+  </td>
+  <td>
+    <code>
+      "Patient reports: __ | Symptom changes since last session: __ | Significant events since last session: __ | Homework/between-session work completion: __ | Medication changes: __ | Side effects: __ | Substance use (interval): __"
+    </code>
+  </td>
+  <td>
+    APA Documentation Guidelines
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Risk Assessment Update
+  </td>
+  <td>
+    <code>
+      "Suicidal ideation: Y/N | Change from last session: __ | Homicidal ideation: Y/N | Self-harm: Y/N | Substance use concerns: __ | Risk level: low/moderate/high | Safety plan reviewed: Y/N | Updated: Y/N"
+    </code>
+  </td>
+  <td>
+    C-SSRS; Joint Commission NPSG 15.01.01
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Session Focus/Agenda
+  </td>
+  <td>
+    <code>
+      "Agenda items: __ | Patient-identified priority: __ | Clinician-identified priority: __ | Carryover from previous session: __ | Crisis/acute issue (if any): __"
+    </code>
+  </td>
+  <td>
+    APA; Evidence-Based Practice
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Therapeutic Interventions — Primary
+  </td>
+  <td>
+    <code>
+      "Intervention 1: __ | Modality: __ | Technique: __ | Duration: __ min | Patient response: __ | Therapeutic rationale: __"
+    </code>
+  </td>
+  <td>
+    APA Practice Guidelines; Treatment-Specific Manuals
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Therapeutic Interventions — Secondary
+  </td>
+  <td>
+    <code>
+      "Intervention 2: __ | Modality: __ | Technique: __ | Duration: __ min | Patient response: __ | Intervention 3: __ | Technique: __ | Patient response: __"
+    </code>
+  </td>
+  <td>
+    APA Practice Guidelines
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Cognitive Interventions (if applicable)
+  </td>
+  <td>
+    <code>
+      "Automatic thoughts identified: __ | Cognitive distortions: __ | Cognitive restructuring: __ | Thought record completed: Y/N | Behavioral experiment: __ | Schema work: __"
+    </code>
+  </td>
+  <td>
+    Beck CBT Model; APA CBT Guidelines
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Behavioral Interventions (if applicable)
+  </td>
+  <td>
+    <code>
+      "Behavioral activation targets: __ | Exposure hierarchy item: __ | SUDS pre: __/10 | SUDS post: __/10 | Skills practiced: __ | Reinforcement plan: __ | Behavioral experiment: __"
+    </code>
+  </td>
+  <td>
+    CBT; Behavioral Activation; APA
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Psychodynamic/Interpersonal Interventions (if applicable)
+  </td>
+  <td>
+    <code>
+      "Transference observations: __ | Countertransference noted: __ | Defense mechanisms observed: __ | Interpersonal patterns: __ | Linking statements: __ | Interpretation offered: __ | Patient response: __"
+    </code>
+  </td>
+  <td>
+    APA Psychodynamic Guidelines; IPT Manual
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Therapeutic Alliance Assessment
+  </td>
+  <td>
+    <code>
+      "Working alliance: strong/adequate/strained/ruptured | Rupture identified: Y/N | Repair attempted: Y/N | Outcome: __ | Patient engagement: __ | Resistance/ambivalence noted: __"
+    </code>
+  </td>
+  <td>
+    Bordin Working Alliance; APA
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Homework/Between-Session Assignment
+  </td>
+  <td>
+    <code>
+      "Previous homework reviewed: __ | Completion: full/partial/not completed | Barriers to completion: __ | New homework assigned: __ | Rationale: __ | Patient agreement: Y/N"
+    </code>
+  </td>
+  <td>
+    CBT; APA; Treatment Manuals
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Outcome Measures (if administered)
+  </td>
+  <td>
+    <code>
+      "PHQ-9: __/27 (change: __) | GAD-7: __/21 (change: __) | PCL-5: __/80 (change: __) | ORS (Outcome Rating Scale): __/40 | SRS (Session Rating Scale): __/40 | Other: __"
+    </code>
+  </td>
+  <td>
+    PHQ-9; GAD-7; PCL-5; ORS/SRS (Miller & Duncan)
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Progress Toward Goals
+  </td>
+  <td>
+    <code>
+      "Goal 1: __ | Progress: regression/no change/slight/moderate/significant/achieved | Evidence: __ | Goal 2: __ | Progress: __ | Evidence: __ | Overall trajectory: improving/stable/declining"
+    </code>
+  </td>
+  <td>
+    Joint Commission BH; CARF; APA
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Clinical Impression
+  </td>
+  <td>
+    <code>
+      "Clinical formulation update: __ | Diagnostic considerations: __ | Treatment response: __ | Factors affecting progress: __ | Prognosis: __"
+    </code>
+  </td>
+  <td>
+    APA Practice Guidelines
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Plan — Next Session
+  </td>
+  <td>
+    <code>
+      "Next session date: __ | Planned focus: __ | Interventions planned: __ | Treatment plan modifications needed: Y/N | Frequency change: Y/N"
+    </code>
+  </td>
+  <td>
+    APA; Joint Commission BH
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Plan — Between Sessions
+  </td>
+  <td>
+    <code>
+      "Patient tasks: __ | Skills to practice: __ | Readings/worksheets: __ | Medication adherence: __ | Support group attendance: __ | Crisis plan: 988 if in crisis"
+    </code>
+  </td>
+  <td>
+    APA; Treatment Manuals
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Plan — Coordination of Care
+  </td>
+  <td>
+    <code>
+      "Psychiatrist communication: __ | PCP communication: __ | Other provider communication: __ | Case management referral: Y/N | New referrals: __ | Authorization/UR status: __"
+    </code>
+  </td>
+  <td>
+    Joint Commission; CARF; HIPAA
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Medication Review (if prescriber)
+  </td>
+  <td>
+    <code>
+      "Current medications: __ | Compliance: __ | Side effects: __ | Effectiveness: __ | Changes made: __ | Rationale: __ | Monitoring needed: __ | Next lab draw: __"
+    </code>
+  </td>
+  <td>
+    APA Pharmacotherapy Guidelines; FDA
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Session Summary Statement
+  </td>
+  <td>
+    <code>
+      "Summary: Patient attended __ minute __ session. __ interventions were utilized targeting __. Patient demonstrated __ progress. Risk assessment: __. Plan: __."
+    </code>
+  </td>
+  <td>
+    APA Documentation; Payer Requirements
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Cancellation/No-Show Documentation (if applicable)
+  </td>
+  <td>
+    <code>
+      "Scheduled session: __ | Status: cancelled/no-show/late cancel | Attempts to contact: __ | Method: __ | Response: __ | Rescheduled: Y/N | Pattern of missed sessions: __ | Safety concern due to missed session: Y/N | Safety outreach: __"
+    </code>
+  </td>
+  <td>
+    APA Ethics; Duty to Warn; Joint Commission
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Cultural Considerations
+  </td>
+  <td>
+    <code>
+      "Cultural factors relevant to session: __ | Language considerations: __ | Cultural adaptations to treatment: __ | Interpreter used: Y/N | Cultural consultation needed: Y/N"
+    </code>
+  </td>
+  <td>
+    APA Multicultural Guidelines; DSM-5-TR CFI
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Therapist Signature
+  </td>
+  <td>
+    <code>
+      "Clinician: __ | Credentials: __ | Date: __ | Time note completed: __ | Supervisor co-signature (if applicable): __ | Date: __"
+    </code>
+  </td>
+  <td>
+    State Licensing; CMS; Joint Commission
+  </td>
+</tr>
+
+  </tbody>
+</table>
+
+
+<!-- 2.2 Group Therapy Progress Note -->
+
+<h4>2.2 Group Therapy Progress Note</h4>
+
+<p>Group therapy documentation covering group process, individual member notes (up to 8 patients), therapeutic factors, facilitator interventions, and skills-based content.</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>Item</th>
+      <th>Format Template</th>
+      <th>Source</th>
+    </tr>
+  </thead>
+  <tbody>
+
+<tr>
+  <td>
+    Group Session Identification
+  </td>
+  <td>
+    <code>
+      "Group name: __ | Date: __ | Session #: __ of __ | Duration: __ min | Start time: __ | End time: __ | Group type: process/psychoeducation/skills/support | CPT code: __"
+    </code>
+  </td>
+  <td>
+    APA Group Therapy Guidelines; AMA CPT 90853
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Group Facilitator(s)
+  </td>
+  <td>
+    <code>
+      "Primary facilitator: __ | Credentials: __ | Co-facilitator: __ | Credentials: __ | Trainee/observer: __ | Supervision: __"
+    </code>
+  </td>
+  <td>
+    AGPA Standards; State Licensing
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Group Membership
+  </td>
+  <td>
+    <code>
+      "Total enrolled: __ | Present today: __ | Absent: __ | New members: __ | Terminating members: __ | Members present (initials): __"
+    </code>
+  </td>
+  <td>
+    AGPA; APA Group Guidelines
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Group Topic/Focus
+  </td>
+  <td>
+    <code>
+      "Session topic: __ | Curriculum module (if manualized): __ | Psychoeducation content: __ | Skills taught: __ | Group process theme: __"
+    </code>
+  </td>
+  <td>
+    AGPA; Treatment Manual (specify: __)
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Group Process Observations
+  </td>
+  <td>
+    <code>
+      "Group cohesion: high/moderate/low | Stage of group development: forming/storming/norming/performing | Group dynamics: __ | Subgroups: __ | Scapegoating: Y/N | Universality observed: Y/N | Altruism: Y/N"
+    </code>
+  </td>
+  <td>
+    Yalom Group Therapeutic Factors; AGPA
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Individual Patient Note — Patient 1
+  </td>
+  <td>
+    <code>
+      "Patient (initials): __ | Diagnosis: __ | Attendance: present/absent | Participation level: active/moderate/minimal/disruptive | Content shared: __ | Affect: __ | Interactions: __ | Interventions directed at patient: __ | Progress on goals: __ | Risk: __"
+    </code>
+  </td>
+  <td>
+    APA; Joint Commission; Payer Requirements
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Individual Patient Note — Patient 2
+  </td>
+  <td>
+    <code>
+      "Patient (initials): __ | Diagnosis: __ | Attendance: present/absent | Participation level: __ | Content shared: __ | Affect: __ | Interactions: __ | Interventions directed at patient: __ | Progress on goals: __ | Risk: __"
+    </code>
+  </td>
+  <td>
+    APA; Joint Commission; Payer Requirements
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Individual Patient Note — Patient 3
+  </td>
+  <td>
+    <code>
+      "Patient (initials): __ | Diagnosis: __ | Attendance: present/absent | Participation level: __ | Content shared: __ | Affect: __ | Interactions: __ | Interventions directed at patient: __ | Progress on goals: __ | Risk: __"
+    </code>
+  </td>
+  <td>
+    APA; Joint Commission; Payer Requirements
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Individual Patient Note — Patient 4
+  </td>
+  <td>
+    <code>
+      "Patient (initials): __ | Diagnosis: __ | Attendance: present/absent | Participation level: __ | Content shared: __ | Affect: __ | Interactions: __ | Interventions directed at patient: __ | Progress on goals: __ | Risk: __"
+    </code>
+  </td>
+  <td>
+    APA; Joint Commission; Payer Requirements
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Individual Patient Note — Patient 5
+  </td>
+  <td>
+    <code>
+      "Patient (initials): __ | Diagnosis: __ | Attendance: present/absent | Participation level: __ | Content shared: __ | Affect: __ | Interactions: __ | Interventions directed at patient: __ | Progress on goals: __ | Risk: __"
+    </code>
+  </td>
+  <td>
+    APA; Joint Commission; Payer Requirements
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Individual Patient Note — Patient 6
+  </td>
+  <td>
+    <code>
+      "Patient (initials): __ | Diagnosis: __ | Attendance: present/absent | Participation level: __ | Content shared: __ | Affect: __ | Interactions: __ | Interventions directed at patient: __ | Progress on goals: __ | Risk: __"
+    </code>
+  </td>
+  <td>
+    APA; Joint Commission; Payer Requirements
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Individual Patient Note — Patient 7
+  </td>
+  <td>
+    <code>
+      "Patient (initials): __ | Diagnosis: __ | Attendance: present/absent | Participation level: __ | Content shared: __ | Affect: __ | Interactions: __ | Interventions directed at patient: __ | Progress on goals: __ | Risk: __"
+    </code>
+  </td>
+  <td>
+    APA; Joint Commission; Payer Requirements
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Individual Patient Note — Patient 8
+  </td>
+  <td>
+    <code>
+      "Patient (initials): __ | Diagnosis: __ | Attendance: present/absent | Participation level: __ | Content shared: __ | Affect: __ | Interactions: __ | Interventions directed at patient: __ | Progress on goals: __ | Risk: __"
+    </code>
+  </td>
+  <td>
+    APA; Joint Commission; Payer Requirements
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Safety Screening — Group
+  </td>
+  <td>
+    <code>
+      "Risk concerns identified for any member: Y/N | Member: __ | Concern: __ | Action taken: __ | Individual follow-up scheduled: Y/N | Mandatory reporting triggered: Y/N"
+    </code>
+  </td>
+  <td>
+    Joint Commission NPSG 15.01.01; Mandatory Reporting Laws
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Therapeutic Factors Utilized
+  </td>
+  <td>
+    <code>
+      "Instillation of hope: Y/N | Universality: Y/N | Imparting information: Y/N | Altruism: Y/N | Corrective recapitulation: Y/N | Socializing techniques: Y/N | Imitative behavior: Y/N | Interpersonal learning: Y/N | Group cohesiveness: Y/N | Catharsis: Y/N | Existential factors: Y/N"
+    </code>
+  </td>
+  <td>
+    Yalom 11 Therapeutic Factors
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Facilitator Interventions
+  </td>
+  <td>
+    <code>
+      "Interventions used: __ | Linking: Y/N | Blocking: Y/N | Drawing out: Y/N | Modeling: Y/N | Process illumination: Y/N | Conflict resolution: Y/N | Setting limits: Y/N | Here-and-now focus: Y/N"
+    </code>
+  </td>
+  <td>
+    AGPA; Yalom; APA Group Guidelines
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Skills Practice (if skills group)
+  </td>
+  <td>
+    <code>
+      "Skill taught: __ | Demonstration provided: Y/N | Role play: Y/N | Practice rounds: __ | Members practicing: __ | Competency level: __ | Generalization discussed: Y/N | Homework: __"
+    </code>
+  </td>
+  <td>
+    DBT Skills Manual; CBT Group Manuals
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Psychoeducation (if psychoed group)
+  </td>
+  <td>
+    <code>
+      "Topic: __ | Content delivered: __ | Handouts distributed: Y/N | Q&A: __ | Understanding checked: __ | Application to personal situations: __ | Key takeaways: __"
+    </code>
+  </td>
+  <td>
+    APA Psychoeducation; Manualized Programs
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Group Rules/Norms Review
+  </td>
+  <td>
+    <code>
+      "Confidentiality reminder: Y/N | Group rules reinforced: __ | Boundaries addressed: __ | Contact outside group: __ | Social media boundaries: __"
+    </code>
+  </td>
+  <td>
+    AGPA Ethical Guidelines; APA Ethics
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Outcome Measures (if administered)
+  </td>
+  <td>
+    <code>
+      "ORS average: __ | SRS average: __ | Pre/post session measures: __ | Symptom tracking: __ | Goal attainment scaling: __"
+    </code>
+  </td>
+  <td>
+    ORS/SRS; Group-specific measures
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Session Summary
+  </td>
+  <td>
+    <code>
+      "Overall session quality: __ | Key themes: __ | Critical incidents: __ | Members at risk: __ | Facilitator process notes: __ | Countertransference: __"
+    </code>
+  </td>
+  <td>
+    AGPA; APA Group Guidelines
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Plan — Next Session
+  </td>
+  <td>
+    <code>
+      "Next group: __ | Topic/focus: __ | Members to follow up with individually: __ | New member orientation needed: Y/N | Group composition concerns: __"
+    </code>
+  </td>
+  <td>
+    AGPA; APA
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Facilitator Signature
+  </td>
+  <td>
+    <code>
+      "Facilitator: __ | Credentials: __ | Co-facilitator: __ | Date: __ | Time note completed: __"
+    </code>
+  </td>
+  <td>
+    State Licensing; CMS
+  </td>
+</tr>
+
+  </tbody>
+</table>
+
+
+<!-- 2.3 Family & Couples Therapy Note -->
+
+<h4>2.3 Family & Couples Therapy Note</h4>
+
+<p>Systemic therapy documentation for family and couples sessions including relational assessment, DV screening, systemic formulation, and modality-specific interventions.</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>Item</th>
+      <th>Format Template</th>
+      <th>Source</th>
+    </tr>
+  </thead>
+  <tbody>
+
+<tr>
+  <td>
+    Session Identification
+  </td>
+  <td>
+    <code>
+      "Patient(s): __ | Date: __ | Session #: __ | Duration: __ min | Session type: family/couples/in-person/telehealth | Participants present: __ | Participants absent: __ | CPT code: 90847 (with patient)/90846 (without patient)"
+    </code>
+  </td>
+  <td>
+    APA; AAMFT; AMA CPT
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Provider Information
+  </td>
+  <td>
+    <code>
+      "Clinician: __ | Credentials: __ | License #: __ | NPI: __ | AAMFT membership: Y/N | Systemic training: __"
+    </code>
+  </td>
+  <td>
+    AAMFT Code of Ethics; State Licensing
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Identified Patient & System
+  </td>
+  <td>
+    <code>
+      "Identified patient: __ | Diagnosis: __ | ICD-10-CM: __ | Relational diagnosis (if applicable): __ | Z-codes: __ | System composition: __ | Genogram updated: Y/N"
+    </code>
+  </td>
+  <td>
+    DSM-5-TR; ICD-10-CM Z-codes; AAMFT
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Relational Assessment Update
+  </td>
+  <td>
+    <code>
+      "Relationship quality: __ | Communication patterns: __ | Conflict level: __ | Intimacy/closeness: __ | Power dynamics: __ | Coalition/triangulation: __ | Boundaries: enmeshed/clear/rigid/disengaged"
+    </code>
+  </td>
+  <td>
+    Minuchin Structural Family Therapy; Gottman; AAMFT
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Presenting Concerns — Each Participant
+  </td>
+  <td>
+    <code>
+      "Participant 1 (role: __): concerns __ | Participant 2 (role: __): concerns __ | Participant 3 (role: __): concerns __ | Discrepancies: __ | Shared concern: __"
+    </code>
+  </td>
+  <td>
+    AAMFT; Systemic Assessment
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Safety Screening — Domestic Violence
+  </td>
+  <td>
+    <code>
+      "DV screening completed: Y/N | Individual screening (each partner): Y/N | Physical violence: Y/N | Emotional abuse: Y/N | Coercive control: Y/N | Safety concerns: __ | Couples therapy appropriate: Y/N | Safety plan needed: Y/N"
+    </code>
+  </td>
+  <td>
+    AAMFT DV Guidelines; National DV Hotline; Gottman Contraindications
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Safety Screening — Child/Elder Concerns
+  </td>
+  <td>
+    <code>
+      "Child safety concerns: Y/N | Child abuse/neglect indicators: __ | Elder abuse indicators: __ | Mandatory reporting triggered: Y/N | CPS/APS report: Y/N | Protective actions: __"
+    </code>
+  </td>
+  <td>
+    AAMFT; Mandatory Reporting Laws; CAPTA
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Family/Couple Dynamics Observed
+  </td>
+  <td>
+    <code>
+      "Communication style observed: __ | Pursuer-distancer pattern: Y/N | Demand-withdraw pattern: Y/N | Criticism/contempt/defensiveness/stonewalling: __ | Emotional regulation: __ | Expressed emotion level: __ | Attachment styles: __"
+    </code>
+  </td>
+  <td>
+    Gottman Four Horsemen; EFT (Johnson); Structural Family Therapy
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Systemic Formulation Update
+  </td>
+  <td>
+    <code>
+      "Circular causality patterns: __ | Intergenerational patterns: __ | Homeostatic mechanisms: __ | Triangulation: __ | Parentification: __ | Role reversal: __ | Developmental stage of family: __"
+    </code>
+  </td>
+  <td>
+    Bowen Family Systems; Structural; Strategic
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Therapeutic Interventions — Family/Couples
+  </td>
+  <td>
+    <code>
+      "Intervention 1: __ | Modality: structural/strategic/narrative/EFT/Gottman/behavioral/systemic | Technique: __ | Participants involved: __ | Response: __ | Intervention 2: __ | Technique: __ | Response: __"
+    </code>
+  </td>
+  <td>
+    AAMFT; EFT; Gottman; Treatment-Specific Manuals
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Enactment/In-Session Interaction
+  </td>
+  <td>
+    <code>
+      "Enactment facilitated: Y/N | Topic: __ | Participants: __ | Communication coaching: __ | Restructuring attempted: __ | Outcome: __ | Emotional processing: __"
+    </code>
+  </td>
+  <td>
+    Minuchin Structural; EFT; Gottman
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Communication Skills Work
+  </td>
+  <td>
+    <code>
+      "Skills targeted: __ | Active listening: __ | I-statements: __ | Soft startup: __ | Repair attempts: __ | Compromise/negotiation: __ | Skills demonstration: Y/N | Practice: Y/N | Competency: __"
+    </code>
+  </td>
+  <td>
+    Gottman; Markman PREP; Behavioral Couples Therapy
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Emotion-Focused Interventions (if EFT)
+  </td>
+  <td>
+    <code>
+      "EFT stage: de-escalation/restructuring/consolidation | Cycle de-escalation: __ | Withdrawer re-engagement: __ | Pursuer softening: __ | Primary emotions accessed: __ | Attachment needs expressed: __ | Bonding events: __"
+    </code>
+  </td>
+  <td>
+    EFT (Johnson 2019); ICEEFT
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Parenting Interventions (if family)
+  </td>
+  <td>
+    <code>
+      "Parenting skills addressed: __ | Discipline strategies: __ | Parent-child interaction: __ | Positive reinforcement: __ | Consistency: __ | Co-parenting alignment: __ | Child behavioral plan: __"
+    </code>
+  </td>
+  <td>
+    PCIT; Triple P; Incredible Years; AACAP
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Genogram/Family Mapping Update
+  </td>
+  <td>
+    <code>
+      "Genogram additions: __ | Intergenerational patterns identified: __ | Cultural genogram elements: __ | New information: __ | Family of origin issues: __"
+    </code>
+  </td>
+  <td>
+    McGoldrick Genograms; Bowen Theory
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Between-Session Assignment
+  </td>
+  <td>
+    <code>
+      "Homework assigned: __ | For whom: __ | Previous homework reviewed: __ | Completion: __ | Barriers: __ | Rationale for new assignment: __"
+    </code>
+  </td>
+  <td>
+    AAMFT; Treatment Manuals
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Outcome Measures (if administered)
+  </td>
+  <td>
+    <code>
+      "Dyadic Adjustment Scale (DAS): __ | Revised DAS (RDAS): __ | Couple Satisfaction Index (CSI): __ | Family Assessment Device (FAD): __ | FACES-IV: __ | ORS individual scores: __"
+    </code>
+  </td>
+  <td>
+    DAS; RDAS; CSI; FAD; FACES-IV
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Progress Toward Goals
+  </td>
+  <td>
+    <code>
+      "Goal 1: __ | Progress: __ | Evidence: __ | Goal 2: __ | Progress: __ | Evidence: __ | Systemic change observed: __ | Overall trajectory: improving/stable/declining"
+    </code>
+  </td>
+  <td>
+    Joint Commission; CARF; AAMFT
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Clinical Impression
+  </td>
+  <td>
+    <code>
+      "Formulation update: __ | Relational patterns: __ | Individual contributions to system: __ | Prognosis: __ | Treatment response: __"
+    </code>
+  </td>
+  <td>
+    AAMFT; APA
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Plan — Next Session
+  </td>
+  <td>
+    <code>
+      "Next session: __ | Format: conjoint/individual/family | Focus: __ | Interventions planned: __ | Separate sessions needed: Y/N | Reason: __"
+    </code>
+  </td>
+  <td>
+    AAMFT; APA
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Plan — Coordination
+  </td>
+  <td>
+    <code>
+      "Referrals: __ | Individual therapist coordination: __ | Psychiatrist coordination: __ | School coordination: __ | Legal coordination (custody): __ | ROI status: __"
+    </code>
+  </td>
+  <td>
+    AAMFT; HIPAA; Joint Commission
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Confidentiality Management
+  </td>
+  <td>
+    <code>
+      "Secrets policy reviewed: Y/N | Individual disclosures: __ (managed per policy) | No-secrets policy in effect: Y/N | HIPAA considerations for multiple parties: __ | Minor confidentiality: __"
+    </code>
+  </td>
+  <td>
+    AAMFT Ethics; APA Ethics; HIPAA; State Laws
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Cultural & Diversity Considerations
+  </td>
+  <td>
+    <code>
+      "Cultural factors: __ | Immigration stress: Y/N | Acculturation differences: __ | LGBTQ+ affirming practices: __ | Religious/spiritual factors: __ | Language: __ | Interpreter: Y/N"
+    </code>
+  </td>
+  <td>
+    AAMFT Multicultural Competencies; APA Guidelines
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Clinician Signature
+  </td>
+  <td>
+    <code>
+      "Clinician: __ | Credentials: __ | Date: __ | Time: __ | Supervisor co-signature (if applicable): __"
+    </code>
+  </td>
+  <td>
+    State Licensing; CMS
+  </td>
+</tr>
+
+  </tbody>
+</table>
+
+
+<!-- 2.4 SUD Treatment Progress Note -->
+
+<h4>2.4 SUD Treatment Progress Note</h4>
+
+<p>Substance use disorder treatment documentation aligned with ASAM and 42 CFR Part 2, covering substance use status, MAT, toxicology, stage of change, and recovery support.</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>Item</th>
+      <th>Format Template</th>
+      <th>Source</th>
+    </tr>
+  </thead>
+  <tbody>
+
+<tr>
+  <td>
+    Session Identification
+  </td>
+  <td>
+    <code>
+      "Patient: __ | Date: __ | Session #: __ | Duration: __ min | Session type: individual/group/IOP/PHP | Level of care: ASAM __ | CPT code: __ | Program: __"
+    </code>
+  </td>
+  <td>
+    ASAM Criteria; AMA CPT; SAMHSA
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Provider Information
+  </td>
+  <td>
+    <code>
+      "Clinician: __ | Credentials: __ | License #: __ | NPI: __ | CADC/CASAC certification: __ | Supervision status: __"
+    </code>
+  </td>
+  <td>
+    State SUD Licensing; IC&RC; NAADAC
+  </td>
+</tr>
+
+<tr>
+  <td>
+    42 CFR Part 2 Compliance
+  </td>
+  <td>
+    <code>
+      "Part 2 consent on file: Y/N | Consent date: __ | Consent expiration: __ | Specific disclosures authorized: __ | Redisclosure notice attached: Y/N | Break in confidentiality: Y/N | Reason: __"
+    </code>
+  </td>
+  <td>
+    42 CFR Part 2; SAMHSA Part 2 Final Rule 2024
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Diagnosis — Current
+  </td>
+  <td>
+    <code>
+      "Primary SUD diagnosis: __ | ICD-10-CM: __ | Severity: mild/moderate/severe | Specifier: in early remission/sustained remission/on MAT | Co-occurring MH: __ | ICD-10-CM: __"
+    </code>
+  </td>
+  <td>
+    DSM-5-TR; ICD-10-CM; ASAM
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Treatment Plan Reference
+  </td>
+  <td>
+    <code>
+      "Treatment plan date: __ | Phase of treatment: __ | Goals addressed this session: __ | Objectives: __ | Patient participation in planning: Y/N"
+    </code>
+  </td>
+  <td>
+    Joint Commission BH; CARF; SAMHSA TIP 42
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Patient Status — Substance Use
+  </td>
+  <td>
+    <code>
+      "Days since last use (primary): __ | Days since last use (other): __ | Current sobriety date: __ | Cravings (0-10): __ | Triggers experienced: __ | Urges to use: Y/N | Relapse since last session: Y/N | If relapse: substance __, amount __, duration __"
+    </code>
+  </td>
+  <td>
+    ASAM; SAMHSA; Relapse Prevention Model
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Patient Status — Recovery
+  </td>
+  <td>
+    <code>
+      "Recovery activities: __ | 12-step/mutual aid: __ meetings since last session | Sponsor contact: Y/N | Sober supports utilized: __ | Recovery environment: __ | Stressors: __ | Coping strategies used: __"
+    </code>
+  </td>
+  <td>
+    SAMHSA Recovery Model; ASAM
+  </td>
+</tr>
+
+<tr>
+  <td>
+    MAT Status (if applicable)
+  </td>
+  <td>
+    <code>
+      "MAT medication: __ | Dose: __ | Prescriber: __ | Last dose date: __ | Adherence: __ | Side effects: __ | Diversion risk: Y/N | Pill count/observed dosing: __ | PDMP checked: Y/N | Take-home status: __"
+    </code>
+  </td>
+  <td>
+    SAMHSA TIP 63; FDA MAT Guidelines; DEA; 42 CFR 8
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Toxicology/Drug Screening
+  </td>
+  <td>
+    <code>
+      "Drug screen date: __ | Results: __ | Substances detected: __ | Substances expected (MAT): __ | Unexpected positives: __ | Unexpected negatives: __ | Patient response to results: __ | Clinical action: __"
+    </code>
+  </td>
+  <td>
+    SAMHSA Drug Testing; ASAM; 42 CFR Part 2
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Risk Assessment — SUD
+  </td>
+  <td>
+    <code>
+      "Relapse risk: low/moderate/high | Overdose risk: __ | Triggers identified: __ | High-risk situations upcoming: __ | Suicidal ideation: Y/N (elevated in early recovery) | Self-harm: Y/N | Violence risk: __ | Naloxone on hand: Y/N"
+    </code>
+  </td>
+  <td>
+    ASAM; SAMHSA; C-SSRS
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Stage of Change Assessment
+  </td>
+  <td>
+    <code>
+      "Current stage: precontemplation/contemplation/preparation/action/maintenance | Change from last session: __ | Motivational level (1-10): __ | Ambivalence areas: __ | Confidence to change (1-10): __ | Importance of change (1-10): __"
+    </code>
+  </td>
+  <td>
+    Prochaska; MI (Miller & Rollnick)
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Therapeutic Interventions — SUD
+  </td>
+  <td>
+    <code>
+      "Intervention 1: __ | Type: MI/CBT/12-step facilitation/relapse prevention/contingency management/community reinforcement | Technique: __ | Response: __ | Intervention 2: __ | Type: __ | Technique: __ | Response: __"
+    </code>
+  </td>
+  <td>
+    SAMHSA TIP Series; NIDA Principles; APA SUD Guidelines
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Motivational Interviewing (if used)
+  </td>
+  <td>
+    <code>
+      "MI spirit maintained: Y/N | OARS: open questions __, affirmations __, reflections __, summaries __ | Change talk elicited: __ | Sustain talk: __ | Readiness ruler: importance __/10, confidence __/10 | Decisional balance: __ | Commitment language: __"
+    </code>
+  </td>
+  <td>
+    MI (Miller & Rollnick 2013); SAMHSA TIP 35
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Relapse Prevention Work
+  </td>
+  <td>
+    <code>
+      "High-risk situations reviewed: __ | Coping strategies: __ | Cognitive chain reviewed: __ | Apparently irrelevant decisions: __ | Urge surfing: Y/N | Relapse prevention plan updated: Y/N | Early warning signs: __ | Emergency plan: __"
+    </code>
+  </td>
+  <td>
+    Marlatt Relapse Prevention; SAMHSA
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Skills Building
+  </td>
+  <td>
+    <code>
+      "Skills practiced: __ | Drug refusal skills: Y/N | Assertiveness: Y/N | Anger management: Y/N | Stress management: Y/N | Healthy relationships: Y/N | Leisure activities: Y/N | Life skills: Y/N | Competency: __"
+    </code>
+  </td>
+  <td>
+    SAMHSA; NIDA; CBT-SUD Manuals
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Peer Support/Recovery Coach
+  </td>
+  <td>
+    <code>
+      "Peer support specialist involved: Y/N | Name: __ | Contact this period: __ | Activities: __ | Recovery coaching: __ | Patient engagement with peer: __"
+    </code>
+  </td>
+  <td>
+    SAMHSA Peer Support; BRSS TACS
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Family/Social Support
+  </td>
+  <td>
+    <code>
+      "Family involvement in treatment: __ | Family session attended: Y/N | Support system changes: __ | Relationship to using contacts: __ | Sober housing: __ | Employment/vocational: __ | Legal updates: __"
+    </code>
+  </td>
+  <td>
+    SAMHSA TIP 39; ASAM
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Co-occurring Mental Health
+  </td>
+  <td>
+    <code>
+      "MH symptom status: __ | Psychiatric medication adherence: __ | MH treatment coordination: __ | Integrated treatment provided: Y/N | Parallel treatment coordination: __"
+    </code>
+  </td>
+  <td>
+    SAMHSA TIP 42; ASAM Dimension 3
+  </td>
+</tr>
+
+<tr>
+  <td>
+    ASAM Level of Care Reassessment
+  </td>
+  <td>
+    <code>
+      "Current ASAM level: __ | Step-down criteria review: __ | Step-up criteria review: __ | Continued stay criteria met: Y/N | Transition plan: __ | Target transition date: __"
+    </code>
+  </td>
+  <td>
+    ASAM Criteria Continued Stay/Transfer
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Progress Toward Goals
+  </td>
+  <td>
+    <code>
+      "Goal 1: __ | Progress: __ | Evidence: __ | Goal 2: __ | Progress: __ | Evidence: __ | Treatment plan update needed: Y/N | Overall trajectory: __"
+    </code>
+  </td>
+  <td>
+    Joint Commission; CARF; ASAM
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Group Participation Summary (if IOP/PHP)
+  </td>
+  <td>
+    <code>
+      "Groups attended since last individual session: __ | Topics: __ | Participation level: __ | Key themes for patient: __ | Group behavior: __ | Peer interactions: __"
+    </code>
+  </td>
+  <td>
+    SAMHSA; ASAM IOP/PHP Standards
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Between-Session Plan
+  </td>
+  <td>
+    <code>
+      "Patient tasks: __ | Meetings to attend: __ | Sponsor contact: __ | Skills practice: __ | Journaling: __ | Lifestyle changes: __ | Crisis plan: 988, SAMHSA helpline 1-800-662-4357"
+    </code>
+  </td>
+  <td>
+    SAMHSA; ASAM; Treatment Manual
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Coordination of Care
+  </td>
+  <td>
+    <code>
+      "MAT prescriber contact: __ | PCP contact: __ | Probation/parole contact (with consent): __ | Drug court: __ | CPS: __ | Sober living: __ | Employer (if applicable): __ | All disclosures per 42 CFR Part 2: Y/N"
+    </code>
+  </td>
+  <td>
+    42 CFR Part 2; SAMHSA; Joint Commission
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Utilization Review Status
+  </td>
+  <td>
+    <code>
+      "Current authorization: __ | Sessions remaining: __ | Next review date: __ | Medical necessity documented: Y/N | Continued stay criteria: __ | Payer: __"
+    </code>
+  </td>
+  <td>
+    ASAM Criteria; Payer Requirements; CARF
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Clinician Signature
+  </td>
+  <td>
+    <code>
+      "Clinician: __ | Credentials: __ | Date: __ | Time: __ | Supervisor co-signature: __"
+    </code>
+  </td>
+  <td>
+    State Licensing; 42 CFR Part 2; CMS
+  </td>
+</tr>
+
+  </tbody>
+</table>
+
+
+<!-- 2.5 Psychiatric Medication Management Note -->
+
+<h4>2.5 Psychiatric Medication Management Note</h4>
+
+<p>Prescriber-focused documentation for medication management encounters including medication review, side effects, laboratory monitoring, controlled substance management, and medical decision-making.</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>Item</th>
+      <th>Format Template</th>
+      <th>Source</th>
+    </tr>
+  </thead>
+  <tbody>
+
+<tr>
+  <td>
+    Encounter Identification
+  </td>
+  <td>
+    <code>
+      "Patient: __ | Date: __ | Visit type: initial med eval/med follow-up/med check | Duration: __ min | CPT code: 99213-99215 (E/M) or 90833/90836 (add-on psychotherapy) | Telehealth: Y/N"
+    </code>
+  </td>
+  <td>
+    AMA CPT; CMS E/M Guidelines 2021
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Provider Information
+  </td>
+  <td>
+    <code>
+      "Prescriber: __ | Credentials: MD/DO/PMHNP/PA-C | DEA #: __ | NPI: __ | License #: __"
+    </code>
+  </td>
+  <td>
+    DEA; State Licensing; CMS
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Diagnosis — Current
+  </td>
+  <td>
+    <code>
+      "Primary psychiatric diagnosis: __ | ICD-10-CM: __ | Severity: __ | Specifiers: __ | Secondary diagnoses: __ | Medical diagnoses affecting medication: __"
+    </code>
+  </td>
+  <td>
+    DSM-5-TR; ICD-10-CM
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Subjective — Patient Report
+  </td>
+  <td>
+    <code>
+      "Chief complaint: __ | Symptom status since last visit: improved/stable/worsened | Specific symptom changes: __ | New symptoms: __ | Stressors: __ | Functioning: __ | Sleep: __ | Appetite: __ | Energy: __ | Concentration: __"
+    </code>
+  </td>
+  <td>
+    APA Pharmacotherapy Guidelines
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Medication Adherence
+  </td>
+  <td>
+    <code>
+      "Medication 1: __ | Dose: __ | Adherence: taking as prescribed/missing doses/not taking | Missed doses: __ per week | Reason for non-adherence: __ | Medication 2: __ | Adherence: __ | Medication 3: __ | Adherence: __"
+    </code>
+  </td>
+  <td>
+    APA Guidelines; Motivational Adherence Interventions
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Side Effect Assessment
+  </td>
+  <td>
+    <code>
+      "Side effects reported: __ | Severity: mild/moderate/severe | Impact on functioning: __ | Side effect management: __ | AIMS (if antipsychotic): __/28 | Metabolic monitoring: weight __ (change __), BMI __, waist circumference __ | Akathisia: Y/N | EPS: Y/N | Sexual side effects: Y/N"
+    </code>
+  </td>
+  <td>
+    FDA labeling; AIMS; APA Metabolic Monitoring; Stahl's
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Vital Signs & Physical Monitoring
+  </td>
+  <td>
+    <code>
+      "BP: __/__ (orthostatic if indicated: __/__) | HR: __ | Weight: __ (change since last: __) | BMI: __ | Temperature: __ | Other: __"
+    </code>
+  </td>
+  <td>
+    APA Metabolic Monitoring Protocol; FDA
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Laboratory Review
+  </td>
+  <td>
+    <code>
+      "Labs ordered: __ | Results: __ | CBC: __ | CMP: __ | TSH: __ | Lithium level: __ | Valproate level: __ | Clozapine level: __ | ANC (if clozapine): __ | Lipid panel: __ | HbA1c: __ | Prolactin: __ | ECG: __ | UDS: __"
+    </code>
+  </td>
+  <td>
+    APA Lab Monitoring; FDA REMS; Stahl's
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Substance Use Screening
+  </td>
+  <td>
+    <code>
+      "Alcohol use: __ | Drug use: __ | Cannabis: __ | Tobacco: __ | Caffeine: __ | UDS ordered: Y/N | PDMP checked: Y/N | PDMP findings: __ | Controlled substance agreement: Y/N"
+    </code>
+  </td>
+  <td>
+    APA; SAMHSA; State PDMP Requirements
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Risk Assessment
+  </td>
+  <td>
+    <code>
+      "Suicidal ideation: Y/N | C-SSRS: __ | Black box warning review (if applicable): __ | Homicidal ideation: Y/N | Self-harm: Y/N | Medication misuse/diversion: Y/N | Overdose risk: __ | Safety plan current: Y/N"
+    </code>
+  </td>
+  <td>
+    C-SSRS; FDA Black Box Warnings; Joint Commission
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Mental Status Exam — Focused
+  </td>
+  <td>
+    <code>
+      "Appearance: __ | Behavior: __ | Mood: __ | Affect: __ | Thought process: __ | Thought content: __ | Perceptions: __ | Cognition: __ | Insight: __ | Judgment: __"
+    </code>
+  </td>
+  <td>
+    Trzepacz & Baker MSE
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Standardized Measures
+  </td>
+  <td>
+    <code>
+      "PHQ-9: __/27 (last visit: __) | GAD-7: __/21 (last visit: __) | MDQ: __ | YMRS: __ | BPRS: __ | CGI-S: __ | CGI-I: __ | Other: __"
+    </code>
+  </td>
+  <td>
+    PHQ-9; GAD-7; CGI; YMRS; BPRS
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Treatment Response Assessment
+  </td>
+  <td>
+    <code>
+      "Overall treatment response: full remission/partial response/non-response/worsening | Time on current regimen: __ | Adequate trial (dose/duration): Y/N | Treatment resistance criteria: __ | Augmentation/switch indicated: Y/N"
+    </code>
+  </td>
+  <td>
+    APA Pharmacotherapy Guidelines; Stahl's
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Medication Changes
+  </td>
+  <td>
+    <code>
+      "Medication started: __ | Dose: __ | Rationale: __ | Medication increased: __ | New dose: __ | Medication decreased: __ | New dose: __ | Medication discontinued: __ | Taper plan: __ | Medication continued unchanged: __ | Risks/benefits discussed: Y/N | Patient agreement: Y/N"
+    </code>
+  </td>
+  <td>
+    APA Guidelines; FDA; Stahl's Prescriber's Guide
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Informed Consent — Medication
+  </td>
+  <td>
+    <code>
+      "New medication consent: Y/N | Risks discussed: __ | Benefits discussed: __ | Alternatives discussed: __ | Expected onset: __ | Black box warnings: __ | Reproductive risks (if applicable): __ | Patient questions addressed: __"
+    </code>
+  </td>
+  <td>
+    APA Ethics; FDA; State Consent Laws
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Controlled Substance Management (if applicable)
+  </td>
+  <td>
+    <code>
+      "Controlled substance prescribed: __ | Schedule: __ | Quantity: __ | Refills: __ | PDMP reviewed: Y/N | Pill count: __ | Urine drug screen: __ | Controlled substance agreement signed: Y/N | Risk-benefit documented: Y/N | Aberrant behaviors: __"
+    </code>
+  </td>
+  <td>
+    DEA; State Controlled Substance Laws; APA Guidelines
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Clozapine Management (if applicable)
+  </td>
+  <td>
+    <code>
+      "Clozapine dose: __ | ANC result: __ | ANC date: __ | REMS compliance: Y/N | Clozapine level: __ | Metabolic panel: __ | ECG: __ | Myocarditis screening: __ | Constipation assessment: Y/N | Sialorrhea: Y/N"
+    </code>
+  </td>
+  <td>
+    FDA Clozapine REMS; APA Clozapine Guidelines
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Lithium Management (if applicable)
+  </td>
+  <td>
+    <code>
+      "Lithium dose: __ | Serum level: __ (target 0.6-1.2) | Date: __ | Renal function: Cr __, BUN __, eGFR __ | Thyroid: TSH __ | Calcium: __ | ECG: __ | Tremor: Y/N | Polyuria/polydipsia: Y/N | Toxicity signs: __"
+    </code>
+  </td>
+  <td>
+    APA Bipolar Guidelines; FDA; Lithium Monitoring Protocol
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Stimulant Management (if applicable)
+  </td>
+  <td>
+    <code>
+      "Stimulant: __ | Dose: __ | Response: __ | HR: __ | BP: __ | Weight: __ | Appetite: __ | Sleep: __ | Tics: Y/N | Mood lability: Y/N | Diversion risk: __ | PDMP: __ | Growth monitoring (pediatric): __"
+    </code>
+  </td>
+  <td>
+    APA ADHD Guidelines; AAP; FDA
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Prior Authorization (if needed)
+  </td>
+  <td>
+    <code>
+      "Prior auth required: Y/N | Medication: __ | Payer: __ | PA submitted: Y/N | Date: __ | Status: pending/approved/denied | Appeal: Y/N | Step therapy: __ | Formulary alternative: __"
+    </code>
+  </td>
+  <td>
+    Payer Requirements; CMS; State PA Laws
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Patient Education
+  </td>
+  <td>
+    <code>
+      "Medication education provided: __ | Side effects reviewed: __ | Interactions reviewed: __ | Lifestyle factors: __ | When to call/seek emergency care: __ | Handouts provided: Y/N | Pharmacy: __"
+    </code>
+  </td>
+  <td>
+    APA; FDA Medication Guides
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Plan — Follow-Up
+  </td>
+  <td>
+    <code>
+      "Next med check: __ | Labs before next visit: __ | Monitoring plan: __ | Therapy coordination: __ | PCP notification: Y/N | Refills: __ | Emergency instructions: __"
+    </code>
+  </td>
+  <td>
+    APA Pharmacotherapy Guidelines; Joint Commission
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Coordination of Care
+  </td>
+  <td>
+    <code>
+      "Therapist communication: __ | PCP communication: __ | Other prescriber coordination: __ | Pharmacy coordination: __ | Lab coordination: __ | Insurance/authorization: __"
+    </code>
+  </td>
+  <td>
+    Joint Commission; HIPAA; CMS
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Medical Decision-Making
+  </td>
+  <td>
+    <code>
+      "MDM complexity: straightforward/low/moderate/high | Problems: __ | Data reviewed: __ | Risk of complications/morbidity/mortality: __ | E/M level supported: __"
+    </code>
+  </td>
+  <td>
+    AMA CPT E/M 2021; CMS
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Prescriber Signature
+  </td>
+  <td>
+    <code>
+      "Prescriber: __ | Credentials: __ | DEA #: __ | Date: __ | Time: __ | E-prescribe: Y/N"
+    </code>
+  </td>
+  <td>
+    DEA; State Licensing; CMS
+  </td>
+</tr>
+
+  </tbody>
+</table>
+
+
+<hr>
+
+<h2 id="framework-3">Framework 3: Treatment Review & Discharge Planning</h2>
+<p>Templates for periodic treatment plan reviews, utilization review documentation, discharge summaries, aftercare planning, and program-level outcome reporting.</p>
+
+<!-- 3.1 Treatment Plan Review -->
+
+<h4>3.1 Treatment Plan Review</h4>
+
+<p>Periodic review of treatment goals, interventions, progress measures, level of care appropriateness, and medical necessity documentation for continued stay.</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>Item</th>
+      <th>Format Template</th>
+      <th>Source</th>
+    </tr>
+  </thead>
+  <tbody>
+
+<tr>
+  <td>
+    Patient Identification
+  </td>
+  <td>
+    <code>
+      "Patient: __ | DOB: __ | MRN: __ | Insurance: __ | Admission date: __ | Current level of care: __ | Treatment plan initiation date: __ | Review date: __"
+    </code>
+  </td>
+  <td>
+    Joint Commission BH; CARF; CMS
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Review Type
+  </td>
+  <td>
+    <code>
+      "Review type: initial plan/30-day review/90-day review/annual review | Review period: __ to __ | Days in treatment: __ | Treatment phase: __ | Reviewer: __"
+    </code>
+  </td>
+  <td>
+    Joint Commission BH Standards; CARF BH Standards
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Diagnosis — Current
+  </td>
+  <td>
+    <code>
+      "Primary diagnosis: __ | ICD-10-CM: __ | Secondary diagnoses: __ | Changes to diagnosis since last review: __ | Diagnostic reassessment needed: Y/N"
+    </code>
+  </td>
+  <td>
+    DSM-5-TR; ICD-10-CM
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Presenting Problems Summary
+  </td>
+  <td>
+    <code>
+      "Problem 1: __ | Status: active/resolved/improved/unchanged/worsened | Problem 2: __ | Status: __ | Problem 3: __ | Status: __ | New problems identified: __"
+    </code>
+  </td>
+  <td>
+    Joint Commission; CARF; APA
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Strengths & Resources
+  </td>
+  <td>
+    <code>
+      "Patient strengths: __ | Support system: __ | Skills acquired: __ | Cultural/spiritual resources: __ | Recovery capital: __ | Motivational factors: __"
+    </code>
+  </td>
+  <td>
+    SAMHSA Recovery Model; Joint Commission Person-Centered
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Goal 1 — Review
+  </td>
+  <td>
+    <code>
+      "Goal: __ | Measurable objective: __ | Baseline: __ | Current status: __ | Target: __ | Target date: __ | Progress: not met/partially met/met/exceeded | Evidence of progress: __ | Barriers: __ | Goal continuation/revision: __"
+    </code>
+  </td>
+  <td>
+    Joint Commission BH; CARF; SMART Goals
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Goal 2 — Review
+  </td>
+  <td>
+    <code>
+      "Goal: __ | Measurable objective: __ | Baseline: __ | Current status: __ | Target: __ | Target date: __ | Progress: not met/partially met/met/exceeded | Evidence of progress: __ | Barriers: __ | Goal continuation/revision: __"
+    </code>
+  </td>
+  <td>
+    Joint Commission BH; CARF; SMART Goals
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Goal 3 — Review
+  </td>
+  <td>
+    <code>
+      "Goal: __ | Measurable objective: __ | Baseline: __ | Current status: __ | Target: __ | Target date: __ | Progress: not met/partially met/met/exceeded | Evidence of progress: __ | Barriers: __ | Goal continuation/revision: __"
+    </code>
+  </td>
+  <td>
+    Joint Commission BH; CARF; SMART Goals
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Goal 4 — Review (if applicable)
+  </td>
+  <td>
+    <code>
+      "Goal: __ | Measurable objective: __ | Baseline: __ | Current status: __ | Target: __ | Target date: __ | Progress: __ | Evidence: __ | Barriers: __ | Goal continuation/revision: __"
+    </code>
+  </td>
+  <td>
+    Joint Commission BH; CARF; SMART Goals
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Interventions — Effectiveness Review
+  </td>
+  <td>
+    <code>
+      "Intervention 1: __ | Frequency: __ | Provider: __ | Effectiveness: effective/partially effective/not effective | Modification: __ | Intervention 2: __ | Effectiveness: __ | Modification: __ | Intervention 3: __ | Effectiveness: __ | Modification: __"
+    </code>
+  </td>
+  <td>
+    Joint Commission; CARF; APA
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Medication Review
+  </td>
+  <td>
+    <code>
+      "Current medications: __ | Changes since last review: __ | Adherence: __ | Side effects: __ | Effectiveness: __ | Prescriber: __ | Next med review date: __"
+    </code>
+  </td>
+  <td>
+    APA Pharmacotherapy Guidelines; Joint Commission
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Risk Assessment Update
+  </td>
+  <td>
+    <code>
+      "Suicide risk: low/moderate/high | Change: __ | Violence risk: __ | Change: __ | Self-harm: __ | Substance use: __ | Elopement: __ | Safety plan status: __ | Lethal means assessment: __"
+    </code>
+  </td>
+  <td>
+    C-SSRS; Joint Commission NPSG 15.01.01
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Functional Status
+  </td>
+  <td>
+    <code>
+      "Occupational: __ | Social: __ | Self-care: __ | Leisure: __ | Academic (if applicable): __ | Legal (if applicable): __ | Change from baseline: __ | WHODAS 2.0: __ | GAF: __"
+    </code>
+  </td>
+  <td>
+    WHO-DAS 2.0; Joint Commission; CARF
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Symptom Monitoring
+  </td>
+  <td>
+    <code>
+      "PHQ-9: __ (baseline: __, last review: __) | GAD-7: __ (baseline: __, last review: __) | Other measures: __ | Symptom trajectory: improving/stable/worsening | Clinical significance of change: Y/N"
+    </code>
+  </td>
+  <td>
+    PHQ-9; GAD-7; Jacobson Reliable Change Index
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Level of Care Appropriateness
+  </td>
+  <td>
+    <code>
+      "Current level: __ | Still appropriate: Y/N | Step-down indicated: Y/N | Step-up indicated: Y/N | Criteria for current level still met: Y/N | LOCUS score: __ | Rationale: __"
+    </code>
+  </td>
+  <td>
+    ASAM Criteria; LOCUS; InterQual; Milliman
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Patient/Family Participation
+  </td>
+  <td>
+    <code>
+      "Patient participation in review: Y/N | Patient agreement with plan: Y/N | Patient concerns: __ | Family participation: Y/N | Family concerns: __ | Patient preferences: __ | Cultural considerations: __"
+    </code>
+  </td>
+  <td>
+    Joint Commission Person-Centered; CARF; CMS
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Updated Goals (if modified)
+  </td>
+  <td>
+    <code>
+      "Goal modification 1: __ | Rationale: __ | New measurable objective: __ | New target date: __ | Goal modification 2: __ | Rationale: __ | New goal added: __ | Goal discontinued: __ | Reason: __"
+    </code>
+  </td>
+  <td>
+    Joint Commission; CARF; SMART Goals
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Updated Interventions
+  </td>
+  <td>
+    <code>
+      "New intervention: __ | Rationale: __ | Provider: __ | Frequency: __ | Discontinued intervention: __ | Reason: __ | Modified intervention: __ | Change: __"
+    </code>
+  </td>
+  <td>
+    Joint Commission; CARF; APA
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Discharge Planning Update
+  </td>
+  <td>
+    <code>
+      "Estimated discharge date: __ | Discharge criteria: __ | Progress toward discharge: __ | Continuing care needs: __ | Referrals in progress: __ | Housing plan: __ | Follow-up appointments: __"
+    </code>
+  </td>
+  <td>
+    Joint Commission Transitions of Care; CARF
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Coordination of Care
+  </td>
+  <td>
+    <code>
+      "Providers involved: __ | Communication: __ | Case management: __ | External agencies: __ | Court/legal: __ | School (if applicable): __ | PCP: __ | Psychiatrist: __"
+    </code>
+  </td>
+  <td>
+    Joint Commission; CARF; HIPAA
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Medical Necessity Statement
+  </td>
+  <td>
+    <code>
+      "Continued treatment medically necessary: Y/N | Rationale: __ | Without treatment, patient would: __ | Active symptoms: __ | Functional impairment: __ | Risk if treatment stopped: __"
+    </code>
+  </td>
+  <td>
+    CMS; InterQual; Payer Medical Necessity Criteria
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Authorization Status
+  </td>
+  <td>
+    <code>
+      "Current authorization: __ | Sessions/days remaining: __ | Next review date: __ | Payer: __ | Authorization #: __ | Concurrent review scheduled: Y/N"
+    </code>
+  </td>
+  <td>
+    CMS; Payer Requirements; CARF
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Signatures
+  </td>
+  <td>
+    <code>
+      "Treating clinician: __ | Credentials: __ | Date: __ | Patient/guardian signature: __ | Date: __ | Supervisor: __ | Medical director (if required): __"
+    </code>
+  </td>
+  <td>
+    Joint Commission; CARF; State Regulations
+  </td>
+</tr>
+
+  </tbody>
+</table>
+
+
+<!-- 3.2 Utilization Review Documentation -->
+
+<h4>3.2 Utilization Review Documentation</h4>
+
+<p>Insurance-focused concurrent review documentation including continued stay criteria, medical necessity justification, parity compliance, and authorization management.</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>Item</th>
+      <th>Format Template</th>
+      <th>Source</th>
+    </tr>
+  </thead>
+  <tbody>
+
+<tr>
+  <td>
+    Patient Identification
+  </td>
+  <td>
+    <code>
+      "Patient: __ | DOB: __ | MRN: __ | Insurance: __ | Policy #: __ | Authorization #: __ | Admission date: __ | Review date: __ | Days in treatment: __"
+    </code>
+  </td>
+  <td>
+    CMS; Payer Requirements; URAC
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Reviewer Information
+  </td>
+  <td>
+    <code>
+      "Reviewer: __ | Credentials: __ | UR company: __ | Payer reviewer: __ | Peer-to-peer requested: Y/N | Peer review date: __"
+    </code>
+  </td>
+  <td>
+    URAC; NCQA; State UR Laws
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Current Level of Care
+  </td>
+  <td>
+    <code>
+      "Level of care: outpatient/IOP/PHP/residential/inpatient | ASAM level (if SUD): __ | Facility: __ | Program type: __ | Admission criteria met (reference): __"
+    </code>
+  </td>
+  <td>
+    ASAM Criteria; InterQual; Milliman; MCG
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Primary Diagnosis & Acuity
+  </td>
+  <td>
+    <code>
+      "Primary diagnosis: __ | ICD-10-CM: __ | Severity: __ | Acuity: __ | Secondary diagnoses: __ | Medical comorbidities affecting BH treatment: __"
+    </code>
+  </td>
+  <td>
+    DSM-5-TR; ICD-10-CM; InterQual
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Clinical Presentation — Current
+  </td>
+  <td>
+    <code>
+      "Current symptoms: __ | Severity (0-10): __ | Functional impairment: __ | Risk level: __ | Behavioral observations: __ | Treatment engagement: __ | Motivation: __"
+    </code>
+  </td>
+  <td>
+    InterQual; MCG; ASAM
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Treatment Provided Since Last Review
+  </td>
+  <td>
+    <code>
+      "Individual therapy: __ sessions | Group therapy: __ sessions | Family therapy: __ sessions | Med management: __ visits | Case management: __ | Other services: __ | Modalities used: __"
+    </code>
+  </td>
+  <td>
+    Joint Commission; CARF; Payer Requirements
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Progress Since Last Review
+  </td>
+  <td>
+    <code>
+      "Symptom change: improved/stable/worsened | PHQ-9: __ (was __) | GAD-7: __ (was __) | Other measures: __ | Functional change: __ | Behavioral change: __ | Goal progress: __ | Barriers to progress: __"
+    </code>
+  </td>
+  <td>
+    InterQual; MCG; Joint Commission
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Risk Assessment — Current
+  </td>
+  <td>
+    <code>
+      "Suicide risk: __ | Violence risk: __ | Self-harm: __ | Substance use: __ | Medical risk: __ | Elopement: __ | Risk change: __ | Specific risk factors: __"
+    </code>
+  </td>
+  <td>
+    C-SSRS; InterQual; Joint Commission NPSG
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Continued Stay Criteria
+  </td>
+  <td>
+    <code>
+      "Criteria reference: InterQual/MCG/ASAM/Milliman | Criteria met: Y/N | Specific criteria: __ | Active treatment: Y/N | Patient engaged: Y/N | Reasonable expectation of improvement: Y/N | Less restrictive level insufficient: Y/N"
+    </code>
+  </td>
+  <td>
+    InterQual BH Criteria; MCG; ASAM Continued Stay
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Medical Necessity Justification
+  </td>
+  <td>
+    <code>
+      "Continued treatment medically necessary because: __ | Without continued treatment: __ | Active symptoms requiring this LOC: __ | Functional deficits requiring this LOC: __ | Risk factors requiring this LOC: __ | Treatment is not custodial: __"
+    </code>
+  </td>
+  <td>
+    CMS Medical Necessity; Mental Health Parity; InterQual
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Treatment Plan Summary
+  </td>
+  <td>
+    <code>
+      "Active goals: __ | Interventions: __ | Frequency: __ | Expected duration: __ | Measurable progress indicators: __ | Target discharge date: __"
+    </code>
+  </td>
+  <td>
+    Joint Commission; CARF; Payer Requirements
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Barriers to Progress/Discharge
+  </td>
+  <td>
+    <code>
+      "Clinical barriers: __ | Psychosocial barriers: __ | Systemic barriers: __ | Housing: __ | Insurance: __ | Family: __ | Medication optimization: __ | Co-occurring conditions: __"
+    </code>
+  </td>
+  <td>
+    ASAM; InterQual; Joint Commission
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Discharge Planning Status
+  </td>
+  <td>
+    <code>
+      "Discharge plan: __ | Step-down level: __ | Outpatient provider secured: Y/N | Psychiatrist follow-up: Y/N | PCP follow-up: Y/N | Housing plan: __ | Estimated discharge: __ | Criteria for discharge: __"
+    </code>
+  </td>
+  <td>
+    Joint Commission Transitions of Care; CARF; ASAM
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Requested Authorization
+  </td>
+  <td>
+    <code>
+      "Days/sessions requested: __ | From: __ | To: __ | Rationale for requested duration: __ | Expected milestones: __ | Anticipated discharge date: __"
+    </code>
+  </td>
+  <td>
+    Payer Requirements; CMS; URAC
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Parity Compliance Note
+  </td>
+  <td>
+    <code>
+      "Mental Health Parity and Addiction Equity Act compliance: __ | Non-quantitative treatment limitation review: __ | Comparable medical/surgical benefit: __ | Parity concern: Y/N"
+    </code>
+  </td>
+  <td>
+    MHPAEA 2008; CMS Parity Rule; State Parity Laws
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Peer-to-Peer Review (if applicable)
+  </td>
+  <td>
+    <code>
+      "Peer reviewer: __ | Date: __ | Duration: __ | Determination: authorized/denied/modified | Rationale: __ | Appeal rights: __ | Expedited appeal: Y/N"
+    </code>
+  </td>
+  <td>
+    URAC; NCQA; State UR Laws
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Denial Management (if denied)
+  </td>
+  <td>
+    <code>
+      "Denial reason: __ | Denial date: __ | Appeal deadline: __ | Appeal type: internal/external/expedited | Supporting documentation: __ | Attending physician statement: __ | Patient notified: Y/N"
+    </code>
+  </td>
+  <td>
+    ERISA; State Appeal Laws; CMS
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Reviewer Signature
+  </td>
+  <td>
+    <code>
+      "Reviewer: __ | Credentials: __ | Date: __ | Time: __ | Determination: authorized __ days/sessions | Next review date: __"
+    </code>
+  </td>
+  <td>
+    URAC; NCQA; State Regulations
+  </td>
+</tr>
+
+  </tbody>
+</table>
+
+
+<!-- 3.3 Discharge Summary -->
+
+<h4>3.3 Discharge Summary</h4>
+
+<p>Comprehensive discharge documentation covering treatment summary, symptom change, goal attainment, continuing care plan, medication instructions, and care coordination.</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>Item</th>
+      <th>Format Template</th>
+      <th>Source</th>
+    </tr>
+  </thead>
+  <tbody>
+
+<tr>
+  <td>
+    Patient Identification
+  </td>
+  <td>
+    <code>
+      "Patient: __ | DOB: __ | MRN: __ | Insurance: __ | Admission date: __ | Discharge date: __ | Length of stay: __ days | Level of care: __ | Program: __"
+    </code>
+  </td>
+  <td>
+    Joint Commission; CARF; CMS
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Discharge Type
+  </td>
+  <td>
+    <code>
+      "Discharge type: planned/AMA/administrative/transfer/elopement/death | Reason: __ | Patient agreement: Y/N | AMA form signed: Y/N (if applicable) | Risk of AMA discharge discussed: Y/N"
+    </code>
+  </td>
+  <td>
+    Joint Commission; CMS; State Regulations
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Discharge Diagnosis
+  </td>
+  <td>
+    <code>
+      "Primary diagnosis at discharge: __ | ICD-10-CM: __ | DSM-5-TR specifiers: __ | Severity at discharge: __ | Secondary diagnoses: __ | Changes from admission diagnosis: __ | Medical conditions: __"
+    </code>
+  </td>
+  <td>
+    DSM-5-TR; ICD-10-CM; Joint Commission
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Admission Summary
+  </td>
+  <td>
+    <code>
+      "Presenting problem at admission: __ | Acuity at admission: __ | Admission criteria met: __ | Baseline symptom severity: PHQ-9 __, GAD-7 __, other __ | Baseline functioning: __ | Initial risk level: __"
+    </code>
+  </td>
+  <td>
+    Joint Commission; CARF; ASAM
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Treatment Summary — Services Provided
+  </td>
+  <td>
+    <code>
+      "Individual therapy sessions: __ | Group therapy sessions: __ | Family therapy sessions: __ | Med management visits: __ | Case management contacts: __ | Peer support contacts: __ | Other services: __"
+    </code>
+  </td>
+  <td>
+    Joint Commission; CARF; CMS
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Treatment Summary — Interventions
+  </td>
+  <td>
+    <code>
+      "Primary modality: __ | Specific interventions used: __ | Evidence-based protocols: __ | Treatment intensity: __ | Total treatment hours: __ | Treatment modifications: __"
+    </code>
+  </td>
+  <td>
+    APA Practice Guidelines; Joint Commission
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Treatment Summary — Medication at Discharge
+  </td>
+  <td>
+    <code>
+      "Discharge medications: __ | Doses: __ | Prescriber: __ | New medications started during treatment: __ | Medications discontinued: __ | Medication changes: __ | Medication reconciliation completed: Y/N"
+    </code>
+  </td>
+  <td>
+    Joint Commission NPSG 03.06.01; CMS
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Goal Attainment Summary
+  </td>
+  <td>
+    <code>
+      "Goal 1: __ | Status: met/partially met/not met | Evidence: __ | Goal 2: __ | Status: __ | Evidence: __ | Goal 3: __ | Status: __ | Evidence: __ | Percentage of goals met: __%"
+    </code>
+  </td>
+  <td>
+    Joint Commission BH; CARF; SMART Goals
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Symptom Change — Admission to Discharge
+  </td>
+  <td>
+    <code>
+      "PHQ-9: admission __ → discharge __ (change: __) | GAD-7: admission __ → discharge __ (change: __) | PCL-5: admission __ → discharge __ | Other: __ | Reliable Change Index: Y/N | Clinical significance: Y/N"
+    </code>
+  </td>
+  <td>
+    PHQ-9; GAD-7; Jacobson Reliable Change
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Functional Status at Discharge
+  </td>
+  <td>
+    <code>
+      "Occupational functioning: __ | Social functioning: __ | Self-care: __ | Housing: __ | Legal: __ | Academic: __ | Overall functional improvement: __ | WHODAS 2.0: __ | GAF: __"
+    </code>
+  </td>
+  <td>
+    WHO-DAS 2.0; Joint Commission; CARF
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Risk Assessment at Discharge
+  </td>
+  <td>
+    <code>
+      "Suicide risk at discharge: low/moderate/high | Change from admission: __ | Violence risk: __ | Substance use risk: __ | Self-harm risk: __ | Relapse risk: __ | Safety plan updated: Y/N | Means restriction counseling: Y/N"
+    </code>
+  </td>
+  <td>
+    C-SSRS; Joint Commission NPSG 15.01.01
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Discharge Condition
+  </td>
+  <td>
+    <code>
+      "Patient condition: improved/stable/unchanged/worsened | Mental status at discharge: __ | Orientation: __ | Behavior: __ | Mood/affect: __ | Thought process: __ | Insight at discharge: __ | Judgment at discharge: __"
+    </code>
+  </td>
+  <td>
+    Joint Commission; CMS Discharge Requirements
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Discharge Criteria Met
+  </td>
+  <td>
+    <code>
+      "Discharge criteria: __ | Criteria met: Y/N | Specific criteria: symptoms stabilized/risk reduced/goals met/LOC change/insurance exhausted/patient request | Clinician agreement: Y/N | Treatment team agreement: Y/N"
+    </code>
+  </td>
+  <td>
+    Joint Commission; CARF; ASAM
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Continuing Care Plan — Outpatient
+  </td>
+  <td>
+    <code>
+      "Outpatient therapist: __ | First appointment: __ | Frequency: __ | Modality: __ | Psychiatrist/prescriber: __ | First appointment: __ | PCP follow-up: __ | Date: __"
+    </code>
+  </td>
+  <td>
+    Joint Commission Transitions of Care; CARF
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Continuing Care Plan — Support Services
+  </td>
+  <td>
+    <code>
+      "Case management: Y/N | Provider: __ | Peer support: Y/N | 12-step/mutual aid plan: __ | Support group: __ | Vocational services: __ | Housing services: __ | Benefits assistance: __"
+    </code>
+  </td>
+  <td>
+    SAMHSA Recovery Model; Joint Commission
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Continuing Care Plan — Crisis Resources
+  </td>
+  <td>
+    <code>
+      "Crisis plan: __ | 988 Suicide & Crisis Lifeline: reviewed | Crisis Text Line (741741): reviewed | Local crisis team: __ | Emergency contact: __ | Warm line: __ | Safety plan copy provided: Y/N"
+    </code>
+  </td>
+  <td>
+    Stanley-Brown Safety Plan; Joint Commission NPSG 15.01.01
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Medication Instructions
+  </td>
+  <td>
+    <code>
+      "Discharge medications: __ | Dosage instructions: __ | Refills: __ | Prescriber: __ | Pharmacy: __ | Medications to avoid: __ | Tapering schedule (if applicable): __ | Side effects to report: __"
+    </code>
+  </td>
+  <td>
+    Joint Commission NPSG 03.06.01; FDA; CMS
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Patient/Family Education at Discharge
+  </td>
+  <td>
+    <code>
+      "Diagnosis education: __ | Medication education: __ | Relapse prevention: __ | Warning signs: __ | When to seek emergency care: __ | Lifestyle recommendations: __ | Written materials provided: Y/N | Teach-back method: Y/N"
+    </code>
+  </td>
+  <td>
+    Joint Commission; CMS; Health Literacy Guidelines
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Coordination of Care — Discharge
+  </td>
+  <td>
+    <code>
+      "Outpatient provider notified: Y/N | PCP notified: Y/N | Psychiatrist notified: Y/N | Referrals completed: __ | Records transferred: Y/N | ROI on file: Y/N | Warm handoff: Y/N | Follow-up call planned: Y/N"
+    </code>
+  </td>
+  <td>
+    Joint Commission Transitions of Care; HIPAA; CMS
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Discharge Against Medical Advice (if applicable)
+  </td>
+  <td>
+    <code>
+      "AMA reason: __ | Risks discussed: __ | Alternatives offered: __ | Patient competent to make decision: Y/N | Capacity evaluation: __ | AMA form signed: Y/N | Refused to sign: Y/N | Witness: __ | Safety plan offered: Y/N | Follow-up offered: Y/N"
+    </code>
+  </td>
+  <td>
+    CMS; Joint Commission; APA Ethics; State Regulations
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Quality Measures
+  </td>
+  <td>
+    <code>
+      "Length of stay: __ days (benchmark: __) | Readmission risk: low/moderate/high | Previous admissions (12 months): __ | Follow-up within 7 days planned: Y/N | Follow-up within 30 days planned: Y/N | Patient satisfaction: __ | Outcome measures collected: Y/N"
+    </code>
+  </td>
+  <td>
+    CMS Quality Measures; HEDIS; Joint Commission ORYX
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Patient Acknowledgment
+  </td>
+  <td>
+    <code>
+      "Patient received: discharge summary copy/safety plan/medication list/appointment list/crisis resources | Patient verbalized understanding: Y/N | Barriers to understanding: __ | Interpreter used: Y/N | Family/support person present: Y/N"
+    </code>
+  </td>
+  <td>
+    Joint Commission; CMS; Health Literacy
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Signatures — Discharge
+  </td>
+  <td>
+    <code>
+      "Discharging clinician: __ | Credentials: __ | Date: __ | Time: __ | Attending physician: __ | Date: __ | Patient/guardian signature: __ | Date: __"
+    </code>
+  </td>
+  <td>
+    Joint Commission; CMS; State Regulations
+  </td>
+</tr>
+
+  </tbody>
+</table>
+
+
+<!-- 3.4 Aftercare & Continuing Care Plan -->
+
+<h4>3.4 Aftercare & Continuing Care Plan</h4>
+
+<p>Post-discharge recovery planning including relapse prevention, recovery support services, wellness planning, vocational/housing goals, and structured follow-up schedule.</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>Item</th>
+      <th>Format Template</th>
+      <th>Source</th>
+    </tr>
+  </thead>
+  <tbody>
+
+<tr>
+  <td>
+    Patient Identification
+  </td>
+  <td>
+    <code>
+      "Patient: __ | DOB: __ | MRN: __ | Discharge date: __ | Discharge level of care: __ | Aftercare plan date: __ | Plan developed by: __"
+    </code>
+  </td>
+  <td>
+    Joint Commission; CARF; SAMHSA
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Discharge Diagnosis
+  </td>
+  <td>
+    <code>
+      "Primary diagnosis: __ | ICD-10-CM: __ | Secondary diagnoses: __ | Severity at discharge: __ | Prognosis: __"
+    </code>
+  </td>
+  <td>
+    DSM-5-TR; ICD-10-CM
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Treatment Summary
+  </td>
+  <td>
+    <code>
+      "Treatment received: __ | Length of treatment: __ | Key gains: __ | Remaining challenges: __ | Treatment response: __"
+    </code>
+  </td>
+  <td>
+    Joint Commission; CARF
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Relapse Prevention Plan
+  </td>
+  <td>
+    <code>
+      "Warning signs: __ | High-risk situations: __ | Coping strategies: __ | Support contacts: __ | Emergency plan: __ | Trigger management: __ | Lifestyle changes: __"
+    </code>
+  </td>
+  <td>
+    Marlatt Relapse Prevention; SAMHSA
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Recovery Support Services
+  </td>
+  <td>
+    <code>
+      "12-step/mutual aid: __ | Meeting schedule: __ | Sponsor: Y/N | Sober living: Y/N | Facility: __ | Peer recovery support: __ | Recovery community: __ | Online recovery resources: __"
+    </code>
+  </td>
+  <td>
+    SAMHSA Recovery Model; ASAM
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Outpatient Treatment Plan
+  </td>
+  <td>
+    <code>
+      "Individual therapy: __ per week/month | Provider: __ | Group therapy: __ | Family therapy: Y/N | Frequency: __ | IOP step-down: Y/N | PHP step-down: Y/N | Duration: __"
+    </code>
+  </td>
+  <td>
+    ASAM; Joint Commission Continuing Care
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Medication Management Plan
+  </td>
+  <td>
+    <code>
+      "Continuing medications: __ | Prescriber: __ | Appointment schedule: __ | Monitoring schedule: __ | Labs needed: __ | Refill plan: __ | MAT plan (if applicable): __"
+    </code>
+  </td>
+  <td>
+    APA Pharmacotherapy; FDA; SAMHSA TIP 63
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Wellness & Lifestyle Plan
+  </td>
+  <td>
+    <code>
+      "Exercise plan: __ | Nutrition plan: __ | Sleep hygiene: __ | Stress management: __ | Mindfulness/meditation: __ | Social activities: __ | Hobbies/recreation: __ | Spiritual practices: __"
+    </code>
+  </td>
+  <td>
+    SAMHSA Eight Dimensions of Wellness
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Vocational/Educational Plan
+  </td>
+  <td>
+    <code>
+      "Employment status: __ | Return to work plan: __ | Vocational rehabilitation: Y/N | Educational goals: __ | GED/training: __ | Supported employment: Y/N | Job coaching: Y/N"
+    </code>
+  </td>
+  <td>
+    SAMHSA; Supported Employment Evidence Base
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Housing Plan
+  </td>
+  <td>
+    <code>
+      "Current housing: __ | Stable: Y/N | Sober living: Y/N | Transitional housing: Y/N | Housing assistance: __ | Section 8/HUD: Y/N | Housing search assistance: __ | Move-in date: __"
+    </code>
+  </td>
+  <td>
+    HUD; SAMHSA Housing First; CoC
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Legal & Financial
+  </td>
+  <td>
+    <code>
+      "Legal obligations: __ | Probation/parole requirements: __ | Court dates: __ | Financial planning: __ | Benefits: __ | Insurance continuation: __ | Disability: Y/N"
+    </code>
+  </td>
+  <td>
+    State Regulations; SAMHSA
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Family/Social Reintegration
+  </td>
+  <td>
+    <code>
+      "Family therapy continuing: Y/N | Family education: __ | Relationship repair goals: __ | Boundary setting: __ | Custody/visitation plan: __ | Social skills: __ | Community integration: __"
+    </code>
+  </td>
+  <td>
+    SAMHSA TIP 39; AAMFT
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Crisis Plan
+  </td>
+  <td>
+    <code>
+      "Crisis warning signs: __ | Step 1 (self-help): __ | Step 2 (social support): __ | Step 3 (professional help): __ | Emergency contacts: __ | 988: reviewed | Crisis text 741741: reviewed | Local crisis: __"
+    </code>
+  </td>
+  <td>
+    Stanley-Brown Safety Plan; SAMHSA
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Follow-Up Schedule
+  </td>
+  <td>
+    <code>
+      "Week 1: __ | Week 2: __ | Week 4: __ | Month 2: __ | Month 3: __ | Month 6: __ | Month 12: __ | Follow-up calls: __ | Alumni program: Y/N"
+    </code>
+  </td>
+  <td>
+    Joint Commission Transitions; CARF
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Patient Agreement
+  </td>
+  <td>
+    <code>
+      "Patient reviewed aftercare plan: Y/N | Patient agrees with plan: Y/N | Patient concerns: __ | Modifications made: __ | Patient signature: __ | Date: __"
+    </code>
+  </td>
+  <td>
+    Joint Commission Person-Centered; CARF
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Provider Signatures
+  </td>
+  <td>
+    <code>
+      "Clinician: __ | Credentials: __ | Date: __ | Supervisor: __ | Date: __"
+    </code>
+  </td>
+  <td>
+    Joint Commission; State Licensing
+  </td>
+</tr>
+
+  </tbody>
+</table>
+
+
+<!-- 3.5 Outcomes & Quality Reporting -->
+
+<h4>3.5 Outcomes & Quality Reporting</h4>
+
+<p>Program-level outcome metrics including treatment completion rates, symptom outcomes, functional measures, readmission rates, patient satisfaction, and quality improvement.</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>Item</th>
+      <th>Format Template</th>
+      <th>Source</th>
+    </tr>
+  </thead>
+  <tbody>
+
+<tr>
+  <td>
+    Program Identification
+  </td>
+  <td>
+    <code>
+      "Program name: __ | Facility: __ | Reporting period: __ to __ | Total admissions: __ | Total discharges: __ | Average census: __ | License #: __ | Accreditation: Joint Commission/CARF/both"
+    </code>
+  </td>
+  <td>
+    Joint Commission ORYX; CARF Outcomes; CMS
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Patient Demographics
+  </td>
+  <td>
+    <code>
+      "Total patients: __ | Age range: __ | Mean age: __ | Gender distribution: __ | Race/ethnicity: __ | Primary diagnosis distribution: __ | SUD diagnosis: __%  | Co-occurring: __% | Insurance mix: __"
+    </code>
+  </td>
+  <td>
+    CMS; SAMHSA TEDS; Joint Commission
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Treatment Completion Rates
+  </td>
+  <td>
+    <code>
+      "Planned discharges: __% | AMA discharges: __% | Administrative discharges: __% | Transfers: __% | Average length of stay: __ days | Median length of stay: __ days | Benchmark comparison: __"
+    </code>
+  </td>
+  <td>
+    CMS Quality; HEDIS; Joint Commission ORYX
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Symptom Outcome Measures
+  </td>
+  <td>
+    <code>
+      "PHQ-9 mean change: __ | PHQ-9 response rate (≥50% reduction): __% | PHQ-9 remission rate (<5): __% | GAD-7 mean change: __ | GAD-7 response rate: __% | PCL-5 mean change: __ | Effect sizes: __"
+    </code>
+  </td>
+  <td>
+    PHQ-9; GAD-7; PCL-5; Jacobson RCI
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Functional Outcomes
+  </td>
+  <td>
+    <code>
+      "WHODAS 2.0 mean change: __ | Employment at admission: __% → discharge: __% | Housing stability at admission: __% → discharge: __% | Self-care improvement: __% | Social functioning improvement: __%"
+    </code>
+  </td>
+  <td>
+    WHO-DAS 2.0; SAMHSA NOMS
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Substance Use Outcomes (SUD programs)
+  </td>
+  <td>
+    <code>
+      "Abstinence at discharge: __% | Reduction in use: __% | ASAM criteria improvement: __% | MAT initiation: __% | MAT retention (90-day): __% | Overdose events during treatment: __ | Naloxone distributions: __"
+    </code>
+  </td>
+  <td>
+    ASAM; SAMHSA TEDS; HEDIS
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Safety Indicators
+  </td>
+  <td>
+    <code>
+      "Suicide attempts during treatment: __ | Self-harm incidents: __ | Restraint use: __ episodes | Seclusion use: __ episodes | Falls: __ | AMA with safety concern: __ | Sentinel events: __ | Adverse drug events: __"
+    </code>
+  </td>
+  <td>
+    Joint Commission NPSG; CMS; Patient Safety Indicators
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Readmission Rates
+  </td>
+  <td>
+    <code>
+      "30-day readmission rate: __% (benchmark: __%) | 90-day readmission rate: __% | 1-year readmission rate: __% | Readmission reasons: __ | Readmission risk factors: __ | Strategies to reduce: __"
+    </code>
+  </td>
+  <td>
+    CMS Readmission Measures; HEDIS; Joint Commission
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Follow-Up Compliance
+  </td>
+  <td>
+    <code>
+      "7-day follow-up rate: __% (HEDIS benchmark: __%) | 30-day follow-up rate: __% | Follow-up appointment kept: __% | Barriers to follow-up: __ | Outreach attempts: __"
+    </code>
+  </td>
+  <td>
+    HEDIS FUH-BH; CMS; Joint Commission Transitions
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Patient Satisfaction
+  </td>
+  <td>
+    <code>
+      "Overall satisfaction: __/5 | Recommend to others: __% | Treatment helpfulness: __/5 | Staff responsiveness: __/5 | Environment: __/5 | Complaints: __ | Grievances: __ | CAHPS-BH scores: __"
+    </code>
+  </td>
+  <td>
+    CAHPS; Press Ganey; Joint Commission
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Quality Improvement Actions
+  </td>
+  <td>
+    <code>
+      "QI projects: __ | PDSA cycles completed: __ | Performance improvement targets: __ | Targets met: __ | New targets: __ | Root cause analyses: __ | Corrective actions: __"
+    </code>
+  </td>
+  <td>
+    Joint Commission PI Standards; CARF QI; CMS QAPI
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Staff Metrics
+  </td>
+  <td>
+    <code>
+      "Staff-to-patient ratio: __ | Staff turnover: __% | Staff satisfaction: __ | Training hours: __ | Credentialing current: Y/N | Supervision hours: __"
+    </code>
+  </td>
+  <td>
+    Joint Commission HR; CARF; State Staffing Requirements
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Benchmarking
+  </td>
+  <td>
+    <code>
+      "Internal trends (3-year): __ | National benchmarks: __ | State benchmarks: __ | Peer comparison: __ | Areas exceeding benchmark: __ | Areas below benchmark: __ | Action plans: __"
+    </code>
+  </td>
+  <td>
+    Joint Commission ORYX; CMS Compare; SAMHSA
+  </td>
+</tr>
+
+<tr>
+  <td>
+    Reporting Period Summary
+  </td>
+  <td>
+    <code>
+      "Key accomplishments: __ | Challenges: __ | Strategic priorities: __ | Resource needs: __ | Accreditation status: __ | Next survey date: __ | Report prepared by: __ | Date: __"
+    </code>
+  </td>
+  <td>
+    Joint Commission; CARF; CMS
+  </td>
+</tr>
+
+  </tbody>
+</table>
+
+
+<hr>
+
+<h2>Appendix: Item Count Summary</h2>
+<p>Complete inventory of all documentation items by framework and subtype.</p>
+<table>
+  <thead>
+    <tr>
+      <th>Item</th>
+      <th>Format Template</th>
+      <th>Source</th>
+    </tr>
+  </thead>
+  <tbody>
+<tr>
+  <td>
+    1.1 Comprehensive Psychiatric Evaluation
+  </td>
+  <td>
+    <code>
+      "56 items"
+    </code>
+  </td>
+  <td>
+    Framework 1
+  </td>
+</tr>
+<tr>
+  <td>
+    1.2 Psychological/Neuropsychological Testing Report
+  </td>
+  <td>
+    <code>
+      "30 items"
+    </code>
+  </td>
+  <td>
+    Framework 1
+  </td>
+</tr>
+<tr>
+  <td>
+    1.3 Substance Use Disorder Evaluation
+  </td>
+  <td>
+    <code>
+      "30 items"
+    </code>
+  </td>
+  <td>
+    Framework 1
+  </td>
+</tr>
+<tr>
+  <td>
+    1.4 Child & Adolescent Evaluation
+  </td>
+  <td>
+    <code>
+      "30 items"
+    </code>
+  </td>
+  <td>
+    Framework 1
+  </td>
+</tr>
+<tr>
+  <td>
+    1.5 Crisis & Emergency Evaluation
+  </td>
+  <td>
+    <code>
+      "27 items"
+    </code>
+  </td>
+  <td>
+    Framework 1
+  </td>
+</tr>
+<tr>
+  <td>
+    2.1 Individual Therapy Progress Note
+  </td>
+  <td>
+    <code>
+      "26 items"
+    </code>
+  </td>
+  <td>
+    Framework 2
+  </td>
+</tr>
+<tr>
+  <td>
+    2.2 Group Therapy Progress Note
+  </td>
+  <td>
+    <code>
+      "23 items"
+    </code>
+  </td>
+  <td>
+    Framework 2
+  </td>
+</tr>
+<tr>
+  <td>
+    2.3 Family & Couples Therapy Note
+  </td>
+  <td>
+    <code>
+      "24 items"
+    </code>
+  </td>
+  <td>
+    Framework 2
+  </td>
+</tr>
+<tr>
+  <td>
+    2.4 SUD Treatment Progress Note
+  </td>
+  <td>
+    <code>
+      "25 items"
+    </code>
+  </td>
+  <td>
+    Framework 2
+  </td>
+</tr>
+<tr>
+  <td>
+    2.5 Psychiatric Medication Management Note
+  </td>
+  <td>
+    <code>
+      "25 items"
+    </code>
+  </td>
+  <td>
+    Framework 2
+  </td>
+</tr>
+<tr>
+  <td>
+    3.1 Treatment Plan Review
+  </td>
+  <td>
+    <code>
+      "23 items"
+    </code>
+  </td>
+  <td>
+    Framework 3
+  </td>
+</tr>
+<tr>
+  <td>
+    3.2 Utilization Review Documentation
+  </td>
+  <td>
+    <code>
+      "18 items"
+    </code>
+  </td>
+  <td>
+    Framework 3
+  </td>
+</tr>
+<tr>
+  <td>
+    3.3 Discharge Summary
+  </td>
+  <td>
+    <code>
+      "23 items"
+    </code>
+  </td>
+  <td>
+    Framework 3
+  </td>
+</tr>
+<tr>
+  <td>
+    3.4 Aftercare & Continuing Care Plan
+  </td>
+  <td>
+    <code>
+      "16 items"
+    </code>
+  </td>
+  <td>
+    Framework 3
+  </td>
+</tr>
+<tr>
+  <td>
+    3.5 Outcomes & Quality Reporting
+  </td>
+  <td>
+    <code>
+      "14 items"
+    </code>
+  </td>
+  <td>
+    Framework 3
+  </td>
+</tr>
+<tr>
+  <td>
+    <strong>GRAND TOTAL</strong>
+  </td>
+  <td>
+    <code>
+      "<strong>390 items</strong>"
+    </code>
+  </td>
+  <td>
+    All Frameworks
+  </td>
+</tr>
+  </tbody>
+</table>
+
+<hr>
+<p style="text-align:center; color:var(--text-muted); font-size:0.85rem;">
+OmniScribe — Behavioral Health Documentation Frameworks v1<br>
+Generated programmatically &bull; All templates include regulatory source citations<br>
+Total items: 390 across 15 documentation subtypes in 3 frameworks
+</p>
+
+<script>
+function toggleToc(){
+  var t=document.getElementById('toc-panel');
+  t.style.display=t.style.display==='none'?'block':'none';
+}
+
+</script>
+
+</body>
+</html>
