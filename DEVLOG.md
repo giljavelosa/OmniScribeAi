@@ -178,3 +178,68 @@
 ---
 
 *Last updated: 2026-02-17*
+
+## 2026-02-17 — Phase 1 Build: Auth, Database, Patients, Admin
+
+### Authentication & Database
+- NextAuth v5 (beta) with credentials provider + JWT sessions
+- Prisma 6 ORM → PostgreSQL 16 on data server (164.92.77.116)
+- 15-minute HIPAA session timeout with visual warning at 2 min
+- Password hashing with bcrypt (12 rounds)
+- Force password change on first login (mustChangePassword flag)
+- Middleware protects all routes except landing + login
+
+### FHIR-Aligned Patient Model
+- 13 database tables: User, Patient, Visit, Coverage, Allergy, Medication, Condition, PatientDocument, AuditLog, Account, Session, Organization, VerificationToken
+- Patient fields align 1:1 with FHIR R4 Patient resource (all nullable except identifier)
+- Coverage maps to FHIR Coverage (supports primary/secondary/tertiary)
+- Allergy maps to FHIR AllergyIntolerance
+- Medication maps to FHIR MedicationStatement
+- Condition maps to FHIR Condition (with ICD codes)
+
+### Patient Registration
+- Three modes: Quick (identifier only), Full (all demographics), Scan (OCR)
+- Document scanning via phone camera: driver's license, insurance card (front/back), intake form, referral
+- Claude Vision structured extraction with per-document-type prompts
+- Scanned data auto-populates editable form fields for clinician confirmation
+- Patient search by name, MRN, or identifier
+
+### Visit Persistence
+- Visits saved to PostgreSQL (was localStorage)
+- Full clinical data stored: transcript, facts, synthesis, note, audit, CMS score
+- Visit ↔ Patient linking with patient selector component
+- Visit history per patient (longitudinal view)
+
+### Admin Panel
+- User management: create, enable/disable, role assignment
+- Roles: ADMIN, CLINICIAN, SUPERVISOR
+- Clinician type and credentials per user
+- Password change flow (forced on first login)
+
+### New Routes
+- /api/patients (GET search, POST create)
+- /api/patients/:id (GET detail, PATCH update)
+- /api/patients/:id/medical (POST add, DELETE remove — allergies, meds, conditions, insurance)
+- /api/visits (GET list, POST create)
+- /api/visits/:id (GET detail, PATCH update)
+- /api/ocr/scan (POST — structured document extraction)
+- /api/auth/change-password (POST)
+- /api/admin/users (GET list, POST create)
+- /api/admin/users/:id (PATCH update)
+
+### New Pages
+- /login — authentication
+- /patients — patient list with search
+- /patients/new — registration (quick/full/scan modes)
+- /patients/:id — patient detail with medical info + visit history
+- /admin/users — user management (admin only)
+- /change-password — forced + voluntary password change
+
+### Components
+- PatientSelector — search + select existing patient
+- SessionTimeout — 15-min inactivity warning + auto-logout
+- Providers — SessionProvider wrapper
+
+### Seeded Users
+- admin@omniscribe.ai / OmniScribe2026! (ADMIN)
+- demo@omniscribe.ai / Demo2026! (CLINICIAN, Dr. Sarah Chen, MD)
