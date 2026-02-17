@@ -160,20 +160,20 @@
 | `frameworks.ts` | ✅ Audited | All 19 frameworks, itemCounts verified |
 | `cms-requirements.ts` | ✅ Audited | All 19 frameworks have rules, no orphan refs |
 | `types.ts` | ✅ Clean | No issues |
-| `/api/transcribe` | ⬜ Not audited | |
-| `/api/generate-note` | ⬜ Not audited | |
-| `/api/regenerate-note` | ⬜ Not audited | |
+| `/api/transcribe` | ✅ Audited | Keyterms expanded for all 3 domains | |
+| `/api/generate-note` | ✅ Audited | clinicianType fixed for all note types | |
+| `/api/regenerate-note` | ✅ Audited | Clean | |
 | `/api/ocr` | ⬜ Not audited | |
 | `NoteEditor.tsx` | ⬜ Not audited | |
-| `ClinicalSynthesis.tsx` | ⬜ Not audited | |
-| `AudioRecorder.tsx` | ⬜ Not audited | |
+| `ClinicalSynthesis.tsx` | ✅ Audited | Clean | |
+| `AudioRecorder.tsx` | ✅ Audited | Clean, good error handling | |
 | `MiniRecorder.tsx` | ⬜ Not audited | |
-| `FrameworkSelector.tsx` | ⬜ Not audited | |
+| `FrameworkSelector.tsx` | ✅ Audited | Clean, uses dynamic data | |
 | Visit Detail page | ⬜ Not audited | |
 | New Visit page | ⬜ Not audited | |
-| Dashboard page | ⬜ Not audited | |
-| Landing page | ⬜ Not audited | |
-| Mock data | ⬜ Not audited | |
+| Dashboard page | ✅ Audited | Hardcoded name removed | |
+| Landing page | ✅ Audited | Stats corrected (19/708) | |
+| Mock data | 🟡 Partial | Only 3/19 frameworks have mocks (low priority) | |
 
 ---
 
