@@ -86,6 +86,27 @@ export const frameworks: Framework[] = [
     ],
   },
 
+    {
+    id: 'med-ed',
+    domain: 'medical',
+    type: 'ED Note',
+    subtype: 'Emergency/Urgent Care',
+    name: 'Emergency / Urgent Care Note',
+    description: 'Emergency department and urgent care visit documentation with triage, medical decision-making complexity, and disposition.',
+    regulatorySources: ['CMS E/M Guidelines 2024', 'ACEP Clinical Policy Guidelines', 'AMA CPT ED Codes 99281-99285', 'EMTALA Requirements'],
+    itemCount: 56,
+    sections: [
+      { id: 'triage', title: 'Triage & Presentation', items: ['Mode of Arrival', 'Triage Level (ESI 1-5)', 'Chief Complaint', 'Onset/Duration', 'Vital Signs at Triage', 'Pain Assessment (NPRS)', 'Allergies', 'Last Oral Intake', 'Tetanus Status'], required: true },
+      { id: 'hpi', title: 'History of Present Illness', items: ['Location', 'Quality', 'Severity', 'Duration', 'Timing', 'Context/Mechanism of Injury', 'Modifying Factors', 'Associated Symptoms', 'Prior Episodes', 'Treatment Prior to Arrival'], required: true },
+      { id: 'pmh', title: 'Past History & Review', items: ['Past Medical History', 'Past Surgical History', 'Medications', 'Social History', 'Family History (pertinent)', 'Review of Systems'], required: true },
+      { id: 'exam', title: 'Physical Examination', items: ['General Appearance/Distress Level', 'Vital Signs (full set)', 'HEENT', 'Neck', 'Cardiovascular', 'Respiratory', 'Abdomen', 'Musculoskeletal', 'Neurological', 'Skin/Wounds', 'Psychiatric'], required: true },
+      { id: 'workup', title: 'Diagnostic Workup', items: ['Labs Ordered/Results', 'Imaging Ordered/Results', 'EKG Interpretation', 'Point-of-Care Testing', 'Procedures Performed', 'Consultant Recommendations'], required: true },
+      { id: 'mdm', title: 'Medical Decision Making', items: ['Number/Complexity of Problems', 'Data Reviewed/Ordered', 'Risk of Complications/Morbidity', 'MDM Level (Straightforward/Low/Moderate/High)', 'Differential Diagnosis'], required: true },
+      { id: 'course', title: 'ED Course & Reassessment', items: ['Treatments Administered', 'Medications Given (with time)', 'IV Fluids', 'Response to Treatment', 'Reassessment Vital Signs', 'Reassessment Exam Findings', 'Time-Based Documentation'], required: true },
+      { id: 'disposition', title: 'Disposition & Discharge', items: ['Disposition (Discharge/Admit/Transfer)', 'Discharge Diagnosis', 'Discharge Condition', 'Prescriptions', 'Activity Restrictions', 'Return Precautions/Red Flags', 'Follow-Up Instructions', 'Patient Education Given', 'EMTALA Compliance (if transfer)'], required: true },
+    ],
+  },
+
   // ═══════════════════════════════════════
   // REHABILITATION DOMAIN
   // ═══════════════════════════════════════

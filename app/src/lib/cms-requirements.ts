@@ -164,6 +164,41 @@ export const cmsRequirements: Record<string, CMSRequirement[]> = {
     { item: 'Crisis Plan (updated)', section: 'Continuing Care Plan', category: 'required', regulation: 'Joint Commission BHC', description: 'Updated crisis plan for post-discharge safety' },
     { item: 'PCP Notification', section: 'Continuing Care Plan', category: 'required', regulation: 'Care Coordination Standards', description: 'PCP communication supports integrated care' },
   ],
+  'med-ed': [
+    // Critical
+    { item: 'Chief Complaint', section: 'Triage & Presentation', category: 'critical', regulation: 'CMS E/M Guidelines 2024', description: 'Chief complaint required for all E/M encounters' },
+    { item: 'Triage Level (ESI 1-5)', section: 'Triage & Presentation', category: 'critical', regulation: 'ACEP Triage Guidelines', description: 'ESI level determines resource allocation and billing support' },
+    { item: 'Vital Signs at Triage', section: 'Triage & Presentation', category: 'critical', regulation: 'CMS E/M Documentation', description: 'Initial vital signs required for acuity assessment' },
+    { item: 'Location', section: 'History of Present Illness', category: 'critical', regulation: 'CMS E/M Guidelines 2024', description: 'HPI elements required for E/M documentation' },
+    { item: 'MDM Level (Straightforward/Low/Moderate/High)', section: 'Medical Decision Making', category: 'critical', regulation: 'AMA CPT E/M MDM Table 2024', description: 'MDM complexity drives ED E/M code level (99281-99285)' },
+    { item: 'Number/Complexity of Problems', section: 'Medical Decision Making', category: 'critical', regulation: 'AMA CPT E/M MDM Table', description: 'Problem complexity is MDM element 1 of 3' },
+    { item: 'Risk of Complications/Morbidity', section: 'Medical Decision Making', category: 'critical', regulation: 'AMA CPT E/M MDM Table', description: 'Risk assessment is MDM element 3 of 3' },
+    { item: 'Disposition (Discharge/Admit/Transfer)', section: 'Disposition & Discharge', category: 'critical', regulation: 'EMTALA 42 CFR 489.24', description: 'Disposition required for all ED encounters' },
+    { item: 'Discharge Diagnosis', section: 'Disposition & Discharge', category: 'critical', regulation: 'CMS ICD-10 Coding Guidelines', description: 'Final diagnosis required for claim submission' },
+    { item: 'Return Precautions/Red Flags', section: 'Disposition & Discharge', category: 'critical', regulation: 'ACEP Risk Management Guidelines', description: 'Return precautions reduce malpractice risk and ensure patient safety' },
+    // Required
+    { item: 'Mode of Arrival', section: 'Triage & Presentation', category: 'required', regulation: 'ED Documentation Standards', description: 'Arrival mode supports acuity documentation' },
+    { item: 'Allergies', section: 'Triage & Presentation', category: 'required', regulation: 'Joint Commission NPSG.03.06.01', description: 'Allergy documentation required before medication administration' },
+    { item: 'Past Medical History', section: 'Past History & Review', category: 'required', regulation: 'CMS E/M Guidelines', description: 'PMH context supports MDM complexity assessment' },
+    { item: 'Medications', section: 'Past History & Review', category: 'required', regulation: 'Joint Commission MM Standards', description: 'Medication reconciliation required for safe prescribing' },
+    { item: 'General Appearance/Distress Level', section: 'Physical Examination', category: 'required', regulation: 'CMS E/M Exam Elements', description: 'General appearance establishes clinical context' },
+    { item: 'Vital Signs (full set)', section: 'Physical Examination', category: 'required', regulation: 'CMS E/M Documentation', description: 'Full vital signs required for comprehensive exam' },
+    { item: 'Data Reviewed/Ordered', section: 'Medical Decision Making', category: 'required', regulation: 'AMA CPT E/M MDM Table', description: 'Data element is MDM element 2 of 3' },
+    { item: 'Differential Diagnosis', section: 'Medical Decision Making', category: 'required', regulation: 'ACEP Clinical Policy', description: 'Differential supports MDM complexity and risk documentation' },
+    { item: 'Treatments Administered', section: 'ED Course & Reassessment', category: 'required', regulation: 'ED Documentation Standards', description: 'Treatment documentation required for billing and continuity' },
+    { item: 'Medications Given (with time)', section: 'ED Course & Reassessment', category: 'required', regulation: 'Joint Commission MM Standards', description: 'Medication times required for MAR accuracy' },
+    { item: 'Response to Treatment', section: 'ED Course & Reassessment', category: 'required', regulation: 'ED Documentation Standards', description: 'Response documentation supports disposition decision' },
+    { item: 'Reassessment Vital Signs', section: 'ED Course & Reassessment', category: 'required', regulation: 'ACEP Clinical Policy', description: 'Repeat vitals document clinical trajectory' },
+    { item: 'Follow-Up Instructions', section: 'Disposition & Discharge', category: 'required', regulation: 'CMS Discharge Planning', description: 'Follow-up plan required for continuity of care' },
+    { item: 'Discharge Condition', section: 'Disposition & Discharge', category: 'required', regulation: 'CMS Conditions of Participation', description: 'Condition at discharge documents stability for safe release' },
+    // Recommended
+    { item: 'Last Oral Intake', section: 'Triage & Presentation', category: 'recommended', regulation: 'ASA Pre-Procedure Guidelines', description: 'NPO status important if procedural sedation needed' },
+    { item: 'Tetanus Status', section: 'Triage & Presentation', category: 'recommended', regulation: 'CDC Immunization Guidelines', description: 'Tetanus status for wound management encounters' },
+    { item: 'EKG Interpretation', section: 'Diagnostic Workup', category: 'recommended', regulation: 'ACEP Chest Pain Clinical Policy', description: 'EKG interpretation for cardiac-related complaints' },
+    { item: 'Time-Based Documentation', section: 'ED Course & Reassessment', category: 'recommended', regulation: 'CMS Critical Care Guidelines', description: 'Time documentation supports critical care billing (99291-99292)' },
+    { item: 'EMTALA Compliance (if transfer)', section: 'Disposition & Discharge', category: 'recommended', regulation: 'EMTALA 42 CFR 489.24', description: 'Transfer documentation required if patient moved to another facility' },
+    { item: 'Patient Education Given', section: 'Disposition & Discharge', category: 'recommended', regulation: 'Joint Commission PC Standards', description: 'Education documentation supports quality metrics' },
+  ],
 };
 
 // Calculate compliance score from extracted facts
