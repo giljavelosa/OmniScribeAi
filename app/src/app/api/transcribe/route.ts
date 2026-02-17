@@ -1,3 +1,5 @@
+import { auth } from "@/lib/auth";
+import { auditLog } from "@/lib/audit";
 export const maxDuration = 300;
 import { NextRequest, NextResponse } from 'next/server';
 import { mockTranscripts } from '@/lib/mock-data';
@@ -23,6 +25,11 @@ function getAudioMimeType(file: File): string {
 }
 
 export async function POST(request: NextRequest) {
+  const session = await auth();
+  if (!session?.user) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { "content-type": "application/json" } });
+  }
+
   try {
     const body = await request.formData();
     const audioFile = body.get('audio') as File | null;

@@ -1,3 +1,5 @@
+import { auth } from "@/lib/auth";
+import { auditLog } from "@/lib/audit";
 import { NextRequest } from "next/server";
 
 export const maxDuration = 300;
@@ -62,6 +64,11 @@ function parseJsonArray(raw: string): { title: string; content: string }[] {
 }
 
 export async function POST(request: NextRequest) {
+  const session = await auth();
+  if (!session?.user) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { "content-type": "application/json" } });
+  }
+
   const body = await request.json();
   const { transcript, frameworkId, useMock, regenerateFrom } = body;
 

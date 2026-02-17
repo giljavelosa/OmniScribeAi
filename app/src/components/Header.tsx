@@ -2,12 +2,17 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useSession, signOut } from 'next-auth/react';
 
 export default function Header() {
   const pathname = usePathname();
+  const { data: session } = useSession();
   const isLanding = pathname === '/';
 
   if (isLanding) return null;
+
+  const userName = session?.user?.name || 'Clinician';
+  const userInitials = userName.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2);
 
   return (
     <header className="h-16 border-b border-gray-200 bg-white flex items-center justify-between px-6 fixed top-0 left-0 right-0 z-50">
@@ -40,12 +45,23 @@ export default function Header() {
         <div className="w-px h-8 bg-gray-200" />
         <div className="flex items-center gap-3">
           <div className="text-right">
-            <div className="text-sm font-medium text-gray-900">Clinician</div>
-            <div className="text-xs text-gray-500">OmniScribe</div>
+            <div className="text-sm font-medium text-gray-900">{userName}</div>
+            <div className="text-xs text-gray-500">{session?.user?.email || ''}</div>
           </div>
           <div className="w-9 h-9 rounded-full bg-[#1e3a5f] flex items-center justify-center text-white text-sm font-medium">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
+            {userInitials}
           </div>
+          <button
+            onClick={() => signOut({ callbackUrl: '/login' })}
+            className="text-gray-400 hover:text-gray-600 transition-colors"
+            title="Sign out"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+              <polyline points="16 17 21 12 16 7" />
+              <line x1="21" y1="12" x2="9" y2="12" />
+            </svg>
+          </button>
         </div>
       </div>
     </header>

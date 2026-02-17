@@ -1,3 +1,5 @@
+import { auth } from "@/lib/auth";
+import { auditLog } from "@/lib/audit";
 export const maxDuration = 300;
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -37,6 +39,11 @@ function parseJSON(text: string) {
 }
 
 export async function POST(req: NextRequest) {
+  const session = await auth();
+  if (!session?.user) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { "content-type": "application/json" } });
+  }
+
   try {
     const formData = await req.formData();
     const file = formData.get('file') as File;
