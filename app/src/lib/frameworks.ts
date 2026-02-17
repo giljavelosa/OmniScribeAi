@@ -12,7 +12,7 @@ export const frameworks: Framework[] = [
     name: 'SOAP — Follow-Up Visit',
     description: 'Standard SOAP format for return visits. Tracks interval history, medication changes, and progress toward treatment goals.',
     regulatorySources: ['CMS E/M Guidelines 2024', 'AMA CPT Documentation Standards'],
-    itemCount: 28,
+    itemCount: 19,
     sections: [
       { id: 's', title: 'Subjective', items: ['Chief Complaint', 'Interval History', 'Medication Review', 'Review of Systems', 'Social/Functional Update'], required: true },
       { id: 'o', title: 'Objective', items: ['Vital Signs', 'Physical Examination', 'Diagnostic Results', 'Functional Assessment'], required: true },
@@ -28,7 +28,7 @@ export const frameworks: Framework[] = [
     name: 'SOAP — New Patient',
     description: 'Comprehensive SOAP note for initial patient encounters. Captures full medical, surgical, family, and social history.',
     regulatorySources: ['CMS E/M Guidelines 2024', 'AMA CPT Documentation Standards', 'Joint Commission Standards'],
-    itemCount: 42,
+    itemCount: 29,
     sections: [
       { id: 's', title: 'Subjective', items: ['Chief Complaint', 'History of Present Illness', 'Past Medical History', 'Past Surgical History', 'Medications', 'Allergies', 'Family History', 'Social History', 'Review of Systems (14-system)'], required: true },
       { id: 'o', title: 'Objective', items: ['Vital Signs', 'General Appearance', 'HEENT', 'Cardiovascular', 'Respiratory', 'Abdominal', 'Musculoskeletal', 'Neurological', 'Psychiatric', 'Skin', 'Diagnostic Results'], required: true },
@@ -44,7 +44,7 @@ export const frameworks: Framework[] = [
     name: 'H&P — Full History & Physical',
     description: 'Complete history and physical examination format for admissions and comprehensive evaluations.',
     regulatorySources: ['CMS E/M Guidelines 2024', 'Joint Commission RC.02.01.01', 'AMA CPT Appendix C'],
-    itemCount: 52,
+    itemCount: 50,
     sections: [
       { id: 'hpi', title: 'History of Present Illness', items: ['Location', 'Quality', 'Severity', 'Duration', 'Timing', 'Context', 'Modifying Factors', 'Associated Signs/Symptoms'], required: true },
       { id: 'pmh', title: 'Past Medical/Surgical History', items: ['Medical Conditions', 'Surgical History', 'Hospitalizations', 'Medications', 'Allergies', 'Immunizations'], required: true },
@@ -62,7 +62,7 @@ export const frameworks: Framework[] = [
     name: 'Procedure Note',
     description: 'Standardized documentation for in-office and bedside procedures including consent, technique, and outcomes.',
     regulatorySources: ['CMS Procedure Documentation Guidelines', 'AMA CPT Surgical Package Rules', 'Joint Commission UP.01.01.01'],
-    itemCount: 24,
+    itemCount: 18,
     sections: [
       { id: 'pre', title: 'Pre-Procedure', items: ['Indication', 'Informed Consent', 'Time-Out Verification', 'Pre-Procedure Assessment', 'Allergies/Medications'], required: true },
       { id: 'proc', title: 'Procedure Details', items: ['Procedure Name/CPT', 'Date/Time/Location', 'Performing Provider', 'Anesthesia Type', 'Technique Description', 'Specimens Obtained', 'Estimated Blood Loss', 'Complications'], required: true },
@@ -77,7 +77,7 @@ export const frameworks: Framework[] = [
     name: 'Annual Wellness Visit (AWV)',
     description: 'Medicare Annual Wellness Visit template with health risk assessment, screening schedules, and personalized prevention plan.',
     regulatorySources: ['CMS MLN Booklet ICN 905706', 'USPSTF Screening Recommendations', 'Medicare Preventive Services'],
-    itemCount: 38,
+    itemCount: 23,
     sections: [
       { id: 'hra', title: 'Health Risk Assessment', items: ['Demographics', 'Self-Assessment of Health', 'Psychosocial Risks', 'Behavioral Risks', 'ADL/IADL Assessment', 'Fall Risk Screening'], required: true },
       { id: 'hx', title: 'Medical/Family History Update', items: ['Conditions Update', 'Surgical History', 'Family History', 'Current Providers', 'Medications/Supplements'], required: true },
@@ -94,7 +94,7 @@ export const frameworks: Framework[] = [
     name: 'Emergency / Urgent Care Note',
     description: 'Emergency department and urgent care visit documentation with triage, medical decision-making complexity, and disposition.',
     regulatorySources: ['CMS E/M Guidelines 2024', 'ACEP Clinical Policy Guidelines', 'AMA CPT ED Codes 99281-99285', 'EMTALA Requirements'],
-    itemCount: 56,
+    itemCount: 63,
     sections: [
       { id: 'triage', title: 'Triage & Presentation', items: ['Mode of Arrival', 'Triage Level (ESI 1-5)', 'Chief Complaint', 'Onset/Duration', 'Vital Signs at Triage', 'Pain Assessment (NPRS)', 'Allergies', 'Last Oral Intake', 'Tetanus Status'], required: true },
       { id: 'hpi', title: 'History of Present Illness', items: ['Location', 'Quality', 'Severity', 'Duration', 'Timing', 'Context/Mechanism of Injury', 'Modifying Factors', 'Associated Symptoms', 'Prior Episodes', 'Treatment Prior to Arrival'], required: true },
@@ -118,7 +118,7 @@ export const frameworks: Framework[] = [
     name: 'PT Initial Evaluation',
     description: 'Comprehensive physical therapy evaluation including objective measurements, functional outcome measures, and evidence-based plan of care.',
     regulatorySources: ['APTA Guide to PT Practice', 'CMS MPPR/8-Minute Rule', 'Medicare Benefit Policy Manual Ch.15 §220', 'FOTO Outcomes Registry'],
-    itemCount: 64,
+    itemCount: 48,
     sections: [
       { id: 'history', title: 'Patient History', items: ['Referral Source/Diagnosis', 'Mechanism of Injury/Onset', 'Prior Level of Function', 'Living Situation', 'Occupational Demands', 'Prior Treatment', 'Imaging/Diagnostics', 'Medications', 'Surgical History', 'Comorbidities', 'Patient Goals'], required: true },
       { id: 'systems', title: 'Systems Review', items: ['Cardiovascular/Pulmonary', 'Integumentary', 'Musculoskeletal', 'Neuromuscular', 'Communication/Cognition'], required: true },
@@ -136,7 +136,7 @@ export const frameworks: Framework[] = [
     name: 'PT Daily/Progress Note',
     description: 'Daily treatment note documenting skilled interventions, patient response, and progress toward functional goals.',
     regulatorySources: ['CMS 8-Minute Rule', 'Medicare Benefit Policy Manual Ch.15', 'APTA Defensible Documentation'],
-    itemCount: 32,
+    itemCount: 19,
     sections: [
       { id: 's', title: 'Subjective', items: ['Pain Level (NPRS)', 'Patient Report of Function', 'Symptom Changes', 'Compliance with HEP', 'Sleep/Activity Level'], required: true },
       { id: 'o', title: 'Objective', items: ['Interventions Performed (with CPT/time)', 'Vital Signs (if applicable)', 'Objective Measurements', 'Functional Performance', 'Patient Response to Treatment'], required: true },
@@ -152,7 +152,7 @@ export const frameworks: Framework[] = [
     name: 'OT Initial Evaluation',
     description: 'Occupational therapy evaluation focusing on ADL performance, upper extremity function, and occupational participation.',
     regulatorySources: ['AOTA Occupational Profile Template', 'CMS MPPR/8-Minute Rule', 'Medicare Benefit Policy Manual Ch.15', 'OTPF-4'],
-    itemCount: 58,
+    itemCount: 32,
     sections: [
       { id: 'profile', title: 'Occupational Profile', items: ['Referral Reason', 'Occupational History', 'Prior Level of Function', 'ADL/IADL Status', 'Roles/Routines', 'Living Environment', 'Client Goals/Priorities', 'Psychosocial Factors'], required: true },
       { id: 'analysis', title: 'Occupational Analysis', items: ['ADL Performance Assessment', 'IADL Performance Assessment', 'Work/Productivity', 'Leisure/Social Participation', 'Activity Demands Analysis'], required: true },
@@ -169,7 +169,7 @@ export const frameworks: Framework[] = [
     name: 'SLP Initial Evaluation',
     description: 'Speech-language pathology evaluation covering speech, language, voice, swallowing, and cognitive-communication domains.',
     regulatorySources: ['ASHA Practice Portal Guidelines', 'Medicare Benefit Policy Manual Ch.15 §220.3', 'CMS MPPR/8-Minute Rule'],
-    itemCount: 54,
+    itemCount: 38,
     sections: [
       { id: 'history', title: 'Case History', items: ['Referral Source/Diagnosis', 'Onset/Course', 'Medical History', 'Prior SLP Services', 'Developmental History (if applicable)', 'Communication Partners/Environment', 'Patient/Family Concerns'], required: true },
       { id: 'oral', title: 'Oral Mechanism Exam', items: ['Facial Symmetry', 'Lip Strength/ROM', 'Tongue Strength/ROM', 'Velopharyngeal Function', 'Dentition', 'Oral Sensation', 'Diadochokinetic Rates'], required: true },
@@ -187,7 +187,7 @@ export const frameworks: Framework[] = [
     name: 'Rehabilitation Progress Report',
     description: 'Required progress report for Medicare and insurance documenting objective progress, goal updates, and continued skilled need.',
     regulatorySources: ['Medicare Benefit Policy Manual Ch.15 §220.3', 'CMS Progress Report Requirements', 'APTA/AOTA/ASHA Documentation Guidelines'],
-    itemCount: 36,
+    itemCount: 22,
     sections: [
       { id: 'summary', title: 'Treatment Summary', items: ['Reporting Period', 'Diagnosis/ICD-10', 'Treatment Frequency', 'Total Visits This Period', 'Interventions Provided', 'CPT Codes Utilized'], required: true },
       { id: 'progress', title: 'Objective Progress', items: ['Initial vs. Current Measurements', 'Outcome Measure Comparison', 'Functional Status Change', 'Goal Achievement Status'], required: true },
@@ -208,7 +208,7 @@ export const frameworks: Framework[] = [
     name: 'Biopsychosocial Intake Assessment',
     description: 'Comprehensive behavioral health intake covering biological, psychological, and social domains with risk assessment and diagnostic formulation.',
     regulatorySources: ['DSM-5-TR Diagnostic Criteria', 'APA Practice Guidelines', 'SAMHSA TIP Series', 'Joint Commission BHC Standards'],
-    itemCount: 72,
+    itemCount: 68,
     sections: [
       { id: 'presenting', title: 'Presenting Problem', items: ['Chief Complaint (patient words)', 'History of Present Illness', 'Symptom Onset/Duration/Severity', 'Precipitating Factors', 'Previous Treatment History', 'Current Medications'], required: true },
       { id: 'psych', title: 'Psychiatric History', items: ['Past Diagnoses', 'Hospitalizations', 'Medication History', 'ECT/TMS/Other Treatments', 'Self-Harm History', 'Suicide Attempt History'], required: true },
@@ -229,7 +229,7 @@ export const frameworks: Framework[] = [
     name: 'Therapy Progress Note',
     description: 'Session-by-session therapy documentation with DAP/SOAP format, intervention tracking, and progress toward treatment goals.',
     regulatorySources: ['APA Record Keeping Guidelines', 'State Licensing Board Requirements', 'HIPAA Psychotherapy Notes Distinction'],
-    itemCount: 26,
+    itemCount: 19,
     sections: [
       { id: 's', title: 'Subjective / Data', items: ['Patient Presentation', 'Reported Symptoms/Mood', 'Events Since Last Session', 'Homework/Assignment Review', 'Risk Screen Update'], required: true },
       { id: 'o', title: 'Objective / Assessment', items: ['Mental Status Observations', 'Affect/Behavior in Session', 'PHQ-9 or GAD-7 Score (if administered)', 'Therapeutic Alliance Quality'], required: true },
@@ -245,7 +245,7 @@ export const frameworks: Framework[] = [
     name: 'Psychiatric Diagnostic Evaluation',
     description: 'Comprehensive psychiatric evaluation for initial medication management visits or diagnostic clarification.',
     regulatorySources: ['APA Practice Guidelines', 'DSM-5-TR', 'CMS E/M + Psych Add-On Guidelines', 'ASAM Criteria (if SUD)'],
-    itemCount: 48,
+    itemCount: 44,
     sections: [
       { id: 'cc', title: 'Chief Complaint & HPI', items: ['Chief Complaint', 'History of Present Illness', 'Symptom Review by Domain', 'Functional Impact', 'Treatment History Response'], required: true },
       { id: 'psych_hx', title: 'Psychiatric History', items: ['Past Diagnoses', 'Medication Trials (with response)', 'Hospitalizations', 'ECT/TMS/Ketamine History', 'Psychotherapy History'], required: true },
@@ -265,7 +265,7 @@ export const frameworks: Framework[] = [
     name: 'Group Therapy Note',
     description: 'Documentation for group therapy sessions covering group dynamics, individual participation, and therapeutic factors.',
     regulatorySources: ['APA Group Therapy Guidelines', 'AGPA Practice Standards', 'State Licensing Requirements'],
-    itemCount: 22,
+    itemCount: 18,
     sections: [
       { id: 'group', title: 'Group Information', items: ['Group Name/Type', 'Session Number', 'Members Present/Absent', 'Group Theme/Topic', 'Facilitator(s)'], required: true },
       { id: 'process', title: 'Group Process', items: ['Group Dynamics Observed', 'Therapeutic Factors Present', 'Curriculum/Activity Delivered', 'Group Cohesion Level'], required: true },
@@ -281,7 +281,7 @@ export const frameworks: Framework[] = [
     name: 'Crisis Intervention Note',
     description: 'Acute crisis assessment and intervention documentation with detailed risk stratification and safety planning.',
     regulatorySources: ['Columbia Suicide Severity Rating Scale', 'SAMHSA Crisis Counseling Guidelines', 'Joint Commission NPSG 15.01.01', '988 Suicide & Crisis Lifeline Protocols'],
-    itemCount: 34,
+    itemCount: 36,
     sections: [
       { id: 'presentation', title: 'Crisis Presentation', items: ['Referral Source', 'Nature of Crisis', 'Precipitating Event', 'Timeline', 'Current Location/Safety'], required: true },
       { id: 'risk', title: 'Risk Assessment', items: ['Suicidal Ideation (C-SSRS)', 'Plan/Intent/Means', 'Homicidal Ideation', 'Self-Harm', 'Psychosis', 'Intoxication', 'Prior Attempts', 'Recent Losses', 'Social Isolation'], required: true },
@@ -299,7 +299,7 @@ export const frameworks: Framework[] = [
     name: 'Rehabilitation Discharge Summary',
     description: 'Comprehensive discharge documentation for PT, OT, and SLP episodes of care. Demonstrates medical necessity met, functional outcomes achieved, and discharge rationale per CMS requirements.',
     regulatorySources: ['Medicare Benefit Policy Manual Ch.15 §220.3', 'CMS Functional Reporting Requirements', 'APTA Guide to PT Practice', 'LCD L33966 Outpatient Therapy'],
-    itemCount: 52,
+    itemCount: 68,
     sections: [
       { id: 'episode', title: 'Episode of Care Summary', items: ['Patient Demographics', 'Referring Physician', 'Primary Diagnosis/ICD-10', 'Secondary Diagnoses', 'Date of Initial Evaluation', 'Date of Discharge', 'Total Visits Attended', 'Total Visits Authorized', 'Missed/Cancelled Visits', 'Treatment Setting', 'Payer Source'], required: true },
       { id: 'initial', title: 'Initial Presentation', items: ['Reason for Referral', 'Mechanism of Injury/Onset', 'Initial Pain Level (NPRS)', 'Initial Functional Limitations', 'Prior Level of Function', 'Patient Goals at Intake'], required: true },
@@ -319,7 +319,7 @@ export const frameworks: Framework[] = [
     name: 'Medical Discharge Summary',
     description: 'Hospital or facility discharge documentation covering admission course, treatment provided, and post-discharge plan. Required within 30 days per CMS Conditions of Participation.',
     regulatorySources: ['CMS Conditions of Participation §482.24(c)(2)', 'Joint Commission RC.01.03.01', 'CMS Hospital Quality Measures', 'Medicare Claims Processing Manual Ch.12'],
-    itemCount: 42,
+    itemCount: 45,
     sections: [
       { id: 'admin', title: 'Administrative Data', items: ['Patient Demographics', 'Admission Date', 'Discharge Date', 'Length of Stay', 'Admitting Physician', 'Attending Physician', 'Primary Diagnosis/ICD-10', 'Secondary Diagnoses', 'Procedures Performed (CPT/ICD-PCS)', 'DRG Assignment', 'Payer'], required: true },
       { id: 'admission', title: 'Admission Summary', items: ['Chief Complaint', 'History of Present Illness', 'Pertinent PMH', 'Admission Physical Exam', 'Admission Vital Signs', 'Initial Labs/Imaging'], required: true },
@@ -337,7 +337,7 @@ export const frameworks: Framework[] = [
     name: 'Behavioral Health Discharge/Termination Summary',
     description: 'Treatment episode closure documentation for behavioral health services. Covers treatment response, symptom trajectory, and continuing care recommendations per SAMHSA and payer guidelines.',
     regulatorySources: ['SAMHSA Treatment Improvement Protocols', '42 CFR Part 2 (Substance Use)', 'Joint Commission BHC Standards', 'NCQA HEDIS Measures — Follow-Up After MH/SUD'],
-    itemCount: 44,
+    itemCount: 49,
     sections: [
       { id: 'episode', title: 'Treatment Episode Summary', items: ['Patient Demographics', 'Admission/Intake Date', 'Discharge Date', 'Level of Care', 'Primary Diagnosis (DSM-5/ICD-10)', 'Secondary Diagnoses', 'Total Sessions Attended', 'Sessions Missed/No-Show', 'Treatment Modalities Used', 'Primary Therapist', 'Psychiatrist/Prescriber'], required: true },
       { id: 'presenting', title: 'Presenting Problems at Intake', items: ['Chief Complaint at Intake', 'Initial PHQ-9 Score', 'Initial GAD-7 Score', 'Initial AUDIT-C / DAST Score', 'Baseline Functional Level (GAF/WHODAS)', 'Initial Risk Level', 'Initial Symptoms Summary'], required: true },
