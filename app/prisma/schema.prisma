@@ -7,15 +7,19 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ─── Auth ────────────────────────────────────────────────
+
 model User {
   id             String    @id @default(cuid())
   email          String    @unique
   emailVerified  DateTime?
   passwordHash   String
+  mustChangePassword Boolean @default(true)
   name           String?
   role           Role      @default(CLINICIAN)
   clinicianType  String?
   credentials    String?
+  npiNumber      String?
   organizationId String?
   organization   Organization? @relation(fields: [organizationId], references: [id])
   sessions       Session[]
@@ -30,29 +34,201 @@ model User {
   mfaSecret      String?
 }
 
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+  @@unique([identifier, token])
+}
+
+// ─── Organization ────────────────────────────────────────
+
 model Organization {
-  id        String   @id @default(cuid())
+  id        String    @id @default(cuid())
   name      String
-  npi       String?  @unique
+  npi       String?   @unique
+  address   String?
+  city      String?
+  state     String?
+  zip       String?
+  phone     String?
+  fax       String?
   users     User[]
   patients  Patient[]
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 }
+
+// ─── FHIR-Aligned Patient ────────────────────────────────
 
 model Patient {
-  id             String    @id @default(cuid())
-  mrn            String?
-  firstName      String
-  lastName       String
-  dateOfBirth    DateTime?
-  organizationId String
-  organization   Organization @relation(fields: [organizationId], references: [id])
-  visits         Visit[]
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  id               String    @id @default(cuid())
+  // FHIR: identifier — only required field
+  identifier       String    // clinician-chosen ID (initials, MRN, internal ref)
+  mrn              String?
+  // FHIR: name
+  firstName        String?
+  lastName         String?
+  middleName       String?
+  prefix           String?   // Dr., Mr., Mrs.
+  suffix           String?   // Jr., III
+  // FHIR: birthDate, gender
+  dateOfBirth      DateTime?
+  gender           Gender?
+  // FHIR: telecom
+  phone            String?
+  phoneSecondary   String?
+  email            String?
+  // FHIR: address
+  addressLine1     String?
+  addressLine2     String?
+  city             String?
+  state            String?
+  zip              String?
+  country          String?   @default("US")
+  // FHIR: communication
+  preferredLanguage String?  @default("en")
+  // FHIR: maritalStatus
+  maritalStatus    String?
+  // FHIR: contact (emergency)
+  emergencyContactName  String?
+  emergencyContactPhone String?
+  emergencyContactRelation String?
+  // FHIR: generalPractitioner
+  pcpName          String?
+  pcpPhone         String?
+  pcpFax           String?
+  // Referring provider
+  referringProvider String?
+  referringProviderNpi String?
+  // Organization
+  organizationId   String?
+  organization     Organization? @relation(fields: [organizationId], references: [id])
+  // Relations
+  visits           Visit[]
+  coverages        Coverage[]
+  allergies        Allergy[]
+  medications      Medication[]
+  conditions       Condition[]
+  documents        PatientDocument[]
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 
-  @@unique([mrn, organizationId])
+  @@index([identifier])
+  @@index([lastName, firstName])
+  @@index([organizationId])
 }
+
+// FHIR: Coverage (insurance)
+model Coverage {
+  id             String   @id @default(cuid())
+  patientId      String
+  patient        Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  rank           Int      @default(1) // 1=primary, 2=secondary, 3=tertiary
+  payerName      String
+  memberId       String?
+  groupNumber    String?
+  planName       String?
+  planType       String?  // HMO, PPO, Medicare, Medicaid, etc.
+  copay          String?
+  deductible     String?
+  effectiveStart DateTime?
+  effectiveEnd   DateTime?
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([patientId])
+}
+
+// FHIR: AllergyIntolerance
+model Allergy {
+  id           String   @id @default(cuid())
+  patientId    String
+  patient      Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  substance    String
+  reaction     String?
+  severity     String?  // mild, moderate, severe
+  status       String   @default("active") // active, inactive, resolved
+  onsetDate    DateTime?
+  createdAt    DateTime @default(now())
+
+  @@index([patientId])
+}
+
+// FHIR: MedicationStatement
+model Medication {
+  id           String   @id @default(cuid())
+  patientId    String
+  patient      Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  name         String
+  dose         String?
+  frequency    String?
+  route        String?
+  prescriber   String?
+  status       String   @default("active") // active, completed, stopped
+  startDate    DateTime?
+  endDate      DateTime?
+  createdAt    DateTime @default(now())
+
+  @@index([patientId])
+}
+
+// FHIR: Condition
+model Condition {
+  id           String   @id @default(cuid())
+  patientId    String
+  patient      Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  description  String
+  icdCode      String?
+  status       String   @default("active") // active, recurrence, relapse, inactive, remission, resolved
+  onsetDate    DateTime?
+  createdAt    DateTime @default(now())
+
+  @@index([patientId])
+}
+
+// Scanned documents linked to patient
+model PatientDocument {
+  id           String   @id @default(cuid())
+  patientId    String
+  patient      Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  type         String   // drivers_license, insurance_front, insurance_back, intake_form, referral
+  fileName     String
+  mimeType     String
+  extractedData Json?
+  uploadedBy   String?
+  createdAt    DateTime @default(now())
+
+  @@index([patientId])
+}
+
+// ─── FHIR-Aligned Visit (Encounter) ─────────────────────
 
 model Visit {
   id            String      @id @default(cuid())
@@ -63,19 +239,29 @@ model Visit {
   frameworkId   String
   domain        String
   date          DateTime    @default(now())
-  duration      Int?
+  duration      Int?        // seconds
   status        VisitStatus @default(RECORDING)
+  // Clinical data
   transcript    String?     @db.Text
-  noteData      Json?
-  synthesis     Json?
+  transcriptSource String?  // deepgram, mock
+  transcriptConfidence Float?
+  extractedFacts Json?
+  clinicalSynthesis Json?
+  parsedData    Json?
+  noteData      Json?       // sections array
+  auditResult   Json?
   cmsScore      Float?
   summary       String?
+  generationTime Float?
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
 
   @@index([userId])
   @@index([patientId])
+  @@index([date])
 }
+
+// ─── Audit ───────────────────────────────────────────────
 
 model AuditLog {
   id         String   @id @default(cuid())
@@ -93,39 +279,7 @@ model AuditLog {
   @@index([createdAt])
 }
 
-model Account {
-  id                String  @id @default(cuid())
-  userId            String
-  type              String
-  provider          String
-  providerAccountId String
-  refresh_token     String? @db.Text
-  access_token      String? @db.Text
-  expires_at        Int?
-  token_type        String?
-  scope             String?
-  id_token          String? @db.Text
-  session_state     String?
-  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([provider, providerAccountId])
-}
-
-model Session {
-  id           String   @id @default(cuid())
-  sessionToken String   @unique
-  userId       String
-  expires      DateTime
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-}
-
-model VerificationToken {
-  identifier String
-  token      String   @unique
-  expires    DateTime
-
-  @@unique([identifier, token])
-}
+// ─── Enums ───────────────────────────────────────────────
 
 enum Role {
   ADMIN
@@ -139,4 +293,11 @@ enum VisitStatus {
   GENERATING
   COMPLETE
   ARCHIVED
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+  UNKNOWN
 }

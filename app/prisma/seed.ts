@@ -4,23 +4,21 @@ import bcrypt from "bcryptjs";
 const prisma = new PrismaClient();
 
 async function main() {
-  const passwordHash = await bcrypt.hash("OmniScribe2026!", 12);
-
+  const adminHash = await bcrypt.hash("OmniScribe2026!", 12);
   const admin = await prisma.user.upsert({
     where: { email: "admin@omniscribe.ai" },
     update: {},
     create: {
       email: "admin@omniscribe.ai",
       name: "Admin",
-      passwordHash,
+      passwordHash: adminHash,
       role: Role.ADMIN,
       clinicianType: "Admin",
+      mustChangePassword: true,
     },
   });
+  console.log("Admin:", admin.email);
 
-  console.log("Seeded admin user:", admin.email);
-
-  // Demo clinician
   const demoHash = await bcrypt.hash("Demo2026!", 12);
   const demo = await prisma.user.upsert({
     where: { email: "demo@omniscribe.ai" },
@@ -32,16 +30,12 @@ async function main() {
       role: Role.CLINICIAN,
       clinicianType: "MD",
       credentials: "MD, FACP",
+      mustChangePassword: true,
     },
   });
-
-  console.log("Seeded demo clinician:", demo.email);
+  console.log("Demo:", demo.email);
 }
 
 main()
   .then(() => prisma.$disconnect())
-  .catch((e) => {
-    console.error(e);
-    prisma.$disconnect();
-    process.exit(1);
-  });
+  .catch((e) => { console.error(e); prisma.$disconnect(); process.exit(1); });
