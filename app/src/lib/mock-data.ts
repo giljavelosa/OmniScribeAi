@@ -116,6 +116,458 @@ Provider: Thank you for sharing all of this with me, Maria. I can see you're dea
 Provider: Based on our conversation and my assessment today, I believe you're experiencing Generalized Anxiety Disorder with Panic Disorder, and a Major Depressive Episode of moderate severity. Your PHQ-9 score of 17 and GAD-7 score of 16 support this. I'd like to recommend weekly individual therapy using a combination of CBT and mindfulness-based approaches, and I think we should discuss a referral to our psychiatrist for a medication evaluation. We also need to address the alcohol use as a coping strategy. How does that sound?
 
 Patient: I'm willing to try whatever will help. I just want to feel like myself again.`,
+
+
+  'med-soap-new': `Provider: Good morning, I'm Dr. Chen. I see you're a new patient. What brings you in today?
+
+Patient: Hi Doctor. I've been having these really bad headaches for the past month. They're getting worse and I'm worried.
+
+Provider: Tell me about the headaches. Where exactly do you feel them?
+
+Patient: Mostly on the right side, behind my eye. It's like a throbbing, pulsing pain. Sometimes I see these zigzag lines before the headache starts.
+
+Provider: How severe are they, on a scale of 0 to 10?
+
+Patient: Usually about a 7 or 8. When they're really bad, I have to lie down in a dark room. Light and noise make it worse.
+
+Provider: How often are they occurring?
+
+Patient: About three times a week now. They last anywhere from 4 to 12 hours.
+
+Provider: Any nausea or vomiting with them?
+
+Patient: Yes, I get nauseous almost every time. I've thrown up a couple of times.
+
+Provider: Let me get some background. Any past medical history?
+
+Patient: I have high blood pressure, been on lisinopril for two years. And I was told I have borderline high cholesterol. No surgeries. I'm allergic to sulfa drugs — I break out in hives.
+
+Provider: Family history?
+
+Patient: My mother had migraines too. My father has diabetes. My grandmother had a stroke at 72.
+
+Provider: Do you smoke, drink alcohol, use any substances?
+
+Patient: No smoking. I have a glass of wine maybe once a week. No drugs.
+
+Provider: Let me do a full examination now. Please have a seat on the exam table.
+
+[Physical examination performed]
+
+Provider: Okay, your blood pressure is 142 over 88, which is a bit elevated. Heart rate 76, regular. Temperature normal. Your neurological exam is normal — cranial nerves intact, strength and sensation normal, reflexes symmetric. Fundoscopic exam shows no papilledema. I don't see any red flags, but given the frequency and the visual aura, this is consistent with migraine with aura. I'd like to start you on a preventive medication — topiramate 25mg, slowly increasing. For acute attacks, sumatriptan 50mg. Let's also check some labs and recheck your blood pressure in two weeks.`,
+
+
+  'med-hp': `Provider: Good evening, Mr. Williams. I'm Dr. Patel, the hospitalist. I understand you came in through the emergency department. Tell me what happened.
+
+Patient: I was at home watching TV and suddenly felt this crushing pressure in my chest. It felt like an elephant was sitting on me. My left arm went numb and I started sweating. My wife called 911.
+
+Provider: When exactly did this start?
+
+Patient: About four hours ago, around 6 PM.
+
+Provider: Have you ever had chest pain like this before?
+
+Patient: I've had some occasional chest tightness with exertion over the past few months, but nothing like this. This came on at rest.
+
+Provider: Any shortness of breath, dizziness, or loss of consciousness?
+
+Patient: I was short of breath, yes. Felt lightheaded but didn't pass out.
+
+Provider: Let me go through your medical history. What conditions do you have?
+
+Patient: Type 2 diabetes for about 10 years, high blood pressure, high cholesterol. I had my gallbladder removed in 2018.
+
+Provider: Medications?
+
+Patient: Metformin 1000 twice a day, lisinopril 20mg, atorvastatin 40mg, aspirin 81mg daily.
+
+Provider: Allergies?
+
+Patient: No known drug allergies.
+
+Provider: Family history?
+
+Patient: My father died of a heart attack at 58. I'm 62 now. Mother has diabetes. Brother had a stent placed at 55.
+
+Provider: Social history — smoking, alcohol?
+
+Patient: I quit smoking five years ago. Smoked a pack a day for 30 years. I drink socially, maybe a beer on weekends.
+
+Provider: Let me do a complete physical exam.
+
+[Comprehensive physical examination]
+
+Provider: Blood pressure 158 over 95, heart rate 92 and regular. You're diaphoretic. Heart sounds show an S4 gallop, no murmurs. Lungs have bibasilar crackles. No peripheral edema. Your EKG shows ST elevation in leads V1 through V4 — this is concerning for an anterior STEMI. Troponin is already elevated at 2.8. We need to get cardiology here for emergent catheterization. I'm starting heparin and a nitroglycerin drip now.`,
+
+
+  'med-procedure': `Provider: Good morning Mrs. Garcia. We're here to perform the joint injection on your right knee as we discussed. Can you confirm your name and date of birth for me?
+
+Patient: Maria Garcia, March 15, 1958.
+
+Provider: And which knee are we injecting today?
+
+Patient: My right knee.
+
+Provider: Perfect. I've marked the right knee. Let me review — you're having this injection for your osteoarthritis with significant effusion. You've tried physical therapy and oral anti-inflammatories without adequate relief. We discussed the risks including infection, bleeding, cartilage damage, and allergic reaction. You signed the consent form. Any questions before we begin?
+
+Patient: No, let's go ahead.
+
+Provider: Okay, time out performed. Patient confirmed, site confirmed right knee, procedure confirmed — arthrocentesis with corticosteroid injection. No allergies to lidocaine or triamcinolone. Let me prep the area now.
+
+[Procedure performed]
+
+Provider: I'm cleaning the area with chlorhexidine. Sterile drape in place. I'm using a lateral suprapatellar approach. Injecting 2cc of 1% lidocaine for local anesthesia. Now inserting an 18-gauge needle — I'm aspirating first. I'm getting about 15cc of clear, straw-colored synovial fluid. No blood, no cloudiness. Now injecting 1cc of triamcinolone 40mg mixed with 4cc of 0.25% bupivacaine. Good distribution. Removing the needle. Pressure applied. Bandage in place. No complications. Total procedure time about 8 minutes. You tolerated it well. The fluid will be sent for analysis. Keep it easy for 48 hours, ice as needed.`,
+
+
+  'med-awv': `Provider: Good morning, Mr. Thompson. You're here for your Annual Wellness Visit. How have you been feeling overall?
+
+Patient: Pretty good, actually. I turned 68 last month. Feeling my age a bit but can't complain.
+
+Provider: Great. Let me go through our health risk assessment. How would you rate your overall health?
+
+Patient: I'd say fair to good. My knees bother me and I get tired more easily.
+
+Provider: Are you able to do your daily activities independently — bathing, dressing, cooking, managing medications?
+
+Patient: Yes, all of that. My wife helps with the cooking but I can do it.
+
+Provider: Any falls in the past year?
+
+Patient: I tripped on the porch step about two months ago. Caught myself, didn't fall all the way. But it scared me.
+
+Provider: Do you ever feel depressed or have little interest in things?
+
+Patient: Not really. I stay busy with the garden and my grandkids. Sometimes I feel down in winter but it passes.
+
+Provider: Let me do the PHQ-2 screening. Over the past two weeks, how often have you felt down, depressed, or hopeless? And how often have you had little interest or pleasure in doing things?
+
+Patient: Maybe a couple days for each. Not much.
+
+Provider: That's a score of 2, which is below the threshold. Good. Now let me check your cognition — I'm going to say three words and ask you to remember them. Apple, table, penny. Can you repeat those?
+
+Patient: Apple, table, penny.
+
+Provider: Good, I'll ask you again in a few minutes. What medications are you taking?
+
+Patient: Lisinopril for blood pressure, atorvastatin for cholesterol, a baby aspirin, vitamin D, and a multivitamin.
+
+[Examination performed]
+
+Provider: Your blood pressure is 132 over 78, good. BMI is 27.4 — slightly overweight. Vision screening shows 20/30 right eye, 20/25 left — you may want to see the ophthalmologist. Hearing seems adequate but we can do a formal screening if you notice changes. And those three words?
+
+Patient: Apple, table... penny!
+
+Provider: Perfect. Let me review your screening schedule. You're due for a colonoscopy — last one was 2016. Flu shot is current. You need a pneumonia booster. And let's make sure your shingles vaccine series is complete.`,
+
+
+  'med-ed': `Nurse: Patient is a 34-year-old male, arrived by EMS, motorcycle accident. GCS 15. Complaining of right leg pain and abdominal pain. Vitals: BP 108/72, heart rate 112, respiratory rate 22, O2 sat 97% on room air. Triage level ESI 2.
+
+Provider: Sir, can you tell me your name?
+
+Patient: Mike... Mike Rodriguez. My leg, Doc, my leg is killing me.
+
+Provider: What happened?
+
+Patient: I was on my bike going about 35 miles an hour and a car ran a red light and hit me on the right side. I went over the handlebars.
+
+Provider: Were you wearing a helmet?
+
+Patient: Yes, full face helmet. No head injury, I was conscious the whole time.
+
+Provider: Any allergies?
+
+Patient: No.
+
+Provider: When did you last eat?
+
+Patient: Lunch, about 3 hours ago.
+
+Provider: Any medical problems or medications?
+
+Patient: No, I'm healthy. No meds.
+
+Provider: Where does it hurt?
+
+Patient: My right leg, below the knee. And my stomach hurts on the right side.
+
+Provider: I'm going to examine you now.
+
+[Examination performed]
+
+Provider: Alert and oriented, moderate distress. Head is normocephalic, no lacerations. Pupils equal and reactive. C-spine non-tender, full range of motion. Chest is clear bilaterally, no crepitus. Heart is tachycardic but regular. Abdomen — there's right upper quadrant tenderness with voluntary guarding. No rebound. Right lower leg has obvious deformity of the tibia, with swelling and ecchymosis. Pedal pulses are intact. Sensation intact in the foot. No open fracture.
+
+Provider: Let's get a FAST exam, right leg X-ray, CBC, BMP, lipase, type and screen, and a CT abdomen pelvis with contrast. Start a liter of LR wide open. Morphine 4mg IV for pain. Splint that right leg.
+
+[Results returning]
+
+Provider: X-ray shows a comminuted fracture of the right tibia and fibula. CT shows a grade 2 liver laceration with a small amount of free fluid. No other injuries. FAST was positive in Morrison's pouch. His repeat vitals are BP 112/76, heart rate 102 — trending better with fluids. I'm calling trauma surgery and orthopedics for consults. We'll admit for observation of the liver lac and ortho will plan for the tib-fib fixation.`,
+
+
+  'med-discharge': `Provider: Dictating discharge summary for patient James Wilson, MRN 445892. Admitted February 10th, discharged February 15th. Length of stay 5 days. Admitting and attending physician Dr. Sarah Kim.
+
+Primary diagnosis: Community-acquired pneumonia, right lower lobe, complicated by parapneumonic effusion. Secondary diagnoses: COPD exacerbation, type 2 diabetes with hyperglycemia during admission.
+
+Chief complaint on admission was 3 days of worsening cough, fever to 102.4, and shortness of breath. Patient is a 71-year-old male with known COPD, diabetes, and hypertension. Chest X-ray on admission showed right lower lobe consolidation. CT chest confirmed RLL pneumonia with small pleural effusion.
+
+Hospital course: Started on ceftriaxone and azithromycin. Blood cultures were negative. Sputum grew Streptococcus pneumoniae. Narrowed to amoxicillin-clavulanate. Required 2 liters nasal cannula for first 3 days, weaned to room air by day 4. Effusion remained stable, did not require thoracentesis. Diabetes management — held metformin, used sliding scale insulin, A1C found to be 8.9 which is above goal. Pulmonology consulted for COPD — added tiotropium inhaler.
+
+Condition at discharge: Stable, afebrile for 48 hours, O2 sat 94% on room air, ambulating independently.
+
+Discharge medications: Augmentin 875 for 5 more days, tiotropium 18mcg daily inhaler — new, metformin resumed, glipizide — new — 5mg daily, home medications otherwise continued.
+
+Follow up: PCP Dr. Johnson in 1 week, pulmonology in 4 weeks. Repeat chest X-ray in 6 weeks. Diabetes education referral placed. Return to ED for fever over 101, worsening shortness of breath, chest pain, or coughing up blood.`,
+
+
+  'rehab-pt-daily': `Provider: Good morning, Robert. How are you feeling today? This is visit number 8.
+
+Patient: Better than last week. My back still hurts in the morning but the exercises are helping. I'd say my pain is about a 4 today, down from a 5 last time.
+
+Provider: Great improvement. Have you been doing your home exercises?
+
+Patient: Yes, every morning. The cat-camel and the bridges. I'm up to 3 sets of 12 on the bridges now.
+
+Provider: Excellent compliance. Any issues with the exercises?
+
+Patient: The piriformis stretch still bothers me a bit on the right side. I can feel it pulling.
+
+Provider: Okay, we'll modify that today. Let's get started.
+
+[Treatment session]
+
+Provider: Today we performed manual therapy — lumbar spine joint mobilizations grade 3 posteroanterior at L4-5, approximately 8 minutes. Soft tissue mobilization to right piriformis and lumbar paraspinals, 7 minutes. Then therapeutic exercise — core stabilization progression, we advanced to dead bugs with leg extension, 3 sets of 10. Bird dogs 3 sets of 10 each side. Bridge progression with marching, 3 sets of 8. And neuromuscular re-education for hip hinge pattern, 10 minutes. Total skilled treatment time 42 minutes.
+
+Your lumbar flexion has improved to about 60% of normal, up from 40% at the initial eval. Straight leg raise on the right is now 70 degrees, up from 55. You're making steady progress. I'm going to add some light deadlift patterning next visit to start work simulation. We'll continue twice a week. Updated your home program — added the dead bug exercise.`,
+
+
+  'rehab-ot-eval': `Provider: Hello Mrs. Park. I'm Jennifer, your occupational therapist. You were referred after your stroke three weeks ago. Tell me about how things have been at home.
+
+Patient: It's been really hard. I can barely use my right hand. I'm right-handed and I can't write, can't button my shirt, can't cut my food. My daughter has been doing everything for me. I feel like a burden.
+
+Provider: I understand how frustrating that must be. What were you doing before the stroke?
+
+Patient: I was fully independent. I worked part-time at a bookstore, I cooked every night, I did my own gardening. Now I can't even open a jar.
+
+Provider: What are your main goals for therapy?
+
+Patient: I want to be able to dress myself, feed myself, and write again. If I could get back to cooking, that would be wonderful.
+
+Provider: Let me assess your right upper extremity. Can you try to reach forward for me?
+
+[Evaluation performed]
+
+Provider: Right shoulder active flexion is 95 degrees, abduction 80 degrees. Elbow flexion full, extension lacking 15 degrees. Wrist extension is only about 20 degrees. Finger extension is minimal — you can open about halfway. Grip strength on the right is 8 pounds compared to 45 on the left. Pinch strength lateral is 2 pounds on the right versus 12 on the left. Sensation — light touch is diminished in the fingers, you can feel it but it's dull. Two-point discrimination is greater than 10mm in the fingertips. Coordination — you're having difficulty with rapid alternating movements. Fine motor tasks like picking up small objects are significantly impaired.
+
+For ADLs — you need moderate assistance for upper body dressing, minimal assistance for lower body. You need setup help for eating — can use a fork with a built-up handle but can't cut food. Grooming needs minimal assist.
+
+My assessment is moderate right upper extremity hemiparesis with impaired fine motor coordination and decreased sensation. Rehab potential is good given your age, motivation, and only 3 weeks post-stroke. I recommend OT 3 times a week for 12 weeks. We'll focus on neuromuscular re-education, fine motor training, ADL retraining, and adaptive equipment to maximize independence.`,
+
+
+  'rehab-slp-eval': `Provider: Good morning, Mrs. Chen. I'm Dr. Taylor, the speech-language pathologist. Your neurologist referred you after your recent stroke. Can you tell me what's been going on?
+
+Patient: I... words are hard. I know what I want to say but... it doesn't come out right. Sometimes wrong words come out.
+
+Provider: I understand. When did this start?
+
+Patient's husband: It started right after her stroke, about two weeks ago. She was fine before. She was a teacher — very articulate. Now she struggles with everything.
+
+Provider: Mrs. Chen, can you tell me what you had for breakfast today?
+
+Patient: I had... the... toast. And the... orange... the drink... juice! Orange juice.
+
+Provider: Good. I'm going to show you some pictures and ask you to name them.
+
+[Assessment performed]
+
+Provider: On the oral mechanism exam — facial symmetry is slightly asymmetric with right-sided weakness. Lip strength is functional. Tongue range of motion is within normal limits, though lateralization to the right is slightly reduced. No evidence of dysarthria. Speech rate is slowed with word-finding pauses.
+
+For language assessment — receptive language is mildly impaired. She follows 2-step commands accurately but has difficulty with complex multi-step instructions. Reading comprehension is mild-moderate impaired. Expressive language — moderate anomic aphasia. She produces grammatically correct but simplified sentences with frequent word-finding pauses and occasional semantic paraphasias, like saying "chair" for "table." Naming is 60% accurate on the Boston Naming Test. Repetition is relatively preserved. Writing — she can write her name and short words but has difficulty with sentences.
+
+For swallowing — no complaints of dysphagia. Trial swallows of thin liquid and solids were unremarkable. No coughing, no wet vocal quality.
+
+Diagnosis is moderate anomic aphasia secondary to left hemisphere CVA. Rehab potential is good. I recommend SLP therapy twice a week for 10 weeks, focusing on word retrieval strategies, naming therapy, and functional communication training.`,
+
+
+  'rehab-progress': `Provider: Dictating rehabilitation progress report for patient Robert Johnson. Reporting period: Visits 1 through 12, January 15 through February 12, 2026. Diagnosis: Lumbar disc herniation L4-L5 with radiculopathy, ICD-10 M51.16. Treatment frequency: Twice weekly. Total visits this period: 12 of 12 authorized.
+
+Interventions provided: Manual therapy including joint mobilizations and soft tissue mobilization, CPT 97140. Therapeutic exercise for core stabilization, hip strengthening, and work simulation, CPT 97110. Neuromuscular re-education for movement patterns and body mechanics, CPT 97112.
+
+Objective progress: Lumbar flexion improved from 40% to 75% of normal. Extension improved from 50% to 80%. Right straight leg raise improved from 55 degrees to 80 degrees. Hip extensor strength improved from 3+/5 to 4+/5. Oswestry Disability Index improved from 48% severe disability to 26% moderate disability — this exceeds the MCID of 6 points. NPRS average pain decreased from 7/10 to 3/10. Patient-Specific Functional Scale for work activities improved from 2/10 to 6/10.
+
+Goals update: Short-term goal 1 — pain below 5/10 with activity — MET. Short-term goal 2 — sit tolerance 45 minutes — MET, now tolerating 60 minutes. Long-term goal 1 — return to modified duty — IN PROGRESS, patient cleared for light duty this week. Long-term goal 2 — full return to work as electrician — IN PROGRESS, targeting 4 more weeks.
+
+Skilled need justification: Patient continues to require skilled PT for progressive functional training and work simulation activities that require clinical expertise to grade appropriately. His lumbar instability requires supervised progression of loading to prevent re-injury. Non-skilled alternatives such as a gym program are insufficient due to the complexity of his radiculopathy management and the need for ongoing clinical assessment of neurological status.
+
+Updated plan: Continue PT 2x/week for 4 additional weeks, 8 visits. Progress to full work simulation including overhead reaching, kneeling, and lifting up to 50 pounds. Anticipated discharge date: March 12, 2026.`,
+
+
+  'rehab-discharge': `Provider: Dictating rehabilitation discharge summary for patient Robert Johnson. Date of initial evaluation: January 15, 2026. Date of discharge: March 10, 2026. Total visits attended: 20 of 24 authorized. Four visits missed due to work schedule conflicts. Diagnosis: Lumbar disc herniation L4-L5 with radiculopathy. Payer: Blue Cross Blue Shield.
+
+Initial presentation: 45-year-old electrician with 6-week history of low back pain with right lower extremity radiculopathy following lifting injury. Initial pain 7/10, Oswestry 48% severe disability, unable to work.
+
+Treatment provided: Manual therapy — joint mobilizations and soft tissue mobilization. Therapeutic exercise — progressive core stabilization, hip strengthening, functional training, work simulation. Neuromuscular re-education — lifting mechanics, hip hinge patterning. Home exercise program updated throughout.
+
+Objective outcomes: Lumbar flexion improved from 40% to 95% of normal. Extension 50% to 90%. Right SLR 55 degrees to 85 degrees. Hip extensor strength 3+/5 to 5/5. Grip strength maintained. Pain decreased from 7/10 to 1/10 average.
+
+Functional outcome measures: Oswestry 48% to 12% — minimal disability. MCID achieved. NPRS 7 to 1. PSFS work activities 2/10 to 9/10. All MCID thresholds exceeded.
+
+Goal achievement: All short-term and long-term goals met. 100% goal achievement. Patient returned to full duty as electrician without restrictions on March 4th.
+
+Discharge reason: Goals met. Patient is independent with home exercise program and self-management strategies. No skilled need remaining. Rehab potential at discharge is excellent.
+
+Discharge plan: Continue independent HEP 3x/week. May use gym for continued strengthening. Follow up with orthopedist in 6 weeks. Return to PT if symptoms recur or function declines.`,
+
+
+  'bh-progress': `Provider: Good to see you again, Maria. It's been two weeks since our last session. How have things been?
+
+Patient: Better, actually. I used the grounding technique you taught me during a panic attack last Tuesday and it actually worked. I was able to get through it in about 5 minutes instead of the usual 20.
+
+Provider: That's wonderful progress. Tell me more about that experience.
+
+Patient: I was in the grocery store and felt the panic coming on. My heart started racing and I felt dizzy. But I remembered the 5-4-3-2-1 technique and I focused on naming things I could see, touch, hear. It was like it broke the cycle.
+
+Provider: How many panic attacks have you had in the past two weeks?
+
+Patient: Three. Down from almost daily when I first came in. Two of them I was able to manage on my own. One was worse — that was Sunday night when I was looking at our bills.
+
+Provider: And your mood? How has the depression been?
+
+Patient: A little better. I went for a walk three times this week. And I cooked dinner on Saturday for the first time in months. My husband was so happy. But I still have days where I feel pretty low and don't want to get out of bed.
+
+Provider: Have you had any thoughts of self-harm or not wanting to be alive?
+
+Patient: No, not in the past two weeks. I think the medication is helping with that.
+
+Provider: Good. Let me note — Maria presents with improved affect today, more animated and engaged compared to initial sessions. She makes good eye contact, speech is normal rate and rhythm. Mood reported as "okay, not great but better." Affect is congruent, mildly anxious but not distressed.
+
+Today we continued CBT focusing on cognitive restructuring of catastrophic thoughts related to finances and self-worth. We practiced the thought record — identifying the automatic thought "I'll never find a job and we'll lose everything," examining the evidence for and against, and developing a balanced alternative thought. Maria was able to engage well with this process. We also reviewed the behavioral activation schedule — she's meeting her goal of one pleasant activity per day most days.
+
+Plan: Continue current medication. Next session in two weeks — will introduce exposure hierarchy for situational anxiety triggers. Homework: continue thought records, increase walking to 4 times per week, and apply for one job this week using the structured approach we discussed.`,
+
+
+  'bh-psych-eval': `Provider: Good afternoon. I'm Dr. Yamamoto, the psychiatrist. I've reviewed the referral from your therapist. Tell me what brings you here.
+
+Patient: My therapist thinks I might need medication. I've been in therapy for about 6 months for depression and anxiety, and while it's helped some, I'm still really struggling. Especially with focus — I cant concentrate on anything.
+
+Provider: Tell me about the depression first.
+
+Patient: It's been going on for about two years. I lost my job, then my marriage fell apart. I feel worthless a lot. I sleep too much on weekends, like 12 hours, but during the week I'm up at 3 AM and can't fall back asleep. My appetite goes back and forth — sometimes I eat everything in sight, sometimes nothing.
+
+Provider: And the anxiety?
+
+Patient: Constant worry. About money, my kids, whether I'll find another job. I grind my teeth at night, my muscles are always tense, especially in my neck and shoulders. I worry about things that probably don't warrant that level of worry.
+
+Provider: You mentioned difficulty concentrating. Tell me more.
+
+Patient: I cant read more than a page without my mind wandering. I forget what I walked into a room for. At my part-time job I make mistakes I never would have made before. I lose my keys, my phone. It's embarrassing.
+
+Provider: Was concentration ever an issue before the depression?
+
+Patient: Honestly, yeah. In school I always had to work harder than everyone else. I'd procrastinate everything. My report cards always said "doesnt work up to potential." But I managed. Now with the depression on top of it, I cant manage anymore.
+
+Provider: Any history of psychiatric medication?
+
+Patient: I tried Lexapro about a year ago from my PCP. It helped the anxiety some but I felt like a zombie. I stopped after 3 months. Never tried anything else.
+
+Provider: Substance use?
+
+Patient: I drink maybe 3-4 beers on weekends. More when I'm stressed. No drugs. I quit smoking 5 years ago.
+
+Provider: Any history of mania — periods of elevated mood, decreased need for sleep, racing thoughts, impulsive spending?
+
+Patient: No, nothing like that.
+
+Provider: Suicidal thoughts?
+
+Patient: I've had passive thoughts, like life would be easier if I just didn't exist. But Id never act on it. My kids need me.
+
+[Mental status examination]
+
+Provider: You present as a well-groomed male in casual dress, appearing stated age. Good eye contact, cooperative. Speech is normal rate but slightly tangential at times. Mood is "tired and frustrated." Affect is constricted, mildly dysphoric. Thought process is circumstantial at times. No delusions. Denies hallucinations. Cognition — I administered the MOCA, scored 26, with deficits in attention and delayed recall. Insight is good, judgment is fair.
+
+My diagnostic impression: Major depressive disorder, recurrent, moderate. Generalized anxiety disorder. And I'd like to evaluate for possible ADHD, predominantly inattentive type — your history of childhood concentration difficulties, current executive function complaints, and the pattern you describe warrants formal assessment. I'm going to start sertraline 50mg, which tends to be less sedating than escitalopram. We'll plan ADHD testing at the next visit. Follow up in 3 weeks.`,
+
+
+  'bh-group': `Provider: Group therapy session note, February 15, 2026. Anxiety and Stress Management Group, Session 8 of 12. Facilitated by Dr. Lee and co-facilitator Sarah, LCSW intern. Group type: closed CBT-based psychoeducation group.
+
+Members present: 6 of 8. Present: Maria G., James T., Linda K., Priya M., Robert S., Chris W. Absent: David L. (called ahead, sick), Ana P. (no-show, second consecutive absence — will follow up).
+
+Session topic: Cognitive distortions — identifying and challenging automatic negative thoughts. Psychoeducation delivered on the top 10 cognitive distortions with handout. Group exercise: members identified their most common distortions using examples from their past week.
+
+Group dynamics: High engagement today. Group cohesion continues to build. Maria shared her success with grounding techniques, which inspired several members. James was initially quiet but opened up when Chris validated his experience with catastrophizing. Linda challenged Priya's all-or-nothing thinking in a supportive way, demonstrating good universality. Robert used humor appropriately to normalize the experience.
+
+Individual notes:
+Maria G. — Active participant. Identified catastrophizing as her primary distortion. Shared grocery store panic success. Response to group very positive. Progress toward anxiety management goals.
+James T. — Initially withdrawn. Participated after gentle encouragement. Identified mind-reading as his main distortion. Connected this to social anxiety. Making slow but steady progress.
+Linda K. — Served as informal peer support. High engagement. May benefit from advanced group after this one.
+Priya M. — Identified should statements. Became tearful when discussing expectations from family. Group provided appropriate support.
+Robert S. — Good humor, engaged. Tends to intellectualize — gently redirected to emotional experience.
+Chris W. — Strong session. Identified overgeneralization related to job rejection. Group exercise was effective for him.
+
+Plan: Next session — behavioral experiments to test cognitive distortions. Follow up with Ana P. regarding attendance.`,
+
+
+  'bh-crisis': `Provider: Crisis intervention note, February 16, 2026, 10:47 PM. Patient Tyler Henderson, age 22, referred by university resident advisor who found patient in dorm room with a suicide note.
+
+Patient: I just... I can't do this anymore. Everything is falling apart. I failed my organic chemistry exam and I'm going to lose my scholarship and my parents will disown me.
+
+Provider: Tyler, I'm glad you're here and you're safe. Can you tell me what was going through your mind tonight?
+
+Patient: I was thinking about taking all my Adderall. I have a whole bottle. I wrote a note to my roommate. But then my RA knocked on my door and I just... I couldnt go through with it.
+
+Provider: So you had a specific plan to take the Adderall. Did you take any tonight?
+
+Patient: No. I almost did. I had the bottle in my hand.
+
+Provider: Have you had thoughts like this before?
+
+Patient: I've thought about it before, like a month ago during finals. But tonight was the first time I actually... had a plan and was going to do it.
+
+Provider: Any history of self-harm?
+
+Patient: I used to cut in high school. On my arms. I stopped about two years ago.
+
+Provider: Are you using any substances?
+
+Patient: I smoked weed earlier tonight. And I had a few beers. I'm not drunk.
+
+Provider: On the Columbia scale, Tyler endorses active suicidal ideation with specific plan and intent. He had access to means — the Adderall. He was interrupted by his RA. Risk factors include academic stress, perceived parental expectations, prior self-harm history, substance use tonight, and impulsivity. His C-SSRS suggests high acute risk.
+
+However, there are protective factors. He did not act on the plan when he had the means. He opened the door for his RA. He's engaged and communicating. He expresses ambivalence — "I couldnt go through with it." He has a relationship with his roommate he's protective of.
+
+Tyler, I'd like to work with you on a safety plan right now. First, what are your warning signs that tell you you're heading to a crisis?
+
+Patient: When I start thinking I'm a failure. When I isolate. When I stop going to class.
+
+Provider: Good awareness. And what can you do internally when you notice those signs?
+
+Patient: I guess... the breathing thing my old therapist taught me. Or going for a run. Music helps sometimes.
+
+Provider: Let's write those down. And who can you reach out to?
+
+Patient: My roommate Jake. My friend Melissa. Not my parents... not yet.
+
+Provider: We're going to put 988 and this crisis center's number on your plan too. Now, about the Adderall — I'd like your RA to hold your medication and dispense it daily. Can we do that?
+
+Patient: Yeah, okay. That's probably smart.
+
+Provider: I'm recommending a voluntary psychiatric observation overnight. In the morning, we'll connect you with outpatient counseling at the university health center. Your follow up will be within 24 hours with the campus counselor.`,
+
+
+  'bh-discharge': `Provider: Behavioral health discharge summary for patient Maria Gonzalez. Intake date: October 1, 2025. Discharge date: February 14, 2026. Level of care: Outpatient individual therapy with medication management. Primary diagnosis: Panic disorder, F41.0. Major depressive disorder, single episode, moderate, F32.1. Primary therapist: Dr. Lee. Prescriber: Dr. Yamamoto.
+
+Total sessions attended: 18 individual therapy sessions, 12 group sessions (Anxiety and Stress Management group). 2 sessions missed. Medication management visits: 4.
+
+Presenting problems at intake: Daily panic attacks, moderate depression, unemployment-related anxiety. Initial PHQ-9 score: 16 (moderately severe). Initial GAD-7: 18 (severe). Initial functional level: significant impairment in occupational, social, and self-care domains.
+
+Treatment provided: Individual CBT focusing on cognitive restructuring, behavioral activation, and exposure therapy. Group CBT for anxiety management. Medication: Sertraline titrated to 100mg daily. Grounding and relaxation techniques. Career counseling referral.
+
+Treatment outcomes: Discharge PHQ-9: 6 (mild). Discharge GAD-7: 7 (mild). Panic attacks reduced from daily to approximately once per month, manageable with learned techniques. Patient secured part-time employment in marketing. Resumed cooking, hiking, and social activities. Relationship with husband significantly improved per patient report.
+
+Symptom trajectory: Improved. Substantial reduction in both depressive and anxiety symptoms. Risk level at discharge: low. No suicidal ideation in final 10 weeks of treatment.
+
+Discharge reason: Treatment goals substantially met. Mutual agreement between therapist and patient that she has developed sufficient coping skills for independent management.
+
+Continuing care: Continue sertraline 100mg, managed by PCP Dr. Peters. Psychiatry follow-up in 3 months for medication review. Attend NAMI support group weekly. Return to therapy if symptoms resurge. Crisis plan updated — call 988 or present to ED. Patient verbalized understanding of discharge plan and relapse prevention strategies.`,
 };
 
 // ═══════════════════════════════════════
@@ -627,6 +1079,157 @@ Patient verbalized understanding of safety plan and agreed to all steps. Copy pr
 **Next Session Plan:** Begin CBT with psychoeducation about anxiety-depression cycle and panic disorder model. Introduce diaphragmatic breathing as first coping skill. Assign activity monitoring/mood tracking homework. Begin behavioral activation scheduling.`,
     },
   ],
+
+
+  'med-soap-new': [
+    { id: 'subjective', title: 'Subjective', content: '**Chief Complaint:** Recurrent headaches x 1 month, worsening\n\n**History of Present Illness:** 38-year-old female presents with right-sided throbbing headaches occurring 3x/week for the past month. Pain is retro-orbital, rated 7-8/10, lasting 4-12 hours. Associated with visual aura (zigzag lines), photophobia, phonophobia, nausea, and occasional emesis. Triggered by stress. Ibuprofen provides partial relief.\n\n**Past Medical History:** Hypertension (2 years), borderline hyperlipidemia\n**Past Surgical History:** None\n**Medications:** Lisinopril\n**Allergies:** Sulfa drugs (hives)\n**Family History:** Mother — migraines. Father — diabetes. Grandmother — CVA age 72\n**Social History:** Denies tobacco, drugs. Rare alcohol (1 glass wine/week). Works in office setting.\n**Review of Systems:** Positive for headache, nausea, visual changes. Negative for fever, weight change, weakness, numbness, syncope.', feedback: null },
+    { id: 'objective', title: 'Objective', content: '**Vital Signs:** BP 142/88, HR 76, Temp 98.6°F, RR 16\n**General:** Alert, well-nourished female in no acute distress\n**HEENT:** Normocephalic, PERRL, fundoscopic exam — no papilledema\n**Cardiovascular:** Regular rate and rhythm, no murmurs\n**Respiratory:** Clear to auscultation bilaterally\n**Neurological:** CN II-XII intact. Strength 5/5 all extremities. Sensation intact. DTR 2+ and symmetric. Gait normal. Romberg negative.\n**Psychiatric:** Alert, oriented, appropriate affect', feedback: null },
+    { id: 'assessment', title: 'Assessment', content: '1. **Migraine with aura** — classic presentation with unilateral throbbing, visual aura, photophobia, phonophobia, nausea\n2. **Hypertension, suboptimally controlled** — BP 142/88 on current regimen\n3. **Borderline hyperlipidemia** — needs lipid panel', feedback: null },
+    { id: 'plan', title: 'Plan', content: '1. Start **topiramate 25mg daily**, titrate to 50mg after 2 weeks for migraine prevention\n2. **Sumatriptan 50mg PRN** for acute attacks (max 2x/week)\n3. Labs: CBC, BMP, lipid panel, TSH\n4. Recheck BP in 2 weeks — may need medication adjustment\n5. Headache diary — track frequency, triggers, severity\n6. Return precautions: worst headache of life, vision loss, weakness, fever with headache\n7. Follow up 4 weeks', feedback: null },
+  ],
+
+
+  'med-hp': [
+    { id: 'history-of-present-illness', title: 'History of Present Illness', content: '62-year-old male with PMH of HTN, T2DM, HLD, and 30-pack-year smoking history (quit 5 years) presenting with acute onset crushing substernal chest pressure at rest beginning approximately 4 hours prior to arrival. Pain is 9/10, described as pressure with radiation to the left arm. Associated with diaphoresis, dyspnea, and lightheadedness. Denies syncope. Reports several months of exertional chest tightness that would resolve with rest. Family history significant for premature CAD (father MI at 58, brother stent at 55).', feedback: null },
+    { id: 'past-medical-surgical-history', title: 'Past Medical/Surgical History', content: '**Medical:** Type 2 diabetes (10 years), hypertension, hyperlipidemia\n**Surgical:** Cholecystectomy 2018\n**Medications:** Metformin 1000mg BID, lisinopril 20mg daily, atorvastatin 40mg daily, aspirin 81mg daily\n**Allergies:** NKDA\n**Immunizations:** Up to date', feedback: null },
+    { id: 'family-&-social-history', title: 'Family & Social History', content: '**Family:** Father — MI at 58 (deceased), Mother — T2DM, Brother — coronary stent at 55\n**Tobacco:** 30 pack-years, quit 5 years ago\n**Alcohol:** Social, 1-2 beers/weekend\n**Substance Use:** Denies\n**Occupation:** Retired warehouse manager\n**Living Situation:** Lives with wife', feedback: null },
+    { id: 'review-of-systems', title: 'Review of Systems', content: '**Constitutional:** Diaphoresis, no fever/chills\n**Cardiovascular:** Chest pain, dyspnea on exertion\n**Respiratory:** Shortness of breath, no cough\n**GI:** No nausea/vomiting\n**Neurological:** Lightheadedness, no syncope\n**All other systems reviewed and negative', feedback: null },
+    { id: 'physical-examination', title: 'Physical Examination', content: '**Vitals:** BP 158/95, HR 92, RR 20, SpO2 96% RA, Temp 98.4°F\n**General:** Anxious-appearing male, diaphoretic, moderate distress\n**HEENT:** Normocephalic, PERRL\n**Neck:** JVP not elevated, no carotid bruits\n**Heart:** Tachycardic, regular rhythm, S4 gallop, no murmurs\n**Lungs:** Bibasilar crackles, no wheezes\n**Abdomen:** Soft, non-tender\n**Extremities:** No edema, pulses intact\n**Neuro:** Alert, oriented x3, no focal deficits', feedback: null },
+    { id: 'assessment-&-plan', title: 'Assessment & Plan', content: '**Diagnosis:** Acute anterior ST-elevation myocardial infarction (STEMI)\n\n**Evidence:** ST elevation V1-V4, troponin 2.8 (elevated), classic presentation with risk factors\n\n**Plan:**\n1. Emergent cardiology consultation for cardiac catheterization\n2. Heparin drip initiated\n3. Nitroglycerin drip for chest pain\n4. Continue aspirin, add clopidogrel 600mg loading dose\n5. Serial troponins q6h\n6. Telemetry monitoring\n7. NPO for potential catheterization\n8. Echocardiogram in AM\n9. Diabetes: hold metformin, start insulin drip\n10. Code status: Full code, discussed with patient', feedback: null },
+  ],
+
+
+  'med-procedure': [
+    { id: 'pre-procedure', title: 'Pre-Procedure', content: '**Indication:** Right knee osteoarthritis with effusion, refractory to conservative management\n**Informed Consent:** Obtained. Risks discussed including infection, bleeding, cartilage damage.\n**Time-Out:** Performed. Patient Maria Garcia confirmed. Right knee marked. Procedure: arthrocentesis with corticosteroid injection.\n**Allergies:** NKDA\n**Pre-Procedure Assessment:** Vitals stable. Right knee with moderate effusion, tenderness medial joint line.', feedback: null },
+    { id: 'procedure-details', title: 'Procedure Details', content: '**Procedure:** Right knee arthrocentesis with intra-articular injection (CPT 20611)\n**Date/Time:** February 15, 2026, 10:15 AM\n**Performing Provider:** Dr. Chen\n**Anesthesia:** Local — 2cc 1% lidocaine\n**Technique:** Lateral suprapatellar approach. Sterile prep with chlorhexidine. 18-gauge needle inserted. Aspirated 15cc clear, straw-colored synovial fluid. Injected triamcinolone 40mg + bupivacaine 0.25% 4cc. Needle removed, pressure applied, bandage placed.\n**Specimens:** Synovial fluid sent for analysis\n**EBL:** Minimal\n**Complications:** None', feedback: null },
+    { id: 'post-procedure', title: 'Post-Procedure', content: '**Patient Condition:** Stable, comfortable, good ROM immediately post-injection\n**Findings:** Aspirated fluid clear, no evidence of infection or hemarthrosis\n**Instructions:** Rest 48 hours, ice PRN, avoid strenuous activity x 1 week\n**Follow-Up:** Return in 4 weeks. Call if increased pain, redness, warmth, or fever\n**Wound Care:** Bandage may be removed in 24 hours', feedback: null },
+  ],
+
+
+  'med-awv': [
+    { id: 'health-risk-assessment', title: 'Health Risk Assessment', content: '**Demographics:** 68-year-old male\n**Self-Assessment:** Fair to good\n**Psychosocial Risks:** Mild seasonal mood changes, not clinically significant\n**Behavioral Risks:** Sedentary lifestyle, slightly overweight\n**ADL/IADL:** Fully independent in all ADLs and IADLs\n**Fall Risk:** Low risk. One near-fall 2 months ago (tripped on step). No injuries.', feedback: null },
+    { id: 'medical-family-history-update', title: 'Medical/Family History Update', content: '**Conditions:** Hypertension (stable), hyperlipidemia (stable)\n**Medications:** Lisinopril, atorvastatin, aspirin 81mg, vitamin D, multivitamin\n**Family History:** No changes', feedback: null },
+    { id: 'examination-elements', title: 'Examination Elements', content: '**Height/Weight/BMI:** 5\'10", 191 lbs, BMI 27.4 (overweight)\n**Blood Pressure:** 132/78\n**Visual Acuity:** 20/30 OD, 20/25 OS — ophthalmology referral recommended\n**Cognitive Assessment:** 3-word recall 3/3. Clock drawing normal. No concerns.\n**Depression Screening (PHQ-2):** Score 2/6 — below threshold, no further screening needed\n**Hearing:** Grossly intact, formal screening not indicated at this time', feedback: null },
+    { id: 'personalized-prevention-plan', title: 'Personalized Prevention Plan', content: '**Screening Schedule:**\n- Colonoscopy — due (last 2016)\n- Lung cancer screening — not indicated (quit >15 years threshold in 2031)\n- AAA screening — already completed\n\n**Immunizations:**\n- Flu — current\n- Pneumococcal booster — due, ordered PCV20\n- Shingles — verify series completion\n\n**Counseling:** Weight management, increase physical activity to 150 min/week\n**Advance Care Planning:** Discussed, patient will consider and discuss with family\n**Follow-Up:** Annual, sooner if concerns', feedback: null },
+  ],
+
+
+  'med-ed': [
+    { id: 'triage-&-presentation', title: 'Triage & Presentation', content: '**Mode of Arrival:** EMS\n**Triage Level:** ESI 2\n**Chief Complaint:** MVC — motorcycle vs car, right leg pain and abdominal pain\n**Vital Signs at Triage:** BP 108/72, HR 112, RR 22, SpO2 97% RA, Temp 98.6°F\n**Pain Assessment:** 9/10 right leg\n**Allergies:** NKDA\n**Last Oral Intake:** 3 hours ago\n**Tetanus:** Up to date', feedback: null },
+    { id: 'history-of-present-illness', title: 'History of Present Illness', content: '34-year-old male, helmeted motorcyclist struck by car running red light at approximately 35 mph. Patient went over handlebars with right-side impact. No LOC, GCS 15 throughout. Complains of severe right lower leg pain and right-sided abdominal pain.', feedback: null },
+    { id: 'past-history-&-review', title: 'Past History & Review', content: '**PMH:** None\n**Medications:** None\n**Social:** Denies tobacco/drugs/alcohol', feedback: null },
+    { id: 'physical-examination', title: 'Physical Examination', content: '**General:** Alert, oriented, moderate distress\n**Vital Signs:** BP 108/72, HR 112, RR 22, SpO2 97%\n**HEENT:** No lacerations, PERRL\n**Neck:** C-spine non-tender, full ROM\n**Cardiovascular:** Tachycardic, regular\n**Respiratory:** CTA bilaterally\n**Abdomen:** RUQ tenderness, voluntary guarding, no rebound\n**Musculoskeletal:** Right tibia/fibula deformity, swelling, ecchymosis. Pedal pulses intact. Sensation intact distally.\n**Neurological:** GCS 15, no focal deficits', feedback: null },
+    { id: 'diagnostic-workup', title: 'Diagnostic Workup', content: '**Labs:** CBC, BMP, lipase, type & screen — pending\n**Imaging:** Right leg XR — comminuted tibial and fibular fractures\n**CT Abdomen/Pelvis:** Grade 2 liver laceration with small free fluid\n**FAST:** Positive in Morrison\'s pouch\n**EKG:** Sinus tachycardia, no ST changes', feedback: null },
+    { id: 'medical-decision-making', title: 'Medical Decision Making', content: '**Complexity:** High — multiple trauma, intra-abdominal injury + orthopedic fracture\n**Data:** XR, CT, FAST, labs reviewed\n**Risk:** High — hemodynamically stable but liver laceration requires monitoring\n**MDM Level:** High (99285)\n**Differential:** Liver laceration (confirmed), splenic injury (ruled out), hollow viscus injury (ruled out)', feedback: null },
+    { id: 'ed-course-&-reassessment', title: 'ED Course & Reassessment', content: '**Treatments:** LR 1L bolus, morphine 4mg IV x2, right leg splinted\n**Reassessment Vitals:** BP 112/76, HR 102 — improved with fluids\n**Response:** Pain improved from 9/10 to 5/10. Hemodynamically stable.', feedback: null },
+    { id: 'disposition-&-discharge', title: 'Disposition & Discharge', content: '**Disposition:** Admit to trauma surgery\n**Discharge Diagnosis:** 1. Comminuted right tibia/fibula fracture 2. Grade 2 liver laceration\n**Consultants:** Trauma surgery, orthopedic surgery\n**Plan:** Serial abdominal exams, repeat H/H in 6 hours, ortho to plan tib-fib fixation', feedback: null },
+  ],
+
+
+  'med-discharge': [
+    { id: 'administrative-data', title: 'Administrative Data', content: '**Patient:** James Wilson\n**Admission:** February 10, 2026\n**Discharge:** February 15, 2026\n**LOS:** 5 days\n**Attending:** Dr. Sarah Kim\n**Primary Dx:** Community-acquired pneumonia, RLL (J18.1)\n**Secondary Dx:** COPD exacerbation (J44.1), T2DM with hyperglycemia (E11.65)\n**Payer:** Medicare', feedback: null },
+    { id: 'admission-summary', title: 'Admission Summary', content: '71-year-old male with COPD and T2DM presenting with 3 days worsening cough, fever 102.4°F, dyspnea. CXR: RLL consolidation. CT confirmed RLL pneumonia with small pleural effusion.', feedback: null },
+    { id: 'hospital-course', title: 'Hospital Course', content: '**Pneumonia:** Started ceftriaxone + azithromycin. Blood cultures negative. Sputum: S. pneumoniae. Narrowed to augmentin. Required 2L NC x 3 days, weaned to RA day 4. Effusion stable, no thoracentesis needed.\n**COPD:** Pulmonology consult — added tiotropium.\n**Diabetes:** Held metformin, used SSI. A1C 8.9% — added glipizide. Diabetes education ordered.\n**Complications:** None', feedback: null },
+    { id: 'discharge-status', title: 'Discharge Status', content: '**Condition:** Stable\n**Vitals:** Afebrile x 48hrs, SpO2 94% RA\n**Functional Status:** Ambulating independently\n**Mental Status:** Alert, oriented', feedback: null },
+    { id: 'medication-reconciliation', title: 'Medication Reconciliation', content: '**Continued:** Lisinopril 20mg daily, atorvastatin 40mg daily\n**New:** Augmentin 875mg BID x 5 days, Tiotropium 18mcg daily, Glipizide 5mg daily\n**Resumed:** Metformin 1000mg BID\n**Allergies:** Penicillin (rash — tolerates augmentin per allergy testing)', feedback: null },
+    { id: 'discharge-plan', title: 'Discharge Plan', content: '**Disposition:** Home\n**Follow-Up:** PCP Dr. Johnson 1 week, Pulmonology 4 weeks\n**Pending:** Repeat CXR 6 weeks\n**Instructions:** Complete antibiotics, use new inhaler daily, check blood sugars BID\n**Return to ED:** Fever >101, worsening SOB, chest pain, hemoptysis\n**Education:** Pneumonia recovery, diabetes management, inhaler technique', feedback: null },
+  ],
+
+
+  'rehab-pt-daily': [
+    { id: 'subjective', title: 'Subjective', content: '**Pain Level:** 4/10 (down from 5/10 last visit)\n**Patient Report:** "Better than last week. Exercises are helping. Morning stiffness improving."\n**Compliance with HEP:** Good — performing cat-camel and bridges daily, 3x12 bridges\n**Sleep:** Improved, sleeping through night most nights', feedback: null },
+    { id: 'objective', title: 'Objective', content: '**Interventions Performed:**\n- Manual therapy: lumbar PA mobs grade III at L4-5 (97140, 8 min)\n- STM: R piriformis, lumbar paraspinals (97140, 7 min)\n- Ther Ex: dead bugs w/leg extension 3x10, bird dogs 3x10 ea, bridge w/march 3x8 (97110, 12 min)\n- NMR: hip hinge patterning (97112, 10 min)\n- Total skilled time: 42 min\n\n**Measurements:** Lumbar flexion 60% (up from 40% initial). R SLR 70° (up from 55° initial).', feedback: null },
+    { id: 'assessment', title: 'Assessment', content: '**Progress:** Good — objective improvements in ROM and SLR. Pain trending down. Functional gains in sitting tolerance.\n**Skilled Need:** Continued skilled PT required for progressive loading and work simulation.\n**Barriers:** R piriformis tightness persists — modified stretch prescribed.', feedback: null },
+    { id: 'plan', title: 'Plan', content: '**Next Visit:** Add light deadlift patterning for work simulation\n**HEP Updates:** Added dead bug exercise\n**Frequency:** Continue 2x/week\n**Goals:** On track for all STG and LTG', feedback: null },
+  ],
+
+
+  'rehab-ot-eval': [
+    { id: 'occupational-profile', title: 'Occupational Profile', content: '**Referral:** R CVA, 3 weeks post-onset\n**Prior Level of Function:** Fully independent, part-time bookstore employee, active cook and gardener\n**ADL/IADL Status:** Mod A upper body dressing, Min A lower body, Setup assist feeding, Min A grooming\n**Client Goals:** Independent dressing, feeding, writing. Return to cooking.', feedback: null },
+    { id: 'occupational-analysis', title: 'Occupational Analysis', content: '**ADL:** Requires moderate assistance for upper body dressing due to R UE weakness. Uses L hand for most tasks. Cannot manage buttons or zippers.\n**IADL:** Unable to cook (safety concern with R hand impairment). Cannot manage finances (writing impaired). Light housekeeping with difficulty.', feedback: null },
+    { id: 'client-factors', title: 'Client Factors', content: '**R UE AROM:** Shoulder flex 95°, abd 80°. Elbow flex full, ext -15°. Wrist ext 20°. Finger ext 50%.\n**Grip Strength:** R 8 lbs / L 45 lbs\n**Pinch (lateral):** R 2 lbs / L 12 lbs\n**Sensation:** Light touch diminished R hand. 2PD >10mm fingertips.\n**Coordination:** Impaired rapid alternating movements. Fine motor significantly impaired.\n**Pain:** Mild R shoulder pain with overhead activity, 3/10', feedback: null },
+    { id: 'assessment', title: 'Assessment', content: '**OT Diagnosis:** Moderate R UE hemiparesis with impaired fine motor coordination and decreased sensation s/p L CVA\n**Functional Limitations:** Unable to perform bilateral tasks, fine motor tasks, and overhead tasks independently\n**Rehab Potential:** Good — age, motivation, early post-stroke window\n**Precautions:** Fall risk, R UE weight-bearing precaution', feedback: null },
+    { id: 'plan-of-care', title: 'Plan of Care', content: '**STG (4 weeks):** Min A upper body dressing, independent feeding with adaptive equipment, write name legibly\n**LTG (12 weeks):** Independent dressing, independent meal prep for simple meals, functional writing for daily tasks\n**Frequency:** 3x/week x 12 weeks\n**Interventions:** NMR, fine motor training, ADL retraining, adaptive equipment\n**Equipment:** Built-up handle utensils, button hook, reacher\n**Discharge Plan:** Independent home program, community re-integration', feedback: null },
+  ],
+
+
+  'rehab-slp-eval': [
+    { id: 'case-history', title: 'Case History', content: '**Referral:** L hemisphere CVA, 2 weeks post-onset\n**Onset:** Acute. Premorbid: fully functional, articulate, retired teacher.\n**Medical History:** HTN, atrial fibrillation\n**Prior SLP:** None\n**Patient/Family Concerns:** Difficulty finding words, simplified speech, reading difficulties', feedback: null },
+    { id: 'oral-mechanism-exam', title: 'Oral Mechanism Exam', content: '**Facial Symmetry:** Slight R-sided weakness\n**Lip Strength/ROM:** Functional\n**Tongue Strength/ROM:** WNL, slight reduced R lateralization\n**Velopharyngeal Function:** Adequate\n**Dentition:** Full, good condition\n**Oral Sensation:** Intact\n**DDK Rates:** WNL — no dysarthria', feedback: null },
+    { id: 'speech-&-language-assessment', title: 'Speech & Language Assessment', content: '**Articulation:** Intact — no dysarthria\n**Fluency:** Reduced rate with word-finding pauses\n**Receptive Language:** Mildly impaired — follows 2-step commands, difficulty with complex instructions\n**Expressive Language:** Moderate anomic aphasia — simplified but grammatical sentences, frequent WF pauses, semantic paraphasias\n**BNT:** 60% accurate\n**Repetition:** Relatively preserved\n**Reading/Writing:** Mild-moderate impaired. Writes name/short words. Difficulty with sentences.', feedback: null },
+    { id: 'swallowing-assessment', title: 'Swallowing Assessment', content: '**Diet History:** Regular diet, no complaints\n**Signs/Symptoms:** None\n**Clinical Swallow:** Unremarkable — thin liquids and solids tolerated without coughing or wet vocal quality\n**IDDSI:** Level 7 (regular)', feedback: null },
+    { id: 'cognitive-communication', title: 'Cognitive-Communication', content: '**Attention:** Adequate for therapy tasks\n**Memory:** Mildly impaired for new verbal information\n**Executive Function:** Not formally assessed\n**Orientation:** Fully oriented', feedback: null },
+    { id: 'plan-of-care', title: 'Plan of Care', content: '**SLP Diagnosis:** Moderate anomic aphasia secondary to L hemisphere CVA\n**Goals:** Improve naming accuracy to 80%, improve functional communication in daily activities, develop compensatory WF strategies\n**Frequency:** 2x/week x 10 weeks\n**Approach:** Semantic feature analysis, naming therapy, functional communication training\n**Family Training:** Communication partner strategies\n**Discharge Criteria:** Functional communication independence with compensatory strategies', feedback: null },
+  ],
+
+
+  'rehab-progress': [
+    { id: 'treatment-summary', title: 'Treatment Summary', content: '**Reporting Period:** Jan 15 — Feb 12, 2026 (Visits 1-12)\n**Diagnosis:** Lumbar disc herniation L4-L5 with radiculopathy (M51.16)\n**Frequency:** 2x/week\n**Total Visits:** 12/12 authorized\n**CPT Codes:** 97140, 97110, 97112', feedback: null },
+    { id: 'objective-progress', title: 'Objective Progress', content: '| Measure | Initial | Current | Change |\n|---|---|---|---|\n| Lumbar Flexion | 40% | 75% | +35% |\n| Lumbar Extension | 50% | 80% | +30% |\n| R SLR | 55° | 80° | +25° |\n| Hip Ext Strength | 3+/5 | 4+/5 | +1 grade |\n| Oswestry | 48% (severe) | 26% (moderate) | -22% ✓ MCID |\n| NPRS | 7/10 | 3/10 | -4 ✓ MCID |\n| PSFS Work | 2/10 | 6/10 | +4 ✓ MCID |', feedback: null },
+    { id: 'goal-update', title: 'Goal Update', content: '**Goals Met:** Pain <5/10 with activity ✅, Sit tolerance 45 min ✅ (now 60 min)\n**In Progress:** Return to modified duty (cleared light duty this week), Full return to electrician work (target 4 weeks)\n**Goals Modified:** None\n**New Goals:** Full duty work simulation including overhead/kneeling/lifting 50 lbs', feedback: null },
+    { id: 'skilled-need-justification', title: 'Skilled Need Justification', content: 'Patient requires continued skilled PT for progressive functional training and work simulation. Lumbar instability requires supervised loading progression. Non-skilled alternatives insufficient due to complexity of radiculopathy management and need for ongoing neurological assessment.', feedback: null },
+    { id: 'updated-plan', title: 'Updated Plan', content: '**Frequency:** Continue 2x/week x 4 weeks (8 visits)\n**Interventions:** Progress to full work simulation\n**Anticipated Discharge:** March 12, 2026\n**Discharge Plan:** Independent HEP, gym program, ortho follow-up', feedback: null },
+  ],
+
+
+  'rehab-discharge': [
+    { id: 'episode-of-care-summary', title: 'Episode of Care Summary', content: '**Patient:** Robert Johnson\n**Referring MD:** Dr. Smith, Orthopedics\n**Dx:** Lumbar disc herniation L4-L5 with radiculopathy (M51.16)\n**Eval Date:** January 15, 2026\n**Discharge Date:** March 10, 2026\n**Visits:** 20/24 authorized (4 missed — work conflicts)\n**Payer:** BCBS', feedback: null },
+    { id: 'initial-presentation', title: 'Initial Presentation', content: '45-year-old electrician, 6-week LBP with R LE radiculopathy post lifting injury. Initial pain 7/10. Oswestry 48%. Unable to work.', feedback: null },
+    { id: 'treatment-summary', title: 'Treatment Summary', content: 'Manual therapy (97140), therapeutic exercise (97110), neuromuscular re-education (97112). Progressive core stabilization, hip strengthening, work simulation, lifting mechanics training. HEP updated throughout.', feedback: null },
+    { id: 'objective-outcomes-—-discharge-vs-initial', title: 'Objective Outcomes — Discharge vs Initial', content: '| Measure | Initial | Discharge |\n|---|---|---|\n| Lumbar Flexion | 40% | 95% |\n| Lumbar Extension | 50% | 90% |\n| R SLR | 55° | 85° |\n| Hip Ext Strength | 3+/5 | 5/5 |\n| NPRS | 7/10 | 1/10 |', feedback: null },
+    { id: 'functional-outcome-measures', title: 'Functional Outcome Measures', content: '| Measure | Initial | Discharge | MCID |\n|---|---|---|---|\n| Oswestry | 48% | 12% | ✅ Exceeded |\n| NPRS | 7/10 | 1/10 | ✅ Exceeded |\n| PSFS Work | 2/10 | 9/10 | ✅ Exceeded |', feedback: null },
+    { id: 'goal-achievement', title: 'Goal Achievement', content: 'All STG and LTG met. 100% goal achievement. Patient returned to full duty as electrician without restrictions March 4, 2026.', feedback: null },
+    { id: 'discharge-assessment', title: 'Discharge Assessment', content: '**Discharge Reason:** Goals met\n**Functional Level:** Independent all activities\n**Skilled Need:** None remaining\n**Rehab Potential at Discharge:** Excellent\n**Remaining Deficits:** Mild morning stiffness, self-managed', feedback: null },
+    { id: 'discharge-plan', title: 'Discharge Plan', content: 'Independent HEP 3x/week. Gym for continued strengthening. Orthopedist follow-up 6 weeks. Return to PT if symptoms recur.', feedback: null },
+  ],
+
+
+  'bh-progress': [
+    { id: 'subjective---data', title: 'Subjective / Data', content: '**Presentation:** Improved affect, more animated, good eye contact\n**Reported Symptoms/Mood:** "Okay, not great but better." Panic attacks reduced to 3 in past 2 weeks (down from daily at intake). Two managed independently using grounding techniques.\n**Events:** Successfully managed panic attack in grocery store using 5-4-3-2-1 technique. Cooked dinner Saturday. Walking 3x/week.\n**HW Review:** Thought records completed. Behavioral activation goals mostly met.\n**Risk Screen:** Denies SI/HI. No self-harm urges. Low risk.', feedback: null },
+    { id: 'objective---assessment', title: 'Objective / Assessment', content: '**MSE:** Alert, oriented, cooperative. Speech normal rate/rhythm. Mood "okay." Affect congruent, mildly anxious but not distressed. Thought process logical. No psychotic features.\n**Alliance:** Strong — patient engaged and trusting', feedback: null },
+    { id: 'assessment---clinical-impression', title: 'Assessment / Clinical Impression', content: '**Session Focus:** CBT cognitive restructuring — catastrophic thoughts about finances and self-worth\n**Interventions:** Thought record practice, behavioral activation review, evidence examination for/against automatic thoughts\n**Response:** Good engagement, able to generate balanced alternative thoughts\n**Progress:** Significant improvement in panic management. Depression improving but residual low days remain. On track toward goals.', feedback: null },
+    { id: 'plan', title: 'Plan', content: '**Next Session:** Introduce exposure hierarchy for situational anxiety triggers\n**Homework:** Continue thought records, increase walking to 4x/week, apply for one job\n**Medications:** Continue current (sertraline 100mg) — effective\n**Follow-Up:** 2 weeks', feedback: null },
+  ],
+
+
+  'bh-psych-eval': [
+    { id: 'chief-complaint-&-hpi', title: 'Chief Complaint & HPI', content: '**CC:** "My therapist thinks I might need medication."\n**HPI:** 38-year-old male with 2-year history of worsening depression and anxiety following job loss and divorce. Reports persistent low mood, worthlessness, sleep disturbance (hypersomnia weekends, early morning awakening weekdays), appetite fluctuations. Significant anxiety with constant worry, muscle tension, bruxism. Notable concentration/attention difficulties that predate depression — childhood history of academic underperformance despite effort.', feedback: null },
+    { id: 'psychiatric-history', title: 'Psychiatric History', content: '**Past Dx:** None formally\n**Medication Trials:** Lexapro (escitalopram) ~1 year ago via PCP — partial anxiety relief but "felt like a zombie." Discontinued after 3 months.\n**Hospitalizations:** None\n**Psychotherapy:** Current — 6 months CBT, helpful but insufficient alone', feedback: null },
+    { id: 'substance-use', title: 'Substance Use', content: '**Alcohol:** 3-4 beers/weekend, more when stressed\n**Tobacco:** Quit 5 years ago\n**Other:** Denies', feedback: null },
+    { id: 'medical-developmental', title: 'Medical/Developmental', content: '**Medical:** None significant\n**Developmental:** School — "doesnt work up to potential" on report cards, procrastination, needed extra effort. Managed but struggled.', feedback: null },
+    { id: 'psychosocial', title: 'Psychosocial', content: '**Family Psych Hx:** Mother — anxiety. Father — "probably depressed but never treated."\n**Social Supports:** Limited post-divorce. Few close friends. Has children (shared custody).\n**Employment:** Part-time, underemployed\n**Legal:** None', feedback: null },
+    { id: 'mental-status-examination', title: 'Mental Status Examination', content: '**Appearance:** Well-groomed, casual dress, stated age\n**Behavior:** Cooperative, good eye contact\n**Speech:** Normal rate, slightly tangential at times\n**Mood/Affect:** "Tired and frustrated" / constricted, mildly dysphoric\n**Thought Process:** Circumstantial at times\n**Thought Content:** No delusions. Passive SI ("life would be easier if I didn\'t exist") but no plan/intent.\n**Perceptions:** No hallucinations\n**Cognition:** MoCA 26/30 — deficits in attention and delayed recall\n**Insight/Judgment:** Good/Fair', feedback: null },
+    { id: 'risk-assessment', title: 'Risk Assessment', content: '**SI:** Passive ideation, no plan/intent. Protective factors: children.\n**HI:** Denies\n**Risk Level:** Low-moderate\n**Safety Plan:** Not indicated at current risk level; will reassess', feedback: null },
+    { id: 'formulation-&-plan', title: 'Formulation & Plan', content: '**Diagnoses:**\n1. Major Depressive Disorder, recurrent, moderate (F33.1)\n2. Generalized Anxiety Disorder (F41.1)\n3. R/O ADHD, predominantly inattentive type (pending formal assessment)\n\n**Medication:** Start sertraline 50mg daily (less sedating than escitalopram)\n**Labs:** TSH, CBC, B12\n**Plan:** ADHD screening next visit. Continue therapy.\n**Follow-Up:** 3 weeks', feedback: null },
+  ],
+
+
+  'bh-group': [
+    { id: 'group-information', title: 'Group Information', content: '**Group:** Anxiety and Stress Management, Session 8/12\n**Facilitators:** Dr. Lee, Sarah LCSW-intern\n**Members Present:** 6/8 — Maria G., James T., Linda K., Priya M., Robert S., Chris W.\n**Absent:** David L. (called, sick), Ana P. (no-show #2 — follow up needed)\n**Topic:** Cognitive Distortions — identification and challenging', feedback: null },
+    { id: 'group-process', title: 'Group Process', content: '**Dynamics:** High engagement. Cohesion building. Members supporting each other. Linda emerging as informal peer leader.\n**Therapeutic Factors:** Universality (normalizing shared experiences), interpersonal learning, instillation of hope (Maria\'s success story)\n**Activity:** Psychoeducation on top 10 cognitive distortions + group exercise identifying personal patterns', feedback: null },
+    { id: 'individual-member-notes', title: 'Individual Member Notes', content: '**Maria G.** — Active. Identified catastrophizing. Shared grounding success. ↑ progress.\n**James T.** — Initially withdrawn, opened up after peer validation. Mind-reading pattern. Slow progress.\n**Linda K.** — Peer support role. High engagement. May benefit from advanced group.\n**Priya M.** — Should statements. Tearful re: family expectations. Group supported well.\n**Robert S.** — Engaged, uses humor. Tends to intellectualize — redirected.\n**Chris W.** — Strong session. Overgeneralization re: job rejection. Exercise effective.', feedback: null },
+    { id: 'plan', title: 'Plan', content: '**Next Session:** Behavioral experiments to test distortions\n**Follow-Up:** Contact Ana P. re: attendance\n**Supervision Notes:** Sarah managing co-facilitation well, improving redirecting skills', feedback: null },
+  ],
+
+
+  'bh-crisis': [
+    { id: 'crisis-presentation', title: 'Crisis Presentation', content: '**Referral:** University RA found patient with suicide note in dorm room\n**Nature of Crisis:** Active suicidal ideation with specific plan (overdose on Adderall)\n**Precipitating Event:** Failed organic chemistry exam, perceived scholarship loss, fear of parental rejection\n**Timeline:** Ideation past month, specific plan tonight\n**Current Safety:** In crisis center, cooperative', feedback: null },
+    { id: 'risk-assessment', title: 'Risk Assessment', content: '**C-SSRS:** Active ideation with specific plan (Adderall overdose) and intent. Had bottle in hand but did not take.\n**Plan/Intent/Means:** Yes/Yes/Yes (Adderall available)\n**Prior Attempts:** None\n**Self-Harm History:** Cutting in high school, stopped 2 years ago\n**Substances Tonight:** Cannabis and alcohol (several beers, not intoxicated)\n**Risk Factors:** Academic stress, perceived parental expectations, prior self-harm, substance use, impulsivity, access to means\n**Overall Risk:** HIGH acute risk', feedback: null },
+    { id: 'protective-factors', title: 'Protective Factors', content: '**Reasons for Living:** Did not act when had means. Protective of roommate relationship.\n**Social Support:** Roommate Jake, friend Melissa\n**Treatment Engagement:** Cooperative, communicative, engaged in safety planning\n**Ambivalence:** "I couldn\'t go through with it"', feedback: null },
+    { id: 'intervention', title: 'Intervention', content: '**De-escalation:** Calm, validating approach. Patient engaged throughout.\n**Means Restriction:** Patient agreed to RA holding/dispensing Adderall daily.\n**Therapeutic Interventions:** Safety planning, validation, crisis stabilization\n**Collateral:** RA contacted and briefed on safety plan', feedback: null },
+    { id: 'safety-plan', title: 'Safety Plan', content: '**Warning Signs:** "Thinking I\'m a failure," isolation, missing classes\n**Internal Coping:** Breathing exercises, running, music\n**Social Contacts:** Roommate Jake, friend Melissa\n**Professional Contacts:** University counseling center, this crisis center\n**Emergency Contacts:** 988 Suicide & Crisis Lifeline, campus police\n**Environmental Safety:** Adderall secured with RA', feedback: null },
+    { id: 'disposition', title: 'Disposition', content: '**Risk Level:** High (acute), reduced to moderate with safety plan and means restriction\n**Recommendation:** Voluntary psychiatric observation overnight\n**Follow-Up:** Campus counselor within 24 hours\n**Consent:** Patient consented to voluntary observation and information sharing with university counseling', feedback: null },
+  ],
+
+
+  'bh-discharge': [
+    { id: 'treatment-episode-summary', title: 'Treatment Episode Summary', content: '**Patient:** Maria Gonzalez\n**Intake:** October 1, 2025\n**Discharge:** February 14, 2026\n**Level of Care:** Outpatient\n**Dx:** Panic disorder (F41.0), MDD single episode moderate (F32.1)\n**Sessions:** 18 individual + 12 group (2 missed)\n**Med Management:** 4 visits\n**Therapist:** Dr. Lee | **Prescriber:** Dr. Yamamoto', feedback: null },
+    { id: 'presenting-problems-at-intake', title: 'Presenting Problems at Intake', content: '**Initial PHQ-9:** 16 (moderately severe)\n**Initial GAD-7:** 18 (severe)\n**Presenting:** Daily panic attacks, moderate depression, unemployment anxiety\n**Functional Level:** Significant impairment — occupational, social, self-care', feedback: null },
+    { id: 'treatment-provided', title: 'Treatment Provided', content: '**Approach:** Individual CBT (cognitive restructuring, behavioral activation, exposure therapy) + group CBT (anxiety management)\n**Medication:** Sertraline titrated to 100mg daily\n**Skills Taught:** Grounding (5-4-3-2-1), thought records, behavioral activation, exposure hierarchy\n**Referrals:** Career counseling', feedback: null },
+    { id: 'treatment-outcomes', title: 'Treatment Outcomes', content: '**Discharge PHQ-9:** 6 (mild) — ↓10 points\n**Discharge GAD-7:** 7 (mild) — ↓11 points\n**Panic Attacks:** Daily → ~1/month, manageable with skills\n**Functional Gains:** Secured part-time employment, resumed cooking/hiking/social activities, improved marital relationship\n**Symptom Trajectory:** Improved\n**Risk Level at Discharge:** Low. No SI in final 10 weeks.', feedback: null },
+    { id: 'discharge-assessment', title: 'Discharge Assessment', content: '**Reason:** Treatment goals substantially met — mutual decision\n**Remaining Concerns:** Mild residual anxiety in novel situations. Ongoing medication need.\n**Relapse Risk:** Low-moderate. Identified triggers: financial stress, unemployment.', feedback: null },
+    { id: 'continuing-care-plan', title: 'Continuing Care Plan', content: '**Medication:** Continue sertraline 100mg, managed by PCP Dr. Peters\n**Psychiatry:** Follow-up 3 months for med review\n**Support:** NAMI weekly support group\n**Crisis Plan:** Updated — call 988 or present to ED\n**Relapse Prevention:** Identified warning signs and coping strategies\n**Patient Verbalized Understanding:** Yes', feedback: null },
+  ],
 };
 
 // ═══════════════════════════════════════
@@ -694,5 +1297,80 @@ export const mockVisits: Visit[] = [
       { id: 'p', title: 'Plan', content: '**Next Visit Plan:** Progress core stabilization to anti-rotation exercises (Pallof press). Introduce standing balance perturbation training. Begin light lifting simulation (10 lbs) if pain ≤3/10 at rest. Continue manual therapy with progression to Grade IV mobilization as tolerated.\n\n**HEP Updates:** Corrected piriformis stretch technique — demonstrated and observed 3 correct repetitions with return demonstration. Added resistance band to clamshells (yellow band). Progressed walking to 25 minutes.\n\n**Frequency:** Continue 2x/week. Visit 5 of 16. Next reassessment at visit 8 with formal outcome measures.\n\n**Coordination of Care:** None needed at this time.' },
     ],
     summary: 'PT follow-up visit 5/16 for lumbar disc displacement with radiculopathy. Patient improving — pain decreased from 6/10 to 4/10, lumbar flexion improved 24° to 36°, SLR improved 55° to 65°. Tolerating core stabilization progression. Continue 2x/week, advance program next visit.',
+  },
+
+  {
+    id: 'mock-med-soap-new',
+    patientName: 'Sarah Mitchell',
+    providerType: 'MD',
+    frameworkId: 'med-soap-new',
+    frameworkName: 'med-soap-new',
+    domain: 'medical',
+    date: '2026-02-15',
+    duration: 1200,
+    status: 'complete' as const,
+    transcript: mockTranscripts['med-soap-new'] || '',
+    note: mockNotes['med-soap-new'] || [],
+    summary: 'New patient evaluation — migraine with aura',
+  },
+
+  {
+    id: 'mock-med-ed',
+    patientName: 'Mike Rodriguez',
+    providerType: 'MD',
+    frameworkId: 'med-ed',
+    frameworkName: 'med-ed',
+    domain: 'medical',
+    date: '2026-02-15',
+    duration: 1200,
+    status: 'complete' as const,
+    transcript: mockTranscripts['med-ed'] || '',
+    note: mockNotes['med-ed'] || [],
+    summary: 'MVC — tibia fracture and liver laceration',
+  },
+
+  {
+    id: 'mock-med-hp',
+    patientName: 'Thomas Williams',
+    providerType: 'MD',
+    frameworkId: 'med-hp',
+    frameworkName: 'med-hp',
+    domain: 'medical',
+    date: '2026-02-15',
+    duration: 1200,
+    status: 'complete' as const,
+    transcript: mockTranscripts['med-hp'] || '',
+    note: mockNotes['med-hp'] || [],
+    summary: 'Acute anterior STEMI — emergent admission',
+  },
+
+  {
+    id: 'mock-rehab-ot-eval',
+    patientName: 'Mrs. Park',
+    providerType: 'OT',
+    frameworkId: 'rehab-ot-eval',
+    frameworkName: 'rehab-ot-eval',
+    domain: 'rehabilitation',
+    date: '2026-02-15',
+    duration: 1200,
+    status: 'complete' as const,
+    transcript: mockTranscripts['rehab-ot-eval'] || '',
+    note: mockNotes['rehab-ot-eval'] || [],
+    summary: 'OT evaluation — R UE hemiparesis post CVA',
+  },
+
+  {
+    id: 'mock-bh-psych-eval',
+    patientName: 'David K.',
+    providerType: 'PsyD',
+    frameworkId: 'bh-psych-eval',
+    frameworkName: 'bh-psych-eval',
+    domain: 'behavioral health',
+    date: '2026-02-15',
+    duration: 1200,
+    status: 'complete' as const,
+    transcript: mockTranscripts['bh-psych-eval'] || '',
+    note: mockNotes['bh-psych-eval'] || [],
+    summary: 'Psychiatric evaluation — depression, anxiety, r/o ADHD',
   },
 ];
