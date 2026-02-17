@@ -40,11 +40,11 @@ export default function Header() {
         <div className="w-px h-8 bg-gray-200" />
         <div className="flex items-center gap-3">
           <div className="text-right">
-            <div className="text-sm font-medium text-gray-900">Dr. Demo User</div>
-            <div className="text-xs text-gray-500">PT, DPT</div>
+            <div className="text-sm font-medium text-gray-900">Clinician</div>
+            <div className="text-xs text-gray-500">OmniScribe</div>
           </div>
           <div className="w-9 h-9 rounded-full bg-[#1e3a5f] flex items-center justify-center text-white text-sm font-medium">
-            DU
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
           </div>
         </div>
       </div>

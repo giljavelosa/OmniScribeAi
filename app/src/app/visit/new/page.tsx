@@ -299,6 +299,7 @@ export default function NewVisitPage() {
 
                         <button
                           onClick={handleUploadSubmit}
+                          disabled={!canRecord || !uploadedFile}
                           className="w-full mt-4 px-6 py-3 bg-[#0d9488] text-white rounded-xl text-sm font-medium hover:bg-[#0f766e] transition-colors shadow-md hover:shadow-lg"
                         >
                           Generate Clinical Note
