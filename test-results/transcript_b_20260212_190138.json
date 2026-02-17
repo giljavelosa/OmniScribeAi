@@ -1,0 +1,28 @@
+{
+    "success": true,
+    "note": [
+        {
+            "title": "Subjective",
+            "content": "**Patient:** Maria Garcia\n**Age:** ___\n**Gender:** ___\n**Occupation:** ___\n\n**Chief Complaint:** ___\n\n**Interval History:** Patient reports she is doing much better. Pain went from 7 to 4 out of 10.\n\n**Medication Review:** ___\n\n**Review of Systems:** ___\n\n**Social/Functional Update:** ___"
+        },
+        {
+            "title": "Objective",
+            "content": "**Vital Signs:** ___\n\n**Physical Examination:** Lumbar flexion improved to 50 degrees.\n\n**Diagnostic Results:** ___\n\n**Functional Assessment:** ___"
+        },
+        {
+            "title": "Assessment",
+            "content": "**Problem List Update:** ___\n\n**Differential Refinement:** ___\n\n**Severity/Progression:** ___\n\n**Response to Treatment:** ___"
+        },
+        {
+            "title": "Plan",
+            "content": "Continue current plan.\n\n**Medication Changes:** ___\n\n**Diagnostic Orders:** ___\n\n**Referrals:** ___\n\n**Patient Education:** ___\n\n**Follow-Up Interval:** ___\n\n**Safety Netting:** ___"
+        }
+    ],
+    "summary": "Maria Garcia reports significant improvement with pain decreasing from 7/10 to 4/10. Physical examination revealed improved lumbar flexion to 50 degrees. The current treatment plan will be continued.",
+    "extractedFacts": "```json\n{\n  \"patient_demographics\": {\n    \"name\": { \"value\": \"Maria Garcia\", \"source\": \"transcript\" },\n    \"age\": { \"value\": null, \"source\": \"not_documented\" },\n    \"gender\": { \"value\": null, \"source\": \"not_documented\" },\n    \"occupation\": { \"value\": null, \"source\": \"not_documented\" },\n    \"handedness\": { \"value\": null, \"source\": \"not_documented\" }\n  },\n  \"subjective\": {\n    \"chief_complaint\": { \"value\": null, \"source\": \"not_documented\" },\n    \"interval_history\": { \"value\": \"she is doing much better. Pain went from 7 to 4 out of 10\", \"source\": \"transcript\" },\n    \"medication_review\": { \"value\": null, \"source\": \"not_documented\" },\n    \"review_of_systems\": { \"value\": null, \"source\": \"not_documented\" },\n    \"social_functional_update\": { \"value\": null, \"source\": \"not_documented\" }\n  },\n  \"objective\": {\n    \"vital_signs\": { \"value\": null, \"source\": \"not_documented\" },\n    \"physical_examination\": { \"value\": \"Lumbar flexion improved to 50 degrees\", \"source\": \"transcript\" },\n    \"diagnostic_results\": { \"value\": null, \"source\": \"not_documented\" },\n    \"functional_assessment\": { \"value\": null, \"source\": \"not_documented\" }\n  },\n  \"assessment\": {\n    \"problem_list_update\": { \"value\": null, \"source\": \"not_documented\" },\n    \"differential_refinement\": { \"value\": null, \"source\": \"not_documented\" },\n    \"severity_progression\": { \"value\": null, \"source\": \"not_documented\" },\n    \"response_to_treatment\": { \"value\": null, \"source\": \"not_documented\" }\n  },\n  \"plan\": {\n    \"medication_changes\": { \"value\": null, \"source\": \"not_documented\" },\n    \"diagnostic_orders\": { \"value\": null, \"source\": \"not_documented\" },\n    \"referrals\": { \"value\": null, \"source\": \"not_documented\" },\n    \"patient_education\": { \"value\": null, \"source\": \"not_documented\" },\n    \"follow_up_interval\": { \"value\": null, \"source\": \"not_documented\" },\n    \"safety_netting\": { \"value\": null, \"source\": \"not_documented\" }\n  },\n  \"additional_facts\": [\n    { \"fact\": \"This is a follow-up visit\", \"quote\": \"Follow-up for Maria Garcia\", \"source\": \"transcript\" },\n    { \"fact\": \"Patient is doing much better\", \"quote\": \"she is doing much better\", \"source\": \"transcript\" },\n    { \"fact\": \"Pain decreased from 7 to 4 out of 10\", \"quote\": \"Pain went from 7 to 4 out of 10\", \"source\": \"transcript\" },\n    { \"fact\": \"Lumbar flexion improved to 50 degrees\", \"quote\": \"Lumbar flexion improved to 50 degrees\", \"source\": \"transcript\" },\n    { \"fact\": \"Continue current plan\", \"quote\": \"Continue current plan\", \"source\": \"transcript\" }\n  ]\n}\n```",
+    "auditClean": true,
+    "generationTime": 12.1,
+    "sectionsGenerated": 4,
+    "source": "claude-sonnet",
+    "tokensUsed": 4248
+}
