@@ -181,11 +181,17 @@ Remember: null and "not_documented" for ANYTHING not explicitly stated.`;
         // ═══════════════════════════════════════════════════════════════
         send("progress", { pass: 2, total: 6, message: "Generating clinical reasoning..." });
 
-        const clinicianType = framework.type === 'SOAP' || framework.type === 'H&P'
-          ? 'physician'
-          : framework.domain === 'rehabilitation'
-            ? 'rehabilitation clinician (PT/OT/SLP)'
-            : 'behavioral health clinician';
+        const clinicianType = framework.domain === 'rehabilitation'
+          ? 'rehabilitation clinician (PT/OT/SLP)'
+          : framework.domain === 'behavioral_health'
+            ? 'behavioral health clinician'
+            : framework.type === 'ED Note'
+              ? 'emergency medicine physician'
+              : framework.type === 'Procedure Note'
+                ? 'proceduralist physician'
+                : framework.type === 'Discharge Summary'
+                  ? 'attending physician preparing a discharge summary'
+                  : 'physician';
 
         const synthesisSystem = `You are an experienced ${clinicianType}. You are reviewing structured clinical facts extracted from a patient encounter.
 

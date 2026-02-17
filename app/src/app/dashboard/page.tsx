@@ -20,7 +20,7 @@ export default function DashboardPage() {
         <div className="p-6 md:p-8 max-w-5xl">
           {/* Welcome */}
           <div className="mb-8">
-            <h1 className="text-2xl font-bold text-gray-900 mb-1">Welcome back, Dr. Demo User</h1>
+            <h1 className="text-2xl font-bold text-gray-900 mb-1">Welcome back</h1>
             <p className="text-gray-500">Here are your recent clinical notes.</p>
           </div>
 

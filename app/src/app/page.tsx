@@ -4,7 +4,7 @@ const features = [
   {
     title: 'Medical Frameworks',
     description: 'SOAP notes, H&P, procedure notes, and annual wellness visits with CMS/AMA compliance built in.',
-    count: '5 frameworks',
+    count: '7 frameworks',
     icon: (
       <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#1e3a5f" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
         <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
@@ -14,7 +14,7 @@ const features = [
   {
     title: 'Rehabilitation',
     description: 'PT, OT, and SLP evaluations with ROM, MMT, outcome measures, and Medicare-compliant skilled need justification.',
-    count: '5 frameworks',
+    count: '6 frameworks',
     icon: (
       <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#0d9488" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
         <path d="M18 20V10" /><path d="M12 20V4" /><path d="M6 20v-6" />
@@ -24,7 +24,7 @@ const features = [
   {
     title: 'Behavioral Health',
     description: 'Biopsychosocial intakes, therapy notes, psychiatric evaluations, group notes, and crisis assessments with DSM-5-TR alignment.',
-    count: '5 frameworks',
+    count: '6 frameworks',
     icon: (
       <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
         <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
@@ -71,7 +71,7 @@ export default function LandingPage() {
       {/* Hero */}
       <section className="px-6 md:px-12 py-20 md:py-32 max-w-5xl mx-auto text-center animate-fade-in">
         <div className="inline-block px-3 py-1 bg-[#0d9488]/10 text-[#0d9488] text-xs font-semibold rounded-full mb-6">
-          15 Evidence-Based Frameworks • 3 Clinical Domains
+          19 Evidence-Based Frameworks • 3 Clinical Domains
         </div>
         <h1 className="text-4xl md:text-6xl font-bold text-[#1e3a5f] leading-tight mb-6">
           Evidence-Based Clinical Documentation,{' '}
@@ -141,8 +141,8 @@ export default function LandingPage() {
       <section className="px-6 md:px-12 py-16 bg-[#1e3a5f]">
         <div className="max-w-5xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-8 text-center text-white">
           {[
-            { num: '15', label: 'Clinical Frameworks' },
-            { num: '500+', label: 'Documentation Items' },
+            { num: '19', label: 'Clinical Frameworks' },
+            { num: '708', label: 'Documentation Items' },
             { num: '30+', label: 'Regulatory Sources' },
             { num: '10', label: 'Provider Types' },
           ].map((s) => (

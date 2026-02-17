@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
     console.log(`[Transcribe] File: ${audioFile.name}, Size: ${audioBuffer.length} bytes, Type: ${audioFile.type}, Resolved MIME: ${mimeType}`);
 
     const dgResponse = await fetch(
-      'https://api.deepgram.com/v1/listen?model=nova-3-medical&smart_format=true&diarize=true&punctuate=true&paragraphs=true&utterances=true&language=en-US&keyterm=ROM:2&keyterm=MMT:2&keyterm=goniometer:2&keyterm=flexion:1&keyterm=extension:1&keyterm=rotation:1&keyterm=abduction:1&keyterm=adduction:1&keyterm=dorsiflexion:1&keyterm=plantarflexion:1&keyterm=supination:1&keyterm=pronation:1',
+      'https://api.deepgram.com/v1/listen?model=nova-3-medical&smart_format=true&diarize=true&punctuate=true&paragraphs=true&utterances=true&language=en-US&keyterm=ROM:2&keyterm=MMT:2&keyterm=goniometer:2&keyterm=flexion:1&keyterm=extension:1&keyterm=rotation:1&keyterm=abduction:1&keyterm=adduction:1&keyterm=dorsiflexion:1&keyterm=plantarflexion:1&keyterm=supination:1&keyterm=pronation:1&keyterm=AROM:2&keyterm=PROM:2&keyterm=ADL:2&keyterm=IADL:2&keyterm=systolic:1&keyterm=diastolic:1&keyterm=A1C:2&keyterm=hemoglobin:1&keyterm=creatinine:1&keyterm=troponin:2&keyterm=EKG:2&keyterm=triage:1&keyterm=EMTALA:2&keyterm=PHQ-9:2&keyterm=GAD-7:2&keyterm=AUDIT-C:2&keyterm=C-SSRS:2&keyterm=suicidal:1&keyterm=ideation:1&keyterm=DSM:2&keyterm=psychosis:1&keyterm=SSRI:2&keyterm=benzodiazepine:1',
       {
         method: 'POST',
         headers: {
