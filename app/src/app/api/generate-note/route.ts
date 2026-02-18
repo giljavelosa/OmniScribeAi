@@ -48,6 +48,48 @@ async function callClaude(system: string, user: string, maxTokens: number = 4000
   throw new Error("Claude API: max retries exceeded");
 }
 
+async function callDeepSeek(system: string, user: string, maxTokens: number = 4000) {
+  const maxRetries = 3;
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    const response = await fetch("https://api.deepseek.com/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": "Bearer " + (process.env.DEEPSEEK_API_KEY || ""),
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "deepseek-chat",
+        max_tokens: maxTokens,
+        temperature: 0,
+        messages: [
+          { role: "system", content: system },
+          { role: "user", content: user },
+        ],
+      }),
+    });
+
+    if (response.ok) {
+      const result = await response.json();
+      const usage = result.usage || {};
+      return {
+        content: result.choices?.[0]?.message?.content || "",
+        tokens: (usage.prompt_tokens || 0) + (usage.completion_tokens || 0),
+        usage: { input_tokens: usage.prompt_tokens || 0, output_tokens: usage.completion_tokens || 0 },
+      };
+    }
+
+    const errorText = await response.text();
+    if (attempt < maxRetries && (response.status === 429 || response.status >= 500)) {
+      const waitSec = attempt * 5;
+      console.log("[GenNote] DeepSeek error " + response.status + ", retry " + attempt + "/" + maxRetries + " in " + waitSec + "s...");
+      await new Promise(r => setTimeout(r, waitSec * 1000));
+      continue;
+    }
+    throw new Error("DeepSeek API error (attempt " + attempt + "): " + errorText);
+  }
+  throw new Error("DeepSeek API: max retries exceeded");
+}
+
 function parseJsonArray(raw: string): { title: string; content: string }[] {
   try {
     const trimmed = raw.trim();
@@ -116,9 +158,76 @@ export async function POST(request: NextRequest) {
         console.log("[GenNote] Starting. Framework:", frameworkId, "Transcript length:", transcriptText.length);
 
         // ═══════════════════════════════════════════════════════════════
-        // PASS 1: STRUCTURED FACT EXTRACTION
+        // PASS 0: PHI DE-IDENTIFICATION (Claude — keeps PHI local to Anthropic)
         // ═══════════════════════════════════════════════════════════════
-        send("progress", { pass: 1, total: 6, message: "Extracting clinical facts..." });
+        send("progress", { pass: 0, total: 7, message: "Securing patient data..." });
+
+        const deidentifySystem = `You are a HIPAA de-identification engine. Replace all Protected Health Information (PHI) in the transcript with consistent placeholder tokens.
+
+REPLACE these PHI categories:
+- Patient names → [PATIENT_NAME], [PATIENT_NAME_2], etc.
+- Provider/clinician names → [PROVIDER_NAME], [PROVIDER_NAME_2], etc.
+- Dates of birth → [DOB]
+- Social Security Numbers → [SSN]
+- Medical Record Numbers → [MRN]
+- Phone numbers → [PHONE]
+- Addresses (street, city, zip) → [ADDRESS]
+- Email addresses → [EMAIL]
+- Insurance/policy numbers → [INSURANCE_ID]
+- Facility names → [FACILITY_NAME]
+- Any other unique identifiers → [ID_1], [ID_2], etc.
+
+KEEP these (not PHI for clinical purposes):
+- Age (e.g., "45 years old") — KEEP
+- Gender — KEEP
+- Occupation (general, e.g., "construction worker") — KEEP
+- All clinical data (diagnoses, medications, vitals, symptoms) — KEEP
+- Dates of service (keep relative: "today", "3 weeks ago") — KEEP but replace absolute dates with [DATE_1], [DATE_2]
+
+RULES:
+1. Use CONSISTENT tokens — same person = same token throughout
+2. Return TWO things: the scrubbed transcript AND a mapping table
+3. The mapping table maps each token to the original value
+4. Do NOT alter clinical content — only identifiers
+
+Return JSON:
+{
+  "scrubbed_transcript": "the full transcript with PHI replaced",
+  "phi_map": { "[PATIENT_NAME]": "original name", "[DOB]": "original DOB", ... }
+}`;
+
+        const deidentifyResult = await callClaude(deidentifySystem, transcriptText, 5000);
+        totalTokens += (deidentifyResult.usage?.input_tokens || 0) + (deidentifyResult.usage?.output_tokens || 0);
+        
+        let scrubbedTranscript = transcriptText;
+        let phiMap: Record<string, string> = {};
+        try {
+          const deidentJson = JSON.parse(deidentifyResult.content.replace(/```json\n?/g, "").replace(/```/g, "").trim());
+          scrubbedTranscript = deidentJson.scrubbed_transcript || transcriptText;
+          phiMap = deidentJson.phi_map || {};
+          console.log("[GenNote] Pass 0 (de-identification) complete. PHI tokens:", Object.keys(phiMap).length);
+        } catch (e) {
+          console.warn("[GenNote] De-identification parse failed, using original transcript:", String(e));
+        }
+
+        // Helper: re-identify text by replacing tokens with original values
+        function reidentify(text: string): string {
+          let result = text;
+          // Sort by token length descending to avoid partial replacements
+          const sortedTokens = Object.entries(phiMap).sort((a, b) => b[0].length - a[0].length);
+          for (const [token, original] of sortedTokens) {
+            result = result.split(token).join(original);
+          }
+          return result;
+        }
+
+        // Use scrubbed transcript for all subsequent passes
+        const safeTranscript = scrubbedTranscript;
+
+        // ═══════════════════════════════════════════════════════════════
+        // PASS 1: STRUCTURED FACT EXTRACTION (DeepSeek)
+        // ═══════════════════════════════════════════════════════════════
+        send("progress", { pass: 1, total: 7, message: "Extracting clinical facts..." });
 
         const schemaFields = framework.sections.map((s) => {
           const items = s.items.map((item) => {
@@ -169,12 +278,12 @@ JSON SCHEMA:
 
 TRANSCRIPT:
 ---
-${transcriptText}
+${safeTranscript}
 ---
 
 Remember: null and "not_documented" for ANYTHING not explicitly stated.`;
 
-        const extractResult = await callClaude(extractSystem, extractUser, 4000);
+        const extractResult = await callDeepSeek(extractSystem, extractUser, 4000);
         const structuredFacts = extractResult.content;
         totalTokens += (extractResult.usage?.input_tokens || 0) + (extractResult.usage?.output_tokens || 0);
         console.log("[GenNote] Pass 1 (fact extraction) complete. Length:", structuredFacts.length);
@@ -186,7 +295,7 @@ Remember: null and "not_documented" for ANYTHING not explicitly stated.`;
         // ═══════════════════════════════════════════════════════════════
         // PASS 2: CLINICAL SYNTHESIS
         // ═══════════════════════════════════════════════════════════════
-        send("progress", { pass: 2, total: 6, message: "Generating clinical reasoning..." });
+        send("progress", { pass: 2, total: 7, message: "Generating clinical reasoning..." });
 
         const clinicianType = framework.domain === 'rehabilitation'
           ? 'rehabilitation clinician (PT/OT/SLP)'
@@ -240,7 +349,7 @@ Framework: ${framework.name} (${framework.type} — ${framework.subtype})
 
 Synthesize ONLY from documented facts (source: "transcript").`;
 
-        const synthesisResult = await callClaude(synthesisSystem, synthesisUser, 2000);
+        const synthesisResult = await callDeepSeek(synthesisSystem, synthesisUser, 2000);
         totalTokens += (synthesisResult.usage?.input_tokens || 0) + (synthesisResult.usage?.output_tokens || 0);
         let clinicalSynthesis;
         try {
@@ -254,7 +363,7 @@ Synthesize ONLY from documented facts (source: "transcript").`;
         // ═══════════════════════════════════════════════════════════════
         // PASS 3: PARSED DATA
         // ═══════════════════════════════════════════════════════════════
-        send("progress", { pass: 3, total: 6, message: "Building parsed data sections..." });
+        send("progress", { pass: 3, total: 7, message: "Building parsed data sections..." });
 
         const sectionPrompt = framework.sections
           .map((s) => {
@@ -293,7 +402,7 @@ ${structuredFacts}
 
 Every null/"not_documented" item → "___". Do not skip any items.`;
 
-        const parsedDataResult = await callClaude(parsedDataSystem, parsedDataUser, 4000);
+        const parsedDataResult = await callDeepSeek(parsedDataSystem, parsedDataUser, 4000);
         totalTokens += (parsedDataResult.usage?.input_tokens || 0) + (parsedDataResult.usage?.output_tokens || 0);
         const parsedData = parseJsonArray(parsedDataResult.content);
         console.log("[GenNote] Pass 3 (parsed data) complete. Sections:", parsedData.length);
@@ -301,7 +410,7 @@ Every null/"not_documented" item → "___". Do not skip any items.`;
         // ═══════════════════════════════════════════════════════════════
         // PASS 4: FINAL CLINICAL NOTE
         // ═══════════════════════════════════════════════════════════════
-        send("progress", { pass: 4, total: 6, message: "Writing clinical note..." });
+        send("progress", { pass: 4, total: 7, message: "Writing clinical note..." });
 
         const clinicalNoteSystem = `You are a senior ${clinicianType} writing the final clinical note for the medical record. You are combining two inputs:
 
@@ -355,20 +464,32 @@ ${JSON.stringify(clinicalSynthesis, null, 2)}
 
 Write the final clinical note. Merge the parsed data and clinical reasoning into a cohesive, professional clinical document. Assessment and Plan sections should reflect the clinical reasoning integrated with documented findings. Keep ___ for undocumented items.`;
 
-        const clinicalNoteResult = await callClaude(clinicalNoteSystem, clinicalNoteUser, 5000);
+        const clinicalNoteResult = await callDeepSeek(clinicalNoteSystem, clinicalNoteUser, 5000);
         totalTokens += (clinicalNoteResult.usage?.input_tokens || 0) + (clinicalNoteResult.usage?.output_tokens || 0);
         const clinicalNote = parseJsonArray(clinicalNoteResult.content);
         console.log("[GenNote] Pass 4 (clinical note) complete. Sections:", clinicalNote.length);
 
+        // Re-identify: restore PHI tokens to original values in the final note
+        for (const section of clinicalNote) {
+          section.content = reidentify(section.content);
+          section.title = reidentify(section.title);
+        }
+        // Also re-identify parsed data
+        for (const section of parsedData) {
+          section.content = reidentify(section.content);
+          section.title = reidentify(section.title);
+        }
+        console.log("[GenNote] Re-identification complete.");
+
         // ═══════════════════════════════════════════════════════════════
         // PASS 5: HALLUCINATION AUDIT
         // ═══════════════════════════════════════════════════════════════
-        send("progress", { pass: 5, total: 6, message: "Running hallucination audit..." });
+        send("progress", { pass: 5, total: 7, message: "Running hallucination audit..." });
 
         let auditClean = true;
         let auditIssues: string[] = [];
         try {
-          const auditResult = await callClaude(
+          const auditResult = await callDeepSeek(
             `You are a clinical note auditor. Compare the final clinical note against the structured facts AND clinical synthesis.
 
 RULES:
@@ -394,16 +515,16 @@ Return ONLY valid JSON: { "issues": ["description"], "clean": true/false }`,
         // ═══════════════════════════════════════════════════════════════
         // PASS 6: SUMMARY
         // ═══════════════════════════════════════════════════════════════
-        send("progress", { pass: 6, total: 6, message: "Generating summary..." });
+        send("progress", { pass: 6, total: 7, message: "Generating summary..." });
 
         let summary = "Clinical note generated from encounter transcript.";
         try {
-          const summaryResult = await callClaude(
+          const summaryResult = await callDeepSeek(
             "Write a 2-3 sentence visit summary including the clinical impression. Be concise and clinical.",
             `SYNTHESIS: ${JSON.stringify(clinicalSynthesis)}\nNOTE: ${JSON.stringify(clinicalNote)}`,
             300
           );
-          summary = summaryResult.content || summary;
+          summary = reidentify(summaryResult.content || summary);
           totalTokens += (summaryResult.usage?.input_tokens || 0) + (summaryResult.usage?.output_tokens || 0);
         } catch { /* non-critical */ }
 
@@ -422,7 +543,7 @@ Return ONLY valid JSON: { "issues": ["description"], "clean": true/false }`,
           auditClean,
           auditIssues: auditIssues.length > 0 ? auditIssues : undefined,
           generationTime: Math.round(generationTime * 10) / 10,
-          source: "claude-sonnet",
+          source: "deepseek+claude-deident",
           tokensUsed: totalTokens,
         });
       } catch (error) {
