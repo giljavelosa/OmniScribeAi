@@ -216,11 +216,16 @@ function ActionBanner({ missingItems, sections }: { missingItems: MissingItem[];
 
 export default function NoteEditor({ sections, onUpdate, readOnly, missingItems, visitMeta, onSaveStatus }: NoteEditorProps) {
   const [localSections, setLocalSections] = useState<NoteSection[]>(sections);
+  const localSectionsRef = useRef<NoteSection[]>(sections);
   const editRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const initializedRefs = useRef<Set<string>>(new Set());
 
   // Sync when sections prop changes (e.g., after regeneration)
   useEffect(() => {
     setLocalSections(sections);
+    localSectionsRef.current = sections;
+    // Reset initialized refs so new content renders
+    initializedRefs.current.clear();
   }, [sections]);
 
   const [savedSectionId, setSavedSectionId] = useState<string | null>(null);
@@ -239,10 +244,13 @@ export default function NoteEditor({ sections, onUpdate, readOnly, missingItems,
   const saveSection = useCallback((sectionId: string) => {
     const el = editRefs.current[sectionId];
     if (!el) return;
+    const newContent = el.innerText;
+    // Update internal ref of sections without triggering re-render on the contentEditable
     const updated = localSections.map(s =>
-      s.id === sectionId ? { ...s, content: el.innerText } : s
+      s.id === sectionId ? { ...s, content: newContent } : s
     );
-    setLocalSections(updated);
+    // Use a ref to avoid re-render while editing
+    localSectionsRef.current = updated;
     onUpdate?.(updated);
     onSaveStatus?.('Saving...');
     // Flash the section border green briefly
@@ -411,13 +419,19 @@ export default function NoteEditor({ sections, onUpdate, readOnly, missingItems,
             </div>
           </div>
           <div
-            ref={(el) => { editRefs.current[section.id] = el; }}
+            ref={(el) => {
+              editRefs.current[section.id] = el;
+              // Only set innerHTML on first mount or after external update (regeneration)
+              if (el && !initializedRefs.current.has(section.id)) {
+                el.innerHTML = renderMarkdown(section.content, section.title, encounterMissing);
+                initializedRefs.current.add(section.id);
+              }
+            }}
             contentEditable={!readOnly}
             suppressContentEditableWarning
             onInput={() => handleInput(section.id)}
             onBlur={() => handleBlur(section.id)}
             className={`p-4 text-sm text-gray-700 leading-relaxed prose prose-sm max-w-none focus:outline-none focus:ring-2 focus:ring-[#0d9488]/20 focus:ring-inset min-h-[60px] transition-all duration-300 ${savedSectionId === section.id ? 'ring-2 ring-green-400/50 bg-green-50/30' : ''}`}
-            dangerouslySetInnerHTML={{ __html: renderMarkdown(section.content, section.title, encounterMissing) }}
           />
         </div>
       ))}
