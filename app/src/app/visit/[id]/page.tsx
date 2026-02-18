@@ -164,9 +164,82 @@ export default function VisitDetailPage() {
   const generationTime = visitData?.generationTime;
   const transcriptSource = visitData?.transcriptSource;
 
-  const handleUpdate = () => {
+  const handleUpdate = (updatedSections?: NoteSection[]) => {
     setSaveStatus('Saving...');
-    setTimeout(() => setSaveStatus('Saved 2 seconds ago'), 500);
+    if (visitData && updatedSections) {
+      const key = tab === 'clinicalNote' ? 'clinicalNote' : 'parsedData';
+      const updatedVisit = { ...visitData, [key]: updatedSections };
+      setVisitData(updatedVisit);
+      localStorage.setItem(`omniscribe-visit-${visitId}`, JSON.stringify(updatedVisit));
+      if (!visitId.startsWith('mock-')) {
+        fetch(`/api/visits/${visitId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ noteData: updatedSections, status: 'COMPLETE' }),
+        }).catch(console.error);
+      }
+    }
+    setTimeout(() => setSaveStatus('Saved'), 500);
+  };
+
+  const handleFinalize = async () => {
+    if (!visitData) return;
+    const confirmed = window.confirm('Finalize this note? It will be locked and timestamped as the official record.');
+    if (!confirmed) return;
+    const finalizedVisit = {
+      ...visitData,
+      finalized: true,
+      finalizedAt: new Date().toISOString(),
+    };
+    setVisitData(finalizedVisit);
+    localStorage.setItem(`omniscribe-visit-${visitId}`, JSON.stringify(finalizedVisit));
+    if (!visitId.startsWith('mock-')) {
+      await fetch(`/api/visits/${visitId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'COMPLETE', noteData: finalizedVisit.clinicalNote || finalizedVisit.note }),
+      }).catch(console.error);
+    }
+    setSaveStatus('Finalized');
+  };
+
+  const handleExportPDF = () => {
+    const sections = visitData?.clinicalNote || visitData?.note || mockVisit?.note || [];
+    const pt = patientName;
+    const dt = formatDate(createdAt);
+    const dur = Math.round(duration / 60);
+    const fw = framework?.name || frameworkId;
+    const compLine = compliance ? `<div class="footer">CMS Compliance: ${compliance.grade} (${compliance.score}%) - ${compliance.documented}/${compliance.totalRequired} items documented</div>` : '';
+    
+    let body = '';
+    for (const s of sections as any[]) {
+      const c = s.content
+        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\n\n/g, '</p><p>')
+        .replace(/\n/g, '<br>');
+      body += `<h2>${s.title}</h2><div>${c}</div>`;
+    }
+
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Clinical Note - ${pt}</title>
+<style>body{font-family:Georgia,serif;max-width:700px;margin:40px auto;padding:20px;color:#1a1a1a;font-size:11pt;line-height:1.6}
+h1{font-size:16pt;border-bottom:2px solid #1e3a5f;padding-bottom:8px;color:#1e3a5f}
+h2{font-size:13pt;color:#1e3a5f;margin-top:20px;border-bottom:1px solid #ddd;padding-bottom:4px}
+.header{text-align:center;margin-bottom:30px;border-bottom:2px solid #333;padding-bottom:15px}
+.header h1{border:none;margin:0}
+.meta{color:#666;font-size:9pt;margin-top:5px}
+table{width:100%;border-collapse:collapse;margin:10px 0}td,th{border:1px solid #ddd;padding:6px 10px;text-align:left;font-size:10pt}
+th{background:#f5f5f5;font-weight:bold}
+.footer{margin-top:40px;padding-top:15px;border-top:1px solid #ddd;font-size:9pt;color:#888}
+.signature{margin-top:50px;border-top:1px solid #333;width:250px;padding-top:5px;font-size:10pt}
+@media print{body{margin:0;padding:15px}}</style></head>
+<body><div class="header"><h1>Clinical Documentation</h1>
+<div class="meta">Patient: ${pt} | Date: ${dt} | Provider: ${providerType}</div>
+<div class="meta">Framework: ${fw} | Duration: ${dur} min</div></div>
+${body}
+${compLine}
+<div class="signature">Clinician Signature / Date</div></body></html>`;
+    const w = window.open('', '_blank');
+    if (w) { w.document.write(html); w.document.close(); w.print(); }
   };
 
   const formatDate = (dateStr: string) => {
@@ -319,6 +392,27 @@ export default function VisitDetailPage() {
               <div className="bg-[#1e3a5f]/5 border border-[#1e3a5f]/10 rounded-xl p-4 mb-6">
                 <div className="text-xs font-semibold text-[#1e3a5f] uppercase tracking-wide mb-2">Visit Summary</div>
                 <p className="text-sm text-gray-700 leading-relaxed">{summary}</p>
+              </div>
+
+              {/* Action buttons */}
+              <div className="flex gap-3 mb-6 flex-wrap">
+                <button onClick={handleExportPDF}
+                  className="flex items-center gap-2 px-4 py-2 bg-[#1e3a5f] text-white rounded-lg text-sm font-medium hover:bg-[#152d4a] transition-colors">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                  Export / Print
+                </button>
+                {!(visitData as any)?.finalized && (
+                  <button onClick={handleFinalize}
+                    className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 transition-colors">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                    Finalize Note
+                  </button>
+                )}
+                {(visitData as any)?.finalized && (
+                  <div className="flex items-center gap-2 px-4 py-2 bg-green-50 border border-green-200 rounded-lg text-sm font-medium text-green-700">
+                    &#10003; Finalized {(visitData as any)?.finalizedAt ? new Date((visitData as any).finalizedAt).toLocaleString() : ''}
+                  </div>
+                )}
               </div>
 
               {/* Stats bar */}
