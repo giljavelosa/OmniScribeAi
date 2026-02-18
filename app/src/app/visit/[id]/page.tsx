@@ -106,6 +106,10 @@ export default function VisitDetailPage() {
   const fileInputRef = useState<HTMLInputElement | null>(null);
   const [regenerating, setRegenerating] = useState(false);
   const [lastRegenTime, setLastRegenTime] = useState<string | null>(null);
+  const [amendModalOpen, setAmendModalOpen] = useState(false);
+  const [amendReason, setAmendReason] = useState('');
+  const [amendingSections, setAmendingSections] = useState<Record<string, string>>({});
+  const [submittingAmendment, setSubmittingAmendment] = useState(false);
 
   useEffect(() => {
     const stored = localStorage.getItem(`omniscribe-visit-${visitId}`);
@@ -184,12 +188,13 @@ export default function VisitDetailPage() {
 
   const handleFinalize = async () => {
     if (!visitData) return;
-    const confirmed = window.confirm('Finalize this note? It will be locked and timestamped as the official record.');
+    const confirmed = window.confirm('Finalize this note? It will be locked and timestamped as the official record. After finalization, changes require a formal amendment.');
     if (!confirmed) return;
+    const now = new Date().toISOString();
     const finalizedVisit = {
       ...visitData,
       finalized: true,
-      finalizedAt: new Date().toISOString(),
+      finalizedAt: now,
     };
     setVisitData(finalizedVisit);
     localStorage.setItem(`omniscribe-visit-${visitId}`, JSON.stringify(finalizedVisit));
@@ -197,10 +202,78 @@ export default function VisitDetailPage() {
       await fetch(`/api/visits/${visitId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'COMPLETE', noteData: finalizedVisit.clinicalNote || finalizedVisit.note }),
+        body: JSON.stringify({ status: 'FINALIZED', noteData: finalizedVisit.clinicalNote || finalizedVisit.note, finalizedAt: now }),
       }).catch(console.error);
     }
     setSaveStatus('Finalized');
+  };
+
+  const handleOpenAmend = () => {
+    // Pre-populate amendingSections with current note content
+    const sections = visitData?.clinicalNote || visitData?.note || [];
+    const sectionMap: Record<string, string> = {};
+    for (const s of sections as any[]) {
+      sectionMap[s.title] = s.content;
+    }
+    setAmendingSections(sectionMap);
+    setAmendReason('');
+    setAmendModalOpen(true);
+  };
+
+  const handleSubmitAmendment = async () => {
+    if (!visitData || !amendReason.trim()) return;
+    setSubmittingAmendment(true);
+    try {
+      const originalSections = visitData.clinicalNote || visitData.note || [];
+      const changes: {section: string; oldContent: string; newContent: string}[] = [];
+      for (const s of originalSections as any[]) {
+        if (amendingSections[s.title] && amendingSections[s.title] !== s.content) {
+          changes.push({ section: s.title, oldContent: s.content, newContent: amendingSections[s.title] });
+        }
+      }
+      if (changes.length === 0) {
+        alert('No changes detected. Edit at least one section before submitting.');
+        setSubmittingAmendment(false);
+        return;
+      }
+
+      // Save to DB
+      if (!visitId.startsWith('mock-')) {
+        const res = await fetch(`/api/visits/${visitId}/amend`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ reason: amendReason, changes }),
+        });
+        const data = await res.json();
+        if (!data.success) {
+          alert('Amendment failed: ' + (data.error || 'Unknown error'));
+          setSubmittingAmendment(false);
+          return;
+        }
+      }
+
+      // Update local state
+      const now = new Date().toISOString();
+      const amendment = { id: 'amend-' + Date.now(), timestamp: now, authorName: 'Current User', reason: amendReason.trim(), changes };
+      const existingAmendments = (visitData as any).amendments || [];
+      const updatedNote = (visitData.clinicalNote || visitData.note || []).map((s: any) => {
+        const change = changes.find(c => c.section === s.title);
+        return change ? { ...s, content: change.newContent } : s;
+      });
+      const updatedVisit = {
+        ...visitData,
+        clinicalNote: updatedNote,
+        amendments: [...existingAmendments, amendment],
+      };
+      setVisitData(updatedVisit);
+      localStorage.setItem(`omniscribe-visit-${visitId}`, JSON.stringify(updatedVisit));
+      setAmendModalOpen(false);
+      setSaveStatus('Amendment saved');
+    } catch (err: any) {
+      alert('Amendment error: ' + err.message);
+    } finally {
+      setSubmittingAmendment(false);
+    }
   };
 
   const handleExportPDF = () => {
@@ -409,9 +482,16 @@ ${compLine}
                   </button>
                 )}
                 {(visitData as any)?.finalized && (
-                  <div className="flex items-center gap-2 px-4 py-2 bg-green-50 border border-green-200 rounded-lg text-sm font-medium text-green-700">
-                    &#10003; Finalized {(visitData as any)?.finalizedAt ? new Date((visitData as any).finalizedAt).toLocaleString() : ''}
-                  </div>
+                  <>
+                    <div className="flex items-center gap-2 px-4 py-2 bg-green-50 border border-green-200 rounded-lg text-sm font-medium text-green-700">
+                      &#10003; Finalized {(visitData as any)?.finalizedAt ? new Date((visitData as any).finalizedAt).toLocaleString() : ''}
+                    </div>
+                    <button onClick={handleOpenAmend}
+                      className="flex items-center gap-2 px-4 py-2 bg-amber-500 text-white rounded-lg text-sm font-medium hover:bg-amber-600 transition-colors">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                      Amend Note
+                    </button>
+                  </>
                 )}
               </div>
 
@@ -470,6 +550,47 @@ ${compLine}
                   <ul className="space-y-1">
                     {auditIssues.map((issue, i) => (<li key={i} className="text-sm text-amber-800">• {issue}</li>))}
                   </ul>
+                </div>
+              )}
+
+              {/* Amendment History */}
+              {(visitData as any)?.amendments && (visitData as any).amendments.length > 0 && (
+                <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6">
+                  <div className="text-xs font-semibold text-amber-700 uppercase tracking-wide mb-3">📝 Amendment History</div>
+                  <div className="space-y-3">
+                    {((visitData as any).amendments as any[]).map((a: any, i: number) => (
+                      <div key={a.id || i} className="border-l-2 border-amber-400 pl-3">
+                        <div className="flex items-center gap-2 text-xs text-amber-800 mb-1">
+                          <span className="font-semibold">Amendment #{i + 1}</span>
+                          <span>·</span>
+                          <span>{new Date(a.timestamp).toLocaleString()}</span>
+                          <span>·</span>
+                          <span>by {a.authorName}</span>
+                        </div>
+                        <div className="text-sm text-amber-900 mb-1"><strong>Reason:</strong> {a.reason}</div>
+                        <div className="space-y-1">
+                          {a.changes.map((c: any, j: number) => (
+                            <div key={j} className="text-xs text-amber-700">
+                              <span className="font-medium">Section: {c.section}</span>
+                              <details className="mt-1">
+                                <summary className="cursor-pointer text-amber-600 hover:text-amber-800">View changes</summary>
+                                <div className="mt-1 grid grid-cols-2 gap-2">
+                                  <div className="bg-red-50 border border-red-200 rounded p-2">
+                                    <div className="text-[10px] font-semibold text-red-600 mb-1">ORIGINAL</div>
+                                    <div className="text-xs text-red-800 whitespace-pre-wrap max-h-32 overflow-y-auto">{c.oldContent?.substring(0, 500)}{c.oldContent?.length > 500 ? '...' : ''}</div>
+                                  </div>
+                                  <div className="bg-green-50 border border-green-200 rounded p-2">
+                                    <div className="text-[10px] font-semibold text-green-600 mb-1">AMENDED</div>
+                                    <div className="text-xs text-green-800 whitespace-pre-wrap max-h-32 overflow-y-auto">{c.newContent?.substring(0, 500)}{c.newContent?.length > 500 ? '...' : ''}</div>
+                                  </div>
+                                </div>
+                              </details>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
 
@@ -869,6 +990,68 @@ ${compLine}
             )}
           </div>
         </div>
+
+        {/* Amendment Modal */}
+        {amendModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+            <div className="bg-white rounded-2xl shadow-xl w-full max-w-3xl max-h-[90vh] overflow-y-auto m-4">
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-lg font-bold text-gray-900">📝 Amend Finalized Note</h2>
+                  <button onClick={() => setAmendModalOpen(false)} className="text-gray-400 hover:text-gray-600 text-xl">&times;</button>
+                </div>
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4 text-sm text-amber-800">
+                  <strong>Important:</strong> Amendments are permanent additions to the medical record. The original note and all amendments are preserved with timestamps for compliance.
+                </div>
+                {/* Reason */}
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Reason for Amendment <span className="text-red-500">*</span></label>
+                  <textarea
+                    value={amendReason}
+                    onChange={(e) => setAmendReason(e.target.value)}
+                    placeholder="e.g., Correcting blood pressure reading, adding missed medication..."
+                    className="w-full border border-gray-300 rounded-lg p-3 text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                    rows={2}
+                  />
+                </div>
+                {/* Editable sections */}
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Edit Sections</label>
+                  <div className="space-y-3">
+                    {Object.entries(amendingSections).map(([title, content]) => (
+                      <div key={title} className="border border-gray-200 rounded-lg overflow-hidden">
+                        <div className="bg-gray-50 px-3 py-2 text-sm font-medium text-gray-700 border-b border-gray-200">{title}</div>
+                        <textarea
+                          value={content}
+                          onChange={(e) => setAmendingSections(prev => ({ ...prev, [title]: e.target.value }))}
+                          className="w-full p-3 text-sm font-mono leading-relaxed focus:ring-2 focus:ring-amber-500 focus:border-amber-500 border-0"
+                          rows={Math.min(Math.max(content.split('\n').length + 1, 3), 12)}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                {/* Actions */}
+                <div className="flex justify-end gap-3">
+                  <button onClick={() => setAmendModalOpen(false)}
+                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleSubmitAmendment}
+                    disabled={!amendReason.trim() || submittingAmendment}
+                    className="px-4 py-2 text-sm font-medium text-white bg-amber-500 rounded-lg hover:bg-amber-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
+                    {submittingAmendment ? (
+                      <><div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" /> Saving...</>
+                    ) : (
+                      <>Submit Amendment</>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </main>
     </div>
   );

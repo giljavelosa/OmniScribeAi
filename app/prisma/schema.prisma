@@ -253,6 +253,10 @@ model Visit {
   cmsScore      Float?
   summary       String?
   generationTime Float?
+  // Finalization & Amendments
+  finalizedAt   DateTime?
+  finalizedBy   String?
+  amendments    Json?       // array of {id, timestamp, author, reason, changes}
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
 
@@ -292,6 +296,8 @@ enum VisitStatus {
   TRANSCRIBING
   GENERATING
   COMPLETE
+  FINALIZED
+  AMENDED
   ARCHIVED
 }
 
