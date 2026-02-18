@@ -654,7 +654,18 @@ ${compLine}
 
               {/* Content */}
               {tab === 'clinicalNote' ? (
-                <NoteEditor sections={clinicalNote} onUpdate={handleUpdate} missingItems={compliance?.missing} />
+                <NoteEditor sections={clinicalNote} onUpdate={handleUpdate} missingItems={compliance?.missing} visitMeta={{
+                  patientName,
+                  date: createdAt,
+                  providerType,
+                  frameworkName: framework?.name || frameworkId,
+                  duration,
+                  complianceGrade: compliance?.grade,
+                  complianceScore: compliance?.score,
+                  complianceDocumented: compliance?.documented,
+                  complianceTotal: compliance?.totalRequired,
+                  amendments: (visitData as any)?.amendments,
+                }} />
               ) : tab === 'parsedData' ? (
                 <div>
                   {/* Compliance Score Card */}
@@ -735,7 +746,13 @@ ${compLine}
                     </div>
                   )}
 
-                  <NoteEditor sections={parsedData} onUpdate={handleUpdate} missingItems={compliance?.missing} />
+                  <NoteEditor sections={parsedData} onUpdate={handleUpdate} missingItems={compliance?.missing} visitMeta={{
+                    patientName,
+                    date: createdAt,
+                    providerType,
+                    frameworkName: framework?.name || frameworkId,
+                    duration,
+                  }} />
 
                   {/* Action buttons */}
                   <div className="mt-4 space-y-3">

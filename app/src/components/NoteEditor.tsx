@@ -11,11 +11,25 @@ interface MissingItem {
   description?: string;
 }
 
+interface VisitMeta {
+  patientName?: string;
+  date?: string;
+  providerType?: string;
+  frameworkName?: string;
+  duration?: number; // seconds
+  complianceGrade?: string;
+  complianceScore?: number;
+  complianceDocumented?: number;
+  complianceTotal?: number;
+  amendments?: any[];
+}
+
 interface NoteEditorProps {
   sections: NoteSection[];
   onUpdate?: (sections: NoteSection[]) => void;
   readOnly?: boolean;
   missingItems?: MissingItem[];
+  visitMeta?: VisitMeta;
 }
 
 function CopyButton({ text }: { text: string }) {
@@ -199,7 +213,7 @@ function ActionBanner({ missingItems, sections }: { missingItems: MissingItem[];
   );
 }
 
-export default function NoteEditor({ sections, onUpdate, readOnly, missingItems }: NoteEditorProps) {
+export default function NoteEditor({ sections, onUpdate, readOnly, missingItems, visitMeta }: NoteEditorProps) {
   const [localSections, setLocalSections] = useState<NoteSection[]>(sections);
   const editRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
@@ -230,9 +244,37 @@ export default function NoteEditor({ sections, onUpdate, readOnly, missingItems 
   const encounterMissing = missingItems?.filter(m => !m.emrProvided) || [];
   const actionableCount = encounterMissing.filter(m => m.category === 'critical' || m.category === 'required').length;
 
-  // Copy All: keep critical/required blanks, drop optional blanks
+  // Copy All: header + sections + amendments
   const copyAll = async () => {
-    const fullText = localSections
+    // Build header
+    const headerLines: string[] = [];
+    headerLines.push('CLINICAL NOTE');
+    headerLines.push('─'.repeat(50));
+    if (visitMeta?.patientName) {
+      headerLines.push(`Patient: ${visitMeta.patientName}`);
+    }
+    if (visitMeta?.date) {
+      try {
+        const d = new Date(visitMeta.date);
+        headerLines.push(`Date: ${d.toLocaleDateString('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })} ${d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}`);
+      } catch { headerLines.push(`Date: ${visitMeta.date}`); }
+    }
+    if (visitMeta?.providerType) {
+      headerLines.push(`Provider: ${visitMeta.providerType}`);
+    }
+    if (visitMeta?.frameworkName) {
+      headerLines.push(`Framework: ${visitMeta.frameworkName}`);
+    }
+    if (visitMeta?.duration) {
+      headerLines.push(`Duration: ${Math.round(visitMeta.duration / 60)} min`);
+    }
+    if (visitMeta?.complianceGrade && visitMeta?.complianceScore != null) {
+      headerLines.push(`CMS Compliance: ${visitMeta.complianceGrade} (${visitMeta.complianceScore}%) — ${visitMeta.complianceDocumented || 0}/${visitMeta.complianceTotal || 0} items documented`);
+    }
+    headerLines.push('─'.repeat(50));
+
+    // Build sections
+    const sectionText = localSections
       .map(s => {
         const lines = s.content.split('\n').filter(line => {
           const trimmed = line.trim();
@@ -246,6 +288,30 @@ export default function NoteEditor({ sections, onUpdate, readOnly, missingItems 
       })
       .filter(Boolean)
       .join('\n\n');
+
+    // Build amendments section
+    let amendmentText = '';
+    if (visitMeta?.amendments && visitMeta.amendments.length > 0) {
+      amendmentText = '\n\n' + '─'.repeat(50) + '\nAMENDMENTS\n' + '─'.repeat(50);
+      for (const a of visitMeta.amendments) {
+        const ts = a.timestamp ? new Date(a.timestamp).toLocaleString() : 'Unknown date';
+        amendmentText += `\n\nAmendment — ${ts}`;
+        amendmentText += `\nBy: ${a.authorName || 'Unknown'}`;
+        amendmentText += `\nReason: ${a.reason}`;
+        if (a.changes) {
+          for (const c of a.changes) {
+            amendmentText += `\nSection: ${c.section}`;
+            amendmentText += `\n  Previous: ${(c.oldContent || '').substring(0, 200)}${(c.oldContent || '').length > 200 ? '...' : ''}`;
+            amendmentText += `\n  Amended:  ${(c.newContent || '').substring(0, 200)}${(c.newContent || '').length > 200 ? '...' : ''}`;
+          }
+        }
+      }
+    }
+
+    // Signature line
+    const signatureLine = '\n\n' + '─'.repeat(50) + '\nClinician Signature / Date: ________________________\n';
+
+    const fullText = headerLines.join('\n') + '\n\n' + sectionText + amendmentText + signatureLine;
     await navigator.clipboard.writeText(fullText);
   };
 
