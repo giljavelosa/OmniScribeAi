@@ -333,6 +333,45 @@ export const cmsRequirements: Record<string, CMSRequirement[]> = {
 };
 
 // Calculate compliance score from extracted facts
+// Deep recursive search through any JSON structure for a key with a documented value
+function findDocumentedValue(obj: any, targetKey: string): boolean {
+  if (!obj || typeof obj !== 'object') return false;
+  
+  for (const [key, val] of Object.entries(obj)) {
+    const normalizedKey = key.toLowerCase().replace(/[^a-z0-9]/g, '_');
+    
+    // Direct key match with a documented value
+    if (normalizedKey === targetKey || normalizedKey.includes(targetKey) || targetKey.includes(normalizedKey)) {
+      if (val && typeof val === 'object' && 'value' in (val as any)) {
+        const v = val as any;
+        if (v.value !== null && v.source !== 'not_documented') return true;
+      }
+      if (typeof val === 'string' && val.trim() !== '' && val !== '___' && val.toLowerCase() !== 'null') return true;
+    }
+    
+    // Recurse into nested objects/arrays
+    if (typeof val === 'object' && val !== null) {
+      if (findDocumentedValue(val, targetKey)) return true;
+    }
+  }
+  return false;
+}
+
+// Search the entire facts JSON as a flattened string for keyword presence
+function factsContainKeyword(facts: any, keyword: string): boolean {
+  const flatText = JSON.stringify(facts).toLowerCase();
+  const kw = keyword.toLowerCase();
+  // Check for the keyword with a non-null value nearby
+  const kwIndex = flatText.indexOf(kw);
+  if (kwIndex === -1) return false;
+  // Look for "value" nearby that isn't null
+  const nearby = flatText.substring(Math.max(0, kwIndex - 100), Math.min(flatText.length, kwIndex + 200));
+  if (nearby.includes('"value":null') || nearby.includes('"source":"not_documented"')) return false;
+  if (nearby.includes('"value"') || nearby.includes('"transcript"')) return true;
+  // If keyword appears in content at all (not as a key with null value)
+  return true;
+}
+
 export function calculateCompliance(
   frameworkId: string,
   extractedFacts: string
@@ -369,14 +408,36 @@ export function calculateCompliance(
     const sectionKey = req.section.toLowerCase().replace(/[^a-z0-9]/g, '_');
     const itemKey = req.item.toLowerCase().replace(/[^a-z0-9]/g, '_');
 
-    // Search through the facts for this item
+    // Search through the facts for this item — flexible matching
     let found = false;
+    
+    // Try direct section.item lookup first
     const section = facts[sectionKey];
     if (section && typeof section === 'object') {
       const field = section[itemKey];
-      if (field && field.value !== null && field.source !== 'not_documented') {
+      if (field && typeof field === 'object' && field.value !== null && field.source !== 'not_documented') {
         found = true;
       }
+      // Also try string values in section
+      if (!found) {
+        for (const [k, v] of Object.entries(section)) {
+          const nk = k.toLowerCase().replace(/[^a-z0-9]/g, '_');
+          if ((nk === itemKey || nk.includes(itemKey) || itemKey.includes(nk)) && v) {
+            if (typeof v === 'object' && (v as any).value !== null && (v as any).source !== 'not_documented') { found = true; break; }
+            if (typeof v === 'string' && v.trim() !== '' && v !== '___') { found = true; break; }
+          }
+        }
+      }
+    }
+    
+    // Deep recursive search through entire facts structure
+    if (!found) {
+      found = findDocumentedValue(facts, itemKey);
+    }
+    
+    // Broad keyword search as last resort
+    if (!found) {
+      found = factsContainKeyword(facts, req.item);
     }
 
     // Also check additional_facts

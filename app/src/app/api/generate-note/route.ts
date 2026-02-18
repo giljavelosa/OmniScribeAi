@@ -196,7 +196,7 @@ Return JSON:
   "phi_map": { "[PATIENT_NAME]": "original name", "[DOB]": "original DOB", ... }
 }`;
 
-        const deidentifyResult = await callClaude(deidentifySystem, transcriptText, 5000);
+        const deidentifyResult = await callClaude(deidentifySystem, transcriptText, 16000);
         totalTokens += (deidentifyResult.usage?.input_tokens || 0) + (deidentifyResult.usage?.output_tokens || 0);
         
         let scrubbedTranscript = transcriptText;
