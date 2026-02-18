@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, memo } from 'react';
 import { NoteSection } from '@/lib/types';
 
 interface MissingItem {
@@ -143,6 +143,62 @@ function renderMarkdown(text: string, sectionTitle: string, missingItems?: Missi
   return `<p>${html}</p>`;
 }
 
+// Memoized editable section — prevents cursor reset on parent re-render
+const EditableSection = memo(function EditableSection({
+  sectionId, initialHtml, readOnly, onSave, onTyping,
+}: {
+  sectionId: string;
+  initialHtml: string;
+  readOnly?: boolean;
+  onSave: (id: string, content: string) => void;
+  onTyping: (id: string) => void;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const debounceTimer = useRef<NodeJS.Timeout | null>(null);
+  const htmlRef = useRef(initialHtml);
+
+  // Set initial HTML once
+  useEffect(() => {
+    if (ref.current) {
+      ref.current.innerHTML = initialHtml;
+    }
+    htmlRef.current = initialHtml;
+  }, [initialHtml]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => { if (debounceTimer.current) clearTimeout(debounceTimer.current); };
+  }, []);
+
+  const handleInput = () => {
+    onTyping(sectionId);
+    if (debounceTimer.current) clearTimeout(debounceTimer.current);
+    debounceTimer.current = setTimeout(() => {
+      if (ref.current) onSave(sectionId, ref.current.innerText);
+      debounceTimer.current = null;
+    }, 2000);
+  };
+
+  const handleBlur = () => {
+    if (debounceTimer.current) {
+      clearTimeout(debounceTimer.current);
+      debounceTimer.current = null;
+    }
+    if (ref.current) onSave(sectionId, ref.current.innerText);
+  };
+
+  return (
+    <div
+      ref={ref}
+      contentEditable={!readOnly}
+      suppressContentEditableWarning
+      onInput={handleInput}
+      onBlur={handleBlur}
+      className="p-4 text-sm text-gray-700 leading-relaxed prose prose-sm max-w-none focus:outline-none focus:ring-2 focus:ring-[#0d9488]/20 focus:ring-inset min-h-[60px]"
+    />
+  );
+});
+
 // Action Banner — shows encounter-specific missing items as a checklist
 function ActionBanner({ missingItems, sections }: { missingItems: MissingItem[]; sections: NoteSection[] }) {
   const [collapsed, setCollapsed] = useState(false);
@@ -217,19 +273,14 @@ function ActionBanner({ missingItems, sections }: { missingItems: MissingItem[];
 export default function NoteEditor({ sections, onUpdate, readOnly, missingItems, visitMeta, onSaveStatus }: NoteEditorProps) {
   const [localSections, setLocalSections] = useState<NoteSection[]>(sections);
   const localSectionsRef = useRef<NoteSection[]>(sections);
-  const editRefs = useRef<Record<string, HTMLDivElement | null>>({});
-  const initializedRefs = useRef<Set<string>>(new Set());
 
   // Sync when sections prop changes (e.g., after regeneration)
   useEffect(() => {
     setLocalSections(sections);
     localSectionsRef.current = sections;
-    // Reset initialized refs so new content renders
-    initializedRefs.current.clear();
   }, [sections]);
 
   const [savedSectionId, setSavedSectionId] = useState<string | null>(null);
-  const debounceRef = useRef<Record<string, NodeJS.Timeout>>({});
   const [editingSectionId, setEditingSectionId] = useState<string | null>(null);
 
   const handleFeedback = (sectionId: string, val: 'up' | 'down' | null) => {
@@ -240,55 +291,24 @@ export default function NoteEditor({ sections, onUpdate, readOnly, missingItems,
     onUpdate?.(updated);
   };
 
-  // Save a section and show flash feedback
-  const saveSection = useCallback((sectionId: string) => {
-    const el = editRefs.current[sectionId];
-    if (!el) return;
-    const newContent = el.innerText;
-    // Update internal ref of sections without triggering re-render on the contentEditable
-    const updated = localSections.map(s =>
-      s.id === sectionId ? { ...s, content: newContent } : s
-    );
-    // Use a ref to avoid re-render while editing
-    localSectionsRef.current = updated;
-    onUpdate?.(updated);
-    onSaveStatus?.('Saving...');
-    // Flash the section border green briefly
-    setSavedSectionId(sectionId);
-    setTimeout(() => setSavedSectionId(null), 1500);
-    setTimeout(() => onSaveStatus?.('Saved'), 500);
-  }, [localSections, onUpdate, onSaveStatus]);
-
-  // Debounced auto-save on input (every 2 seconds of inactivity)
-  const handleInput = useCallback((sectionId: string) => {
+  // Called when user is actively typing
+  const handleTyping = useCallback((sectionId: string) => {
     setEditingSectionId(sectionId);
     onSaveStatus?.('Editing...');
-    // Clear previous timer for this section
-    if (debounceRef.current[sectionId]) {
-      clearTimeout(debounceRef.current[sectionId]);
-    }
-    debounceRef.current[sectionId] = setTimeout(() => {
-      saveSection(sectionId);
-      delete debounceRef.current[sectionId];
-    }, 2000);
-  }, [saveSection, onSaveStatus]);
+  }, [onSaveStatus]);
 
-  const handleBlur = (sectionId: string) => {
-    // Clear any pending debounce and save immediately
-    if (debounceRef.current[sectionId]) {
-      clearTimeout(debounceRef.current[sectionId]);
-      delete debounceRef.current[sectionId];
-    }
-    saveSection(sectionId);
+  // Called when debounce fires or on blur — receives content directly from DOM
+  const handleSectionSave = useCallback((sectionId: string, newContent: string) => {
+    const updated = localSectionsRef.current.map(s =>
+      s.id === sectionId ? { ...s, content: newContent } : s
+    );
+    localSectionsRef.current = updated;
+    onUpdate?.(updated);
+    onSaveStatus?.('Saved');
     setEditingSectionId(null);
-  };
-
-  // Cleanup timers on unmount
-  useEffect(() => {
-    return () => {
-      Object.values(debounceRef.current).forEach(clearTimeout);
-    };
-  }, []);
+    setSavedSectionId(sectionId);
+    setTimeout(() => setSavedSectionId(null), 1500);
+  }, [onUpdate, onSaveStatus]);
 
   // Filter encounter-specific missing items
   const encounterMissing = missingItems?.filter(m => !m.emrProvided) || [];
@@ -418,20 +438,12 @@ export default function NoteEditor({ sections, onUpdate, readOnly, missingItems,
               <CopyButton text={`${section.title}\n${section.content}`} />
             </div>
           </div>
-          <div
-            ref={(el) => {
-              editRefs.current[section.id] = el;
-              // Only set innerHTML on first mount or after external update (regeneration)
-              if (el && !initializedRefs.current.has(section.id)) {
-                el.innerHTML = renderMarkdown(section.content, section.title, encounterMissing);
-                initializedRefs.current.add(section.id);
-              }
-            }}
-            contentEditable={!readOnly}
-            suppressContentEditableWarning
-            onInput={() => handleInput(section.id)}
-            onBlur={() => handleBlur(section.id)}
-            className={`p-4 text-sm text-gray-700 leading-relaxed prose prose-sm max-w-none focus:outline-none focus:ring-2 focus:ring-[#0d9488]/20 focus:ring-inset min-h-[60px] transition-all duration-300 ${savedSectionId === section.id ? 'ring-2 ring-green-400/50 bg-green-50/30' : ''}`}
+          <EditableSection
+            sectionId={section.id}
+            initialHtml={renderMarkdown(section.content, section.title, encounterMissing)}
+            readOnly={readOnly}
+            onTyping={handleTyping}
+            onSave={handleSectionSave}
           />
         </div>
       ))}
