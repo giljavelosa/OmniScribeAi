@@ -440,8 +440,18 @@ ${compLine}
                 <div className="flex items-center justify-between mb-2">
                   <h1 className="text-2xl font-bold text-gray-900">{patientName}</h1>
                   <div className="flex items-center gap-2 text-xs text-gray-400">
-                    <div className="w-2 h-2 rounded-full bg-green-400" />
-                    {saveStatus}
+                    <div className={`w-2 h-2 rounded-full transition-colors ${
+                      saveStatus === 'Editing...' ? 'bg-amber-400 animate-pulse' :
+                      saveStatus === 'Saving...' ? 'bg-blue-400 animate-pulse' :
+                      saveStatus === 'Saved' || saveStatus === 'Saved just now' ? 'bg-green-400' :
+                      saveStatus === 'Finalized' ? 'bg-green-600' :
+                      'bg-green-400'
+                    }`} />
+                    <span className={`transition-colors ${
+                      saveStatus === 'Editing...' ? 'text-amber-500' :
+                      saveStatus === 'Saving...' ? 'text-blue-500' :
+                      'text-gray-400'
+                    }`}>{saveStatus}</span>
                   </div>
                 </div>
                 <div className="flex flex-wrap items-center gap-3 text-sm text-gray-500">
@@ -665,7 +675,7 @@ ${compLine}
                   complianceDocumented: compliance?.documented,
                   complianceTotal: compliance?.totalRequired,
                   amendments: (visitData as any)?.amendments,
-                }} />
+                }} onSaveStatus={setSaveStatus} />
               ) : tab === 'parsedData' ? (
                 <div>
                   {/* Compliance Score Card */}
@@ -752,7 +762,7 @@ ${compLine}
                     providerType,
                     frameworkName: framework?.name || frameworkId,
                     duration,
-                  }} />
+                  }} onSaveStatus={setSaveStatus} />
 
                   {/* Action buttons */}
                   <div className="mt-4 space-y-3">

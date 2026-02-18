@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { NoteSection } from '@/lib/types';
 
 interface MissingItem {
@@ -30,6 +30,7 @@ interface NoteEditorProps {
   readOnly?: boolean;
   missingItems?: MissingItem[];
   visitMeta?: VisitMeta;
+  onSaveStatus?: (status: string) => void;
 }
 
 function CopyButton({ text }: { text: string }) {
@@ -213,7 +214,7 @@ function ActionBanner({ missingItems, sections }: { missingItems: MissingItem[];
   );
 }
 
-export default function NoteEditor({ sections, onUpdate, readOnly, missingItems, visitMeta }: NoteEditorProps) {
+export default function NoteEditor({ sections, onUpdate, readOnly, missingItems, visitMeta, onSaveStatus }: NoteEditorProps) {
   const [localSections, setLocalSections] = useState<NoteSection[]>(sections);
   const editRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
@@ -221,6 +222,10 @@ export default function NoteEditor({ sections, onUpdate, readOnly, missingItems,
   useEffect(() => {
     setLocalSections(sections);
   }, [sections]);
+
+  const [savedSectionId, setSavedSectionId] = useState<string | null>(null);
+  const debounceRef = useRef<Record<string, NodeJS.Timeout>>({});
+  const [editingSectionId, setEditingSectionId] = useState<string | null>(null);
 
   const handleFeedback = (sectionId: string, val: 'up' | 'down' | null) => {
     const updated = localSections.map(s =>
@@ -230,7 +235,8 @@ export default function NoteEditor({ sections, onUpdate, readOnly, missingItems,
     onUpdate?.(updated);
   };
 
-  const handleBlur = (sectionId: string) => {
+  // Save a section and show flash feedback
+  const saveSection = useCallback((sectionId: string) => {
     const el = editRefs.current[sectionId];
     if (!el) return;
     const updated = localSections.map(s =>
@@ -238,7 +244,43 @@ export default function NoteEditor({ sections, onUpdate, readOnly, missingItems,
     );
     setLocalSections(updated);
     onUpdate?.(updated);
+    onSaveStatus?.('Saving...');
+    // Flash the section border green briefly
+    setSavedSectionId(sectionId);
+    setTimeout(() => setSavedSectionId(null), 1500);
+    setTimeout(() => onSaveStatus?.('Saved'), 500);
+  }, [localSections, onUpdate, onSaveStatus]);
+
+  // Debounced auto-save on input (every 2 seconds of inactivity)
+  const handleInput = useCallback((sectionId: string) => {
+    setEditingSectionId(sectionId);
+    onSaveStatus?.('Editing...');
+    // Clear previous timer for this section
+    if (debounceRef.current[sectionId]) {
+      clearTimeout(debounceRef.current[sectionId]);
+    }
+    debounceRef.current[sectionId] = setTimeout(() => {
+      saveSection(sectionId);
+      delete debounceRef.current[sectionId];
+    }, 2000);
+  }, [saveSection, onSaveStatus]);
+
+  const handleBlur = (sectionId: string) => {
+    // Clear any pending debounce and save immediately
+    if (debounceRef.current[sectionId]) {
+      clearTimeout(debounceRef.current[sectionId]);
+      delete debounceRef.current[sectionId];
+    }
+    saveSection(sectionId);
+    setEditingSectionId(null);
   };
+
+  // Cleanup timers on unmount
+  useEffect(() => {
+    return () => {
+      Object.values(debounceRef.current).forEach(clearTimeout);
+    };
+  }, []);
 
   // Filter encounter-specific missing items
   const encounterMissing = missingItems?.filter(m => !m.emrProvided) || [];
@@ -353,7 +395,15 @@ export default function NoteEditor({ sections, onUpdate, readOnly, missingItems,
       {localSections.map((section) => (
         <div key={section.id} className="bg-white border border-gray-200 rounded-xl overflow-hidden">
           <div className="flex items-center justify-between px-4 py-2.5 bg-gray-50 border-b border-gray-200">
-            <h3 className="font-semibold text-[#1e3a5f] text-sm">{section.title}</h3>
+            <div className="flex items-center gap-2">
+                <h3 className="font-semibold text-[#1e3a5f] text-sm">{section.title}</h3>
+                {savedSectionId === section.id && (
+                  <span className="text-xs text-green-600 font-medium animate-pulse">✓ saved</span>
+                )}
+                {editingSectionId === section.id && savedSectionId !== section.id && (
+                  <span className="text-xs text-gray-400 font-medium">editing...</span>
+                )}
+              </div>
             <div className="flex items-center gap-2">
               <FeedbackButtons feedback={section.feedback} onChange={(val) => handleFeedback(section.id, val)} />
               <div className="w-px h-4 bg-gray-200" />
@@ -364,8 +414,9 @@ export default function NoteEditor({ sections, onUpdate, readOnly, missingItems,
             ref={(el) => { editRefs.current[section.id] = el; }}
             contentEditable={!readOnly}
             suppressContentEditableWarning
+            onInput={() => handleInput(section.id)}
             onBlur={() => handleBlur(section.id)}
-            className="p-4 text-sm text-gray-700 leading-relaxed prose prose-sm max-w-none focus:outline-none focus:ring-2 focus:ring-[#0d9488]/20 focus:ring-inset min-h-[60px]"
+            className={`p-4 text-sm text-gray-700 leading-relaxed prose prose-sm max-w-none focus:outline-none focus:ring-2 focus:ring-[#0d9488]/20 focus:ring-inset min-h-[60px] transition-all duration-300 ${savedSectionId === section.id ? 'ring-2 ring-green-400/50 bg-green-50/30' : ''}`}
             dangerouslySetInnerHTML={{ __html: renderMarkdown(section.content, section.title, encounterMissing) }}
           />
         </div>
