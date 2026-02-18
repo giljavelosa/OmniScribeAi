@@ -321,6 +321,23 @@ RULES:
 8. The clinical reasoning should flow naturally into the assessment and plan, not be called out separately
 9. Use proper medical terminology and standard clinical note formatting
 10. Include tables for objective measurements (ROM, MMT, vitals) where applicable
+11. For rehabilitation notes (PT, OT, SLP): include a BILLING SUMMARY at the end of the Objective section as a table with columns: CPT Code, Description, Minutes, Units. Use the 8-minute rule (8-22 min = 1 unit, 23-37 min = 2 units, 38-52 min = 3 units, 53-67 min = 4 units). Common codes:
+    - 97110 Therapeutic Exercise
+    - 97112 Neuromuscular Re-education  
+    - 97140 Manual Therapy Techniques
+    - 97530 Therapeutic Activities
+    - 97535 Self-Care/Home Management Training
+    - 97542 Wheelchair Management
+    - 97150 Group Therapy
+    - 97032 Electrical Stimulation (attended)
+    - 97035 Ultrasound
+    - 97010 Hot/Cold Packs (untimed, no units)
+    - 97161/97162/97163 PT Eval (Low/Mod/High complexity)
+    - 97165/97166/97167 OT Eval (Low/Mod/High complexity)
+    - 92521-92524 SLP Eval
+    - 97164 PT Re-evaluation
+    - 97168 OT Re-evaluation
+    Extract the interventions, time spent, and map to appropriate CPT codes. Calculate units using the 8-minute rule. Include total skilled time and total billable units.
 
 FRAMEWORK: ${framework.name}
 TYPE: ${framework.type} — ${framework.subtype}

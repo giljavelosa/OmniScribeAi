@@ -4,7 +4,6 @@ import { NextResponse } from "next/server";
 export default auth((req) => {
   const { pathname } = req.nextUrl;
 
-  // Public routes
   if (
     pathname.startsWith("/login") ||
     pathname.startsWith("/api/auth") ||
@@ -15,7 +14,6 @@ export default auth((req) => {
     return NextResponse.next();
   }
 
-  // Protected routes - redirect to login if not authenticated
   if (!req.auth) {
     const loginUrl = new URL("/login", req.url);
     loginUrl.searchParams.set("callbackUrl", pathname);
@@ -26,5 +24,7 @@ export default auth((req) => {
 });
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
+  matcher: [
+    "/((?!_next/static|_next/image|favicon.ico|api/transcribe|api/ocr).*)",
+  ],
 };
