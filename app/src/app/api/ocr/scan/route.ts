@@ -1,34 +1,10 @@
 import { auth } from "@/lib/auth";
 import { auditLog } from "@/lib/audit";
+import { callAIVision } from "@/lib/ai-provider";
+import { appLog, scrubError, errorCode } from "@/lib/logger";
 import { NextRequest, NextResponse } from "next/server";
 
 export const maxDuration = 120;
-
-async function callClaudeVision(base64: string, mimeType: string, prompt: string) {
-  const response = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": process.env.ANTHROPIC_API_KEY || "",
-      "anthropic-version": "2023-06-01",
-    },
-    body: JSON.stringify({
-      model: "claude-sonnet-4-20250514",
-      max_tokens: 4096,
-      messages: [{
-        role: "user",
-        content: [
-          { type: "image", source: { type: "base64", media_type: mimeType, data: base64 } },
-          { type: "text", text: prompt },
-        ],
-      }],
-    }),
-  });
-
-  if (!response.ok) throw new Error(`Anthropic API error: ${response.status}`);
-  const data = await response.json();
-  return data.content[0]?.text || "";
-}
 
 function parseJSON(text: string) {
   try { return JSON.parse(text); } catch {
@@ -144,8 +120,14 @@ export async function POST(req: NextRequest) {
   const prompt = PROMPTS[docType] || PROMPTS.intake_form;
 
   try {
-    const result = await callClaudeVision(base64, mimeType, prompt);
-    const extracted = parseJSON(result);
+    const result = await callAIVision([{
+      role: "user",
+      content: [
+        { type: "image", source: { type: "base64", media_type: mimeType, data: base64 } },
+        { type: "text", text: prompt },
+      ],
+    }]);
+    const extracted = parseJSON(result.content);
 
     await auditLog({
       userId: (session.user as any).id,
@@ -153,8 +135,15 @@ export async function POST(req: NextRequest) {
       details: { docType, fileName: file.name, confidence: extracted.confidence },
     });
 
-    return NextResponse.json({ success: true, type: docType, data: extracted });
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    return NextResponse.json({ success: true, type: docType, data: extracted }, {
+      headers: { "Cache-Control": "no-store, no-cache, must-revalidate" },
+    });
+  } catch (err: unknown) {
+    const code = errorCode();
+    appLog("error", "OCR-Scan", "Processing error", { code, error: scrubError(err) });
+    return NextResponse.json({ error: "OCR scan failed", code }, {
+      status: 500,
+      headers: { "Cache-Control": "no-store" },
+    });
   }
 }

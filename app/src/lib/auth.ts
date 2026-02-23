@@ -6,7 +6,7 @@ import bcrypt from "bcryptjs";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(prisma),
-  session: { strategy: "jwt", maxAge: 900 },
+  session: { strategy: "jwt", maxAge: 8 * 60 * 60 }, // 8 hours (was 15 min)
   pages: { signIn: "/login" },
   providers: [
     Credentials({
@@ -41,6 +41,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           name: user.name,
           role: user.role,
           clinicianType: user.clinicianType,
+          mustChangePassword: user.mustChangePassword,
+          extendedSessionAcknowledged: user.extendedSessionAcknowledgedVersion === "1.0",
         };
       },
     }),
@@ -51,6 +53,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.id = user.id;
         token.role = (user as any).role;
         token.clinicianType = (user as any).clinicianType;
+        token.mustChangePassword = (user as any).mustChangePassword;
+        token.extendedSessionAcknowledged = (user as any).extendedSessionAcknowledged;
       }
       return token;
     },
@@ -59,6 +63,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         (session.user as any).id = token.id;
         (session.user as any).role = token.role;
         (session.user as any).clinicianType = token.clinicianType;
+        (session.user as any).mustChangePassword = token.mustChangePassword;
+        (session.user as any).extendedSessionAcknowledged = token.extendedSessionAcknowledged;
       }
       return session;
     },

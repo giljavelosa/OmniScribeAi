@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { signOut, useSession } from "next-auth/react";
+import { clearAllPhiItems } from "@/lib/phi-storage";
 
-const TIMEOUT_MS = 15 * 60 * 1000; // 15 minutes
-const WARNING_MS = 2 * 60 * 1000; // Warn at 2 minutes remaining
+const TIMEOUT_MS = 8 * 60 * 60 * 1000;  // 8 hours (was 15 min)
+const WARNING_MS = 5 * 60 * 1000;        // warn 5 min before expiry
 
 export default function SessionTimeout() {
   const { data: session } = useSession();
@@ -14,13 +15,11 @@ export default function SessionTimeout() {
   useEffect(() => {
     if (!session) return;
 
-    let lastActivity = Date.now();
     let warningTimer: NodeJS.Timeout;
     let logoutTimer: NodeJS.Timeout;
     let countdownTimer: NodeJS.Timeout;
 
     const resetTimers = () => {
-      lastActivity = Date.now();
       setShowWarning(false);
       clearTimeout(warningTimer);
       clearTimeout(logoutTimer);
@@ -30,7 +29,7 @@ export default function SessionTimeout() {
         setShowWarning(true);
         setRemaining(WARNING_MS / 1000);
         countdownTimer = setInterval(() => {
-          setRemaining(prev => {
+          setRemaining((prev) => {
             if (prev <= 1) { clearInterval(countdownTimer); return 0; }
             return prev - 1;
           });
@@ -38,16 +37,24 @@ export default function SessionTimeout() {
       }, TIMEOUT_MS - WARNING_MS);
 
       logoutTimer = setTimeout(() => {
+        clearAllPhiItems(); // purge PHI from browser before session ends
         signOut({ callbackUrl: "/login" });
       }, TIMEOUT_MS);
     };
 
-    const events = ["mousedown", "keydown", "scroll", "touchstart"];
-    events.forEach(e => document.addEventListener(e, resetTimers));
+    // Standard user-activity events
+    const activityEvents = ["mousedown", "keydown", "scroll", "touchstart"];
+    activityEvents.forEach((e) => document.addEventListener(e, resetTimers));
+
+    // Recording heartbeat — AudioRecorder dispatches this every 60 s
+    // Prevents logout during long hands-free recording sessions
+    document.addEventListener("recording-heartbeat", resetTimers);
+
     resetTimers();
 
     return () => {
-      events.forEach(e => document.removeEventListener(e, resetTimers));
+      activityEvents.forEach((e) => document.removeEventListener(e, resetTimers));
+      document.removeEventListener("recording-heartbeat", resetTimers);
       clearTimeout(warningTimer);
       clearTimeout(logoutTimer);
       clearInterval(countdownTimer);

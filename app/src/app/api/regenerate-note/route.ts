@@ -1,57 +1,25 @@
 import { auth } from "@/lib/auth";
 import { auditLog } from "@/lib/audit";
+import { callAI } from "@/lib/ai-provider";
+import { appLog, scrubError, errorCode } from "@/lib/logger";
 import { NextRequest } from "next/server";
 
-export const maxDuration = 120;
+export const maxDuration = 300;
 import { frameworks } from "@/lib/frameworks";
 
-async function callClaude(system: string, user: string, maxTokens: number = 4000) {
-  const maxRetries = 3;
-  for (let attempt = 1; attempt <= maxRetries; attempt++) {
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "x-api-key": process.env.ANTHROPIC_API_KEY || "",
-        "anthropic-version": "2023-06-01",
-        "content-type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "claude-sonnet-4-20250514",
-        max_tokens: maxTokens,
-        temperature: 0,
-        system,
-        messages: [{ role: "user", content: user }],
-      }),
-    });
-
-    if (response.ok) {
-      const result = await response.json();
-      return {
-        content: result.content?.[0]?.text || "",
-        usage: result.usage,
-      };
-    }
-
-    const errorText = await response.text();
-    const isOverloaded = errorText.includes("overloaded") || response.status === 529;
-    if (isOverloaded && attempt < maxRetries) {
-      await new Promise(r => setTimeout(r, attempt * 10000));
-      continue;
-    }
-    throw new Error("Claude API error: " + errorText);
-  }
-  throw new Error("Claude API: max retries exceeded");
+function stripFences(raw: string): string {
+  return raw.replace(/^```(?:json)?\s*/gm, '').replace(/^```\s*/gm, '').trim();
 }
 
 function parseJsonArray(raw: string): { title: string; content: string }[] {
   try {
-    const trimmed = raw.trim();
+    const trimmed = stripFences(raw);
     const jsonMatch = trimmed.match(/\[[\s\S]*\]/);
     if (jsonMatch) return JSON.parse(jsonMatch[0]);
     const parsed = JSON.parse(trimmed);
     return Array.isArray(parsed) ? parsed : parsed.sections || parsed.note || [parsed];
   } catch {
-    return [{ title: "Note", content: raw }];
+    return [{ title: "⚠ Formatting Error", content: "Note could not be formatted — please regenerate.\n\n" + raw.substring(0, 2000) }];
   }
 }
 
@@ -77,11 +45,13 @@ export async function POST(request: NextRequest) {
     const startTime = Date.now();
     const sectionPrompt = framework.sections.map((s) => `### ${s.title}\nItems: ${s.items.join(", ")}`).join("\n\n");
 
-    const clinicianType = framework.type === 'SOAP' || framework.type === 'H&P'
-      ? 'physician'
-      : framework.domain === 'rehabilitation'
-        ? 'rehabilitation clinician (PT/OT/SLP)'
-        : 'behavioral health clinician';
+    const clinicianType =
+      framework.domain === 'rehabilitation'   ? 'rehabilitation clinician (PT/OT/SLP)' :
+      framework.domain === 'behavioral_health' ? 'behavioral health clinician' :
+      framework.type === 'ED Note'             ? 'emergency medicine physician' :
+      framework.type === 'Procedure Note'      ? 'proceduralist physician' :
+      framework.type === 'Discharge Summary'   ? 'attending physician preparing a discharge summary' :
+      'physician';
 
     const clinicalNoteSystem = `You are a senior ${clinicianType} writing the final clinical note for the medical record. You are combining two inputs:
 
@@ -117,17 +87,32 @@ ${JSON.stringify(clinicalSynthesis, null, 2)}
 
 Write the final clinical note. Merge the parsed data and clinical reasoning into a cohesive, professional clinical document.`;
 
-    const result = await callClaude(clinicalNoteSystem, clinicalNoteUser, 5000);
+    const result = await callAI(clinicalNoteSystem, clinicalNoteUser, 8000);
     const clinicalNote = parseJsonArray(result.content);
     const generationTime = (Date.now() - startTime) / 1000;
+
+    // HIPAA audit log — note regeneration event
+    try {
+      await auditLog({
+        userId: (session.user as any).id,
+        action: "REGENERATE_NOTE",
+        resource: `framework:${frameworkId}`,
+        details: { frameworkId, generationTime },
+      });
+    } catch { /* non-critical */ }
 
     return new Response(JSON.stringify({
       success: true,
       clinicalNote,
       generationTime: Math.round(generationTime * 10) / 10,
-    }), { headers: { "Content-Type": "application/json" } });
+    }), { headers: { "Content-Type": "application/json", "Cache-Control": "no-store, no-cache, must-revalidate", "Pragma": "no-cache" } });
 
   } catch (error) {
-    return new Response(JSON.stringify({ success: false, error: String(error) }), { status: 500, headers: { "Content-Type": "application/json" } });
+    const code = errorCode();
+    appLog('error', 'RegenNote', 'Error', { code, error: scrubError(error) });
+    return new Response(JSON.stringify({ success: false, error: "Note regeneration failed", code }), {
+      status: 500,
+      headers: { "Content-Type": "application/json", "Cache-Control": "no-store" },
+    });
   }
 }

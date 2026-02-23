@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useSession } from "next-auth/react";
+import { signOut, useSession } from "next-auth/react";
+import { clearAllPhiItems } from "@/lib/phi-storage";
 
 export default function ChangePasswordPage() {
   const router = useRouter();
@@ -27,7 +28,9 @@ export default function ChangePasswordPage() {
     });
     const data = await res.json();
     if (!res.ok) { setError(data.error); setLoading(false); return; }
-    router.push("/dashboard");
+    // Clear PHI then sign out so the new JWT (without mustChangePassword) is issued on next login
+    clearAllPhiItems();
+    await signOut({ callbackUrl: "/login?changed=1" });
   };
 
   return (

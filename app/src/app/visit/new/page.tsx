@@ -1,13 +1,15 @@
 'use client';
 import { fetchNoteSSE } from '@/lib/sse-fetch';
+import { setPhiItem } from '@/lib/phi-storage';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
-import AudioRecorder from '@/components/AudioRecorder';
+import AudioRecorder, { SilenceStats } from '@/components/AudioRecorder';
 import FrameworkSelector from '@/components/FrameworkSelector';
 import { ProviderType } from '@/lib/types';
+import type { EncounterState, ChunkResult } from '@/lib/encounter-state';
 
 const providerTypes: ProviderType[] = ['MD', 'DO', 'PA-C', 'NP', 'PT', 'OT', 'SLP', 'LCSW', 'PhD', 'PsyD'];
 
@@ -16,6 +18,8 @@ const ACCEPTED_AUDIO = '.mp3,.mp4,.m4a,.wav,.webm,.ogg,.aac,.flac,.wma';
 export default function NewVisitPage() {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const lastBlobRef      = useRef<Blob | null>(null);   // retained for retry after failure
+  const lastSessionIdRef = useRef<string>('');
   const [patientName, setPatientName] = useState('');
   const [providerType, setProviderType] = useState<ProviderType>('PT');
   const [frameworkId, setFrameworkId] = useState('');
@@ -25,9 +29,109 @@ export default function NewVisitPage() {
   const [progressText, setProgressText] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [liveTranscript, setLiveTranscript] = useState('');
+  const [transcriptWordCount, setTranscriptWordCount] = useState(0);
+  const encounterStateRef = useRef<EncounterState | null>(null);
 
   const canRecord = patientName.trim() !== '' && frameworkId !== '';
 
+  // Callback for live transcript updates during recording
+  const handlePartialTranscript = useCallback((transcript: string, wordCount: number, state: EncounterState) => {
+    setLiveTranscript(transcript);
+    setTranscriptWordCount(wordCount);
+    encounterStateRef.current = state;
+  }, []);
+
+  // Generate note from pre-built EncounterState (2-pass, 30-45s)
+  const processWithEncounterState = async (encounterState: EncounterState) => {
+    setStep('processing');
+    setProgress(10);
+    setProgressText('Validating clinical data...');
+
+    try {
+      // Step 1: Generate note via encounter-state mode (SSE)
+      setProgress(20);
+      setProgressText('Generating clinical note from encounter data...');
+
+      const noteController = new AbortController();
+      const noteTimeout = setTimeout(() => noteController.abort(), 300000);
+      const noteData = await fetchNoteSSE(
+        {
+          frameworkId,
+          useMock: false,
+          mode: 'encounter-state',
+          encounterState,
+        },
+        (pass, total, message) => {
+          const pct = 20 + Math.round((pass / total) * 60);
+          setProgress(pct);
+          setProgressText(message);
+        },
+        noteController.signal,
+      );
+      clearTimeout(noteTimeout);
+
+      if (!noteData.success) {
+        throw new Error(noteData.error || 'Note generation failed');
+      }
+
+      setProgress(85);
+      setProgressText('Finalizing clinical note...');
+
+      // Format the diarized transcript from EncounterState
+      const diarizedLines: string[] = [];
+      let lastSpeaker: string | null = null;
+      for (const stmt of encounterState.diarized_transcript) {
+        if (stmt.speaker !== lastSpeaker) {
+          const label = stmt.speaker === 'CLINICIAN' ? 'Clinician' : stmt.speaker === 'PATIENT' ? 'Patient' : 'Speaker';
+          diarizedLines.push(`**${label}:** ${stmt.text}`);
+        } else {
+          diarizedLines.push(stmt.text);
+        }
+        lastSpeaker = stmt.speaker;
+      }
+      const formattedTranscript = diarizedLines.join('\n\n');
+
+      // Store visit data
+      const visitId = `visit-${Date.now()}`;
+      const visitData = {
+        id: visitId,
+        patientName,
+        providerType,
+        frameworkId,
+        transcript: formattedTranscript,
+        transcriptSource: 'groq-realtime',
+        transcriptDuration: Math.round(encounterState.diarized_transcript.length > 0
+          ? encounterState.diarized_transcript[encounterState.diarized_transcript.length - 1].t1
+          : 0),
+        parsedData: noteData.parsedData,
+        clinicalNote: noteData.clinicalNote,
+        summary: noteData.summary,
+        compliance: noteData.compliance,
+        auditClean: noteData.auditClean,
+        auditIssues: noteData.auditIssues,
+        validation: noteData.validation,
+        source: noteData.source,
+        generationTime: noteData.generationTime,
+        mode: 'encounter-state',
+        createdAt: new Date().toISOString(),
+      };
+
+      setPhiItem(`omniscribe-visit-${visitId}`, visitData);
+
+      setProgress(100);
+      setProgressText('Done!');
+
+      await new Promise(r => setTimeout(r, 500));
+      router.push(`/visit/${visitId}`);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      setErrorMsg(message);
+      setStep('error');
+    }
+  };
+
+  // Legacy flow: transcribe full audio blob then generate note (6-pass)
   const processAudio = async (audioBlob: Blob) => {
     setStep('processing');
     setProgress(0);
@@ -41,7 +145,7 @@ export default function NewVisitPage() {
       formData.append('frameworkId', frameworkId);
 
       const transcribeController = new AbortController();
-      const transcribeTimeout = setTimeout(() => transcribeController.abort(), 300000); // 5 min
+      const transcribeTimeout = setTimeout(() => transcribeController.abort(), 600000); // 10 min (allows for large file upload + Deepgram processing)
       const transcribeRes = await fetch('/api/transcribe', {
         method: 'POST',
         body: formData,
@@ -59,7 +163,7 @@ export default function NewVisitPage() {
 
       // Step 2: Generate note (SSE streaming to keep connection alive)
       const noteController = new AbortController();
-      const noteTimeout = setTimeout(() => noteController.abort(), 300000); // 5 min timeout
+      const noteTimeout = setTimeout(() => noteController.abort(), 600000); // 10 min — complex frameworks need time
       const noteData = await fetchNoteSSE(
         { transcript: transcribeData.transcript, frameworkId, useMock: false },
         (pass, total, message) => {
@@ -100,7 +204,7 @@ export default function NewVisitPage() {
         createdAt: new Date().toISOString(),
       };
 
-      localStorage.setItem(`omniscribe-visit-${visitId}`, JSON.stringify(visitData));
+      setPhiItem(`omniscribe-visit-${visitId}`, visitData);
 
       setProgress(100);
       setProgressText('Done!');
@@ -114,8 +218,27 @@ export default function NewVisitPage() {
     }
   };
 
-  const handleRecordingComplete = async (blob: Blob) => {
-    await processAudio(blob);
+  const handleRecordingComplete = async (
+    blob: Blob,
+    sessionId: string,
+    silenceStats?: SilenceStats,
+    encounterState?: EncounterState,
+    chunkResults?: ChunkResult[],
+  ) => {
+    lastBlobRef.current = blob;
+    lastSessionIdRef.current = sessionId;
+    if (silenceStats) {
+      console.log(`[NewVisit] Silence stripped: ${silenceStats.silenceStrippedSec}s of ${silenceStats.originalDurationSec}s total`);
+    }
+
+    // Use encounter-state mode if real-time extraction produced data
+    if (encounterState && encounterState.chunk_count > 0) {
+      console.log(`[NewVisit] Using encounter-state mode (${encounterState.chunk_count} chunks, ${encounterState.diarized_transcript.length} statements)`);
+      await processWithEncounterState(encounterState);
+    } else {
+      // Fallback to legacy transcribe-then-generate flow
+      await processAudio(blob);
+    }
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -170,9 +293,33 @@ export default function NewVisitPage() {
               </div>
               <h2 className="text-xl font-bold text-gray-900 mb-2">Something went wrong</h2>
               <p className="text-red-600 mb-6 text-sm">{errorMsg}</p>
-              <button onClick={() => { setStep('setup'); setErrorMsg(''); }} className="px-6 py-2.5 bg-[#1e3a5f] text-white rounded-lg text-sm font-medium hover:bg-[#152d4a] transition-colors">
-                Try Again
-              </button>
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+                {/* Retry with the retained blob */}
+                {lastBlobRef.current && (
+                  <button
+                    onClick={() => { setStep('processing'); setErrorMsg(''); if (lastBlobRef.current) processAudio(lastBlobRef.current); }}
+                    className="px-6 py-2.5 bg-[#0d9488] text-white rounded-lg text-sm font-medium hover:bg-[#0f766e] transition-colors"
+                  >
+                    Retry Processing
+                  </button>
+                )}
+                <button onClick={() => { setStep('setup'); setErrorMsg(''); }} className="px-6 py-2.5 bg-[#1e3a5f] text-white rounded-lg text-sm font-medium hover:bg-[#152d4a] transition-colors">
+                  Start Over
+                </button>
+                {/* Emergency download — preserves the recording even if processing keeps failing */}
+                {lastBlobRef.current && (
+                  <a
+                    href={URL.createObjectURL(lastBlobRef.current)}
+                    download={`recording-${lastSessionIdRef.current || Date.now()}.webm`}
+                    className="px-6 py-2.5 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors"
+                  >
+                    ⬇ Download Recording
+                  </a>
+                )}
+              </div>
+              {lastBlobRef.current && (
+                <p className="text-xs text-gray-400 mt-4">Your recording is intact. Use Retry or download it to prevent data loss.</p>
+              )}
             </div>
           ) : (
             <div className="space-y-6">
@@ -246,7 +393,30 @@ export default function NewVisitPage() {
                 )}
 
                 {inputMode === 'record' ? (
-                  <AudioRecorder onRecordingComplete={handleRecordingComplete} disabled={!canRecord} />
+                  <div className="space-y-4">
+                    <AudioRecorder
+                      onRecordingComplete={handleRecordingComplete}
+                      onPartialTranscript={handlePartialTranscript}
+                      frameworkId={frameworkId}
+                      disabled={!canRecord}
+                    />
+                    {/* Live transcript panel */}
+                    {liveTranscript && (
+                      <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 max-h-60 overflow-y-auto">
+                        <div className="flex items-center justify-between mb-2">
+                          <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Live Transcript</h3>
+                          <span className="text-xs text-gray-400">{transcriptWordCount} words</span>
+                        </div>
+                        <div className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed prose prose-sm max-w-none"
+                          dangerouslySetInnerHTML={{
+                            __html: liveTranscript
+                              .replace(/\*\*(Clinician|Patient|Speaker):\*\*/g, '<strong class="text-[#1e3a5f]">$1:</strong>')
+                              .replace(/_\[silence[^]]*?\]_/g, '<span class="text-gray-400 italic text-xs">$&</span>')
+                          }}
+                        />
+                      </div>
+                    )}
+                  </div>
                 ) : (
                   <div className="flex flex-col items-center gap-4">
                     <input

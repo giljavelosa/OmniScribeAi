@@ -32,6 +32,9 @@ model User {
   isActive       Boolean   @default(true)
   mfaEnabled     Boolean   @default(false)
   mfaSecret      String?
+  // Extended session HIPAA disclaimer
+  extendedSessionAcknowledgedAt      DateTime?
+  extendedSessionAcknowledgedVersion String?
 }
 
 model Account {

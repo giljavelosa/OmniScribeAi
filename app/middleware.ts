@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 export default auth((req) => {
   const { pathname } = req.nextUrl;
 
+  // Always-public routes
   if (
     pathname.startsWith("/login") ||
     pathname.startsWith("/api/auth") ||
@@ -14,10 +15,23 @@ export default auth((req) => {
     return NextResponse.next();
   }
 
+  // Not logged in — redirect to login with validated callbackUrl
   if (!req.auth) {
     const loginUrl = new URL("/login", req.url);
-    loginUrl.searchParams.set("callbackUrl", pathname);
+    // Only allow relative paths (prevent open redirect)
+    if (pathname.startsWith("/") && !pathname.startsWith("//")) {
+      loginUrl.searchParams.set("callbackUrl", pathname);
+    }
     return NextResponse.redirect(loginUrl);
+  }
+
+  // Logged in but must change password — force to /change-password
+  if (
+    (req.auth.user as any)?.mustChangePassword &&
+    !pathname.startsWith("/change-password") &&
+    !pathname.startsWith("/api/")
+  ) {
+    return NextResponse.redirect(new URL("/change-password", req.url));
   }
 
   return NextResponse.next();

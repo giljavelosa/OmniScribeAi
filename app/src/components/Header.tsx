@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useSession, signOut } from 'next-auth/react';
+import { clearAllPhiItems, sweepExpiredPhiItems } from '@/lib/phi-storage';
 
 export default function Header() {
   const pathname = usePathname();
@@ -10,6 +11,9 @@ export default function Header() {
   const isLanding = pathname === '/';
 
   if (isLanding) return null;
+
+  // Sweep stale PHI from localStorage on every page load
+  sweepExpiredPhiItems();
 
   const userName = session?.user?.name || 'Clinician';
   const userInitials = userName.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2);
@@ -52,7 +56,7 @@ export default function Header() {
             {userInitials}
           </div>
           <button
-            onClick={() => signOut({ callbackUrl: '/login' })}
+            onClick={() => { clearAllPhiItems(); signOut({ callbackUrl: '/login' }); }}
             className="text-gray-400 hover:text-gray-600 transition-colors"
             title="Sign out"
           >

@@ -1,7 +1,6 @@
 'use client';
-import { fetchNoteSSE } from '@/lib/sse-fetch';
-
-import { useState, useEffect } from 'react';
+import { getPhiItem, setPhiItem, sweepExpiredPhiItems } from '@/lib/phi-storage';
+import { useState, useEffect, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import Header from '@/components/Header';
@@ -59,8 +58,14 @@ interface VisitData {
   extractedFacts?: string;
   auditClean?: boolean;
   auditIssues?: string[];
+  validation?: {
+    warnings: string[];
+    documentedFactCount: number;
+    evidenceLinkedCount: number;
+  };
   source: string;
   generationTime: number;
+  mode?: 'encounter-state' | 'full-transcript';
   createdAt: string;
 }
 
@@ -71,26 +76,17 @@ export default function VisitDetailPage() {
   const [speakersSwapped, setSpeakersSwapped] = useState(false);
   const [speakerLabels, setSpeakerLabels] = useState<Record<string, string>>({ '1': 'Speaker 1', '2': 'Speaker 2' });
 
-  // Format transcript with speaker labels
+  // Format transcript — always use speakerLabels directly (no conditional swap needed)
   const formatTranscript = (text: string) => {
     if (!text) return text;
-    let result = text;
-    if (speakersSwapped) {
-      // Swap Speaker 1 <-> Speaker 2
-      result = result.replace(/\*\*Speaker 1:\*\*/g, '@@TEMP_S2@@');
-      result = result.replace(/\*\*Speaker 2:\*\*/g, '@@TEMP_S1@@');
-      result = result.replace(/@@TEMP_S1@@/g, `**${speakerLabels['1']}:**`);
-      result = result.replace(/@@TEMP_S2@@/g, `**${speakerLabels['2']}:**`);
-    } else {
-      result = result.replace(/\*\*Speaker 1:\*\*/g, `**${speakerLabels['1']}:**`);
-      result = result.replace(/\*\*Speaker 2:\*\*/g, `**${speakerLabels['2']}:**`);
-    }
-    return result;
+    return text
+      .replace(/\*\*Speaker 1:\*\*/g, `**${speakerLabels['1']}:**`)
+      .replace(/\*\*Speaker 2:\*\*/g, `**${speakerLabels['2']}:**`);
   };
 
+  // Swapping speakers swaps the labels — formatTranscript handles the rest
   const handleSwapSpeakers = () => {
-    setSpeakersSwapped(!speakersSwapped);
-    // Also swap the labels
+    setSpeakersSwapped(prev => !prev);
     setSpeakerLabels(prev => ({ '1': prev['2'], '2': prev['1'] }));
   };
 
@@ -103,7 +99,7 @@ export default function VisitDetailPage() {
   const [scannerOpen, setScannerOpen] = useState(false);
   const [scanning, setScanning] = useState(false);
   const [scanResult, setScanResult] = useState<any>(null);
-  const fileInputRef = useState<HTMLInputElement | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [regenerating, setRegenerating] = useState(false);
   const [lastRegenTime, setLastRegenTime] = useState<string | null>(null);
   const [amendModalOpen, setAmendModalOpen] = useState(false);
@@ -112,10 +108,9 @@ export default function VisitDetailPage() {
   const [submittingAmendment, setSubmittingAmendment] = useState(false);
 
   useEffect(() => {
-    const stored = localStorage.getItem(`omniscribe-visit-${visitId}`);
-    if (stored) {
-      try { setVisitData(JSON.parse(stored)); } catch { /* */ }
-    }
+    sweepExpiredPhiItems(); // clean up stale PHI on page load
+    const stored = getPhiItem<VisitData>(`omniscribe-visit-${visitId}`);
+    if (stored) setVisitData(stored);
     setLoading(false);
   }, [visitId]);
 
@@ -167,6 +162,8 @@ export default function VisitDetailPage() {
   const auditIssues = visitData?.auditIssues;
   const generationTime = visitData?.generationTime;
   const transcriptSource = visitData?.transcriptSource;
+  const noteMode = visitData?.mode;
+  const validation = visitData?.validation;
 
   const handleUpdate = (updatedSections?: NoteSection[]) => {
     setSaveStatus('Saving...');
@@ -321,31 +318,37 @@ ${compLine}
     } catch { return dateStr; }
   };
 
-  // Auto-regenerate clinical reasoning + note from updated parsed data
+  // Regenerate clinical note from updated parsed data — uses the lightweight
+  // /api/regenerate-note endpoint (single pass) instead of the full 6-pass pipeline
   const regenerateFromParsedData = async (updatedParsedData: any[]) => {
     if (!visitData || regenerating) return;
     setRegenerating(true);
     try {
-      // Combine all parsed data sections into a single text for re-processing
-      const factsText = updatedParsedData.map((s: any) => `## ${s.title}\n${s.content}`).join('\n\n');
-      
-      const data = await fetchNoteSSE({
-          transcript: visitData.transcript || '',
+      const res = await fetch('/api/regenerate-note', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          parsedData: updatedParsedData,
+          clinicalSynthesis: visitData.clinicalSynthesis || {},
           frameworkId: visitData.frameworkId || '',
-          providerType: visitData.providerType || '',
-          regenerateFrom: factsText,
-        });
-      if (data.note || data.clinicalNote) {
+        }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || `Regeneration failed (HTTP ${res.status})`);
+      }
+
+      const data = await res.json();
+      if (data.success && data.clinicalNote) {
         const updatedVisit = {
           ...visitData,
           parsedData: updatedParsedData,
-          clinicalNote: data.clinicalNote || data.note || visitData.clinicalNote,
-          clinicalSynthesis: data.clinicalSynthesis || visitData.clinicalSynthesis,
-          note: data.note || visitData.note,
-          summary: data.summary || visitData.summary,
+          clinicalNote: data.clinicalNote,
+          note: data.clinicalNote,
         };
         setVisitData(updatedVisit);
-        localStorage.setItem(`omniscribe-visit-${visitId}`, JSON.stringify(updatedVisit));
+        setPhiItem(`omniscribe-visit-${visitId}`, updatedVisit);
         setLastRegenTime(new Date().toLocaleTimeString());
       }
     } catch (err: any) {
@@ -370,8 +373,8 @@ ${compLine}
     // Update local state right away so user sees it
     const tempVisit = { ...visitData, parsedData: updatedParsedData };
     setVisitData(tempVisit);
-    localStorage.setItem(`omniscribe-visit-${visitId}`, JSON.stringify(tempVisit));
-    
+    setPhiItem(`omniscribe-visit-${visitId}`, tempVisit);
+
     // Then trigger regeneration
     regenerateFromParsedData(updatedParsedData);
   };
@@ -405,8 +408,8 @@ ${compLine}
           const updatedParsedData = [...(visitData.parsedData || visitData.note || []), ...newSections.map((s: any) => ({ title: s.title, content: s.content }))];
           const updatedVisit = { ...visitData, parsedData: updatedParsedData };
           setVisitData(updatedVisit);
-          localStorage.setItem(`omniscribe-visit-${visitId}`, JSON.stringify(updatedVisit));
-          
+          setPhiItem(`omniscribe-visit-${visitId}`, updatedVisit);
+
           // Auto-regenerate reasoning + note with new data
           regenerateFromParsedData(updatedParsedData);
         }
@@ -457,7 +460,7 @@ ${compLine}
                 <div className="flex flex-wrap items-center gap-3 text-sm text-gray-500">
                   <span>{formatDate(createdAt)}</span>
                   <span>·</span>
-                  <span>{Math.round(duration / 60)} min</span>
+                  {duration > 0 && <span>{Math.round(duration / 60)} min</span>}
                   <span>·</span>
                   <span className="font-medium">{providerType}</span>
                   {framework && (
@@ -526,6 +529,18 @@ ${compLine}
                       <div className="text-sm font-semibold text-gray-900 capitalize">{transcriptSource}</div>
                     </div>
                   )}
+                  {noteMode === 'encounter-state' && (
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg px-3 py-2">
+                      <div className="text-xs text-gray-400">Pipeline</div>
+                      <div className="text-sm font-semibold text-blue-700">Real-time (2-pass)</div>
+                    </div>
+                  )}
+                  {validation && (
+                    <div className="bg-white border border-gray-200 rounded-lg px-3 py-2">
+                      <div className="text-xs text-gray-400">Facts</div>
+                      <div className="text-sm font-semibold text-gray-900">{validation.documentedFactCount} documented</div>
+                    </div>
+                  )}
                   {compliance && compliance.score >= 0 && (
                     <div className={`border rounded-lg px-3 py-2 cursor-pointer hover:opacity-80 ${
                       compliance.riskLevel === 'low' ? 'bg-green-50 border-green-200' :
@@ -566,7 +581,7 @@ ${compLine}
               {/* Amendment History */}
               {(visitData as any)?.amendments && (visitData as any).amendments.length > 0 && (
                 <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6">
-                  <div className="text-xs font-semibold text-amber-700 uppercase tracking-wide mb-3">📝 Amendment History</div>
+                  <div className="text-xs font-semibold text-amber-700 uppercase tracking-wide mb-3">Amendment History</div>
                   <div className="space-y-3">
                     {((visitData as any).amendments as any[]).map((a: any, i: number) => (
                       <div key={a.id || i} className="border-l-2 border-amber-400 pl-3">
@@ -601,6 +616,16 @@ ${compLine}
                       </div>
                     ))}
                   </div>
+                </div>
+              )}
+
+              {/* Validation warnings (encounter-state mode) */}
+              {validation && validation.warnings.length > 0 && (
+                <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6">
+                  <div className="text-xs font-semibold text-blue-700 uppercase tracking-wide mb-2">Validation Warnings</div>
+                  <ul className="space-y-1">
+                    {validation.warnings.map((w, i) => (<li key={i} className="text-sm text-blue-800">• {w}</li>))}
+                  </ul>
                 </div>
               )}
 
@@ -876,7 +901,7 @@ ${compLine}
                       if (!visitData) return;
                       const updatedVisit = { ...visitData, clinicalSynthesis: updated };
                       setVisitData(updatedVisit);
-                      localStorage.setItem("omniscribe-visit-" + visitId, JSON.stringify(updatedVisit));
+                      setPhiItem(`omniscribe-visit-${visitId}`, updatedVisit);
                     }}
                     onRegenerateNote={async (synthesis) => {
                       if (!visitData) return;
@@ -895,11 +920,11 @@ ${compLine}
                         if (data.success && data.clinicalNote) {
                           const updatedVisit = { ...visitData, clinicalNote: data.clinicalNote, clinicalSynthesis: synthesis };
                           setVisitData(updatedVisit);
-                          localStorage.setItem("omniscribe-visit-" + visitId, JSON.stringify(updatedVisit));
+                          setPhiItem(`omniscribe-visit-${visitId}`, updatedVisit);
                           setLastRegenTime(new Date().toLocaleTimeString());
                         }
                       } catch (err) {
-                        console.error('Regeneration error:', err);
+                        console.error('Regen error (non-PHI):', err instanceof Error ? err.message.slice(0,100) : 'unknown');
                       } finally {
                         setRegenerating(false);
                       }
@@ -963,6 +988,7 @@ ${compLine}
                       <div className="whitespace-pre-wrap text-sm text-gray-700 leading-relaxed font-sans"
                         dangerouslySetInnerHTML={{ __html: formatTranscript(transcript)
                           .replace(/\*\*(.+?):\*\*/g, '<strong class="text-[#1e3a5f]">$1:</strong>')
+                          .replace(/_\[silence — ([^\]]+)\]_/g, '<span class="text-gray-400 italic text-xs bg-gray-50 px-2 py-0.5 rounded inline-block">[silence — $1]</span>')
                           .replace(/\n\n/g, '<br/><br/>')
                         }}
                       />

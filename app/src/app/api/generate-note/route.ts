@@ -1,51 +1,23 @@
 import { auth } from "@/lib/auth";
 import { auditLog } from "@/lib/audit";
+import { assertProductionApiKey } from "@/lib/phi-boundaries";
+import { callAI, getActiveProvider } from "@/lib/ai-provider";
+import { appLog, scrubError, errorCode } from "@/lib/logger";
 import { NextRequest } from "next/server";
 
 export const maxDuration = 300;
 import { frameworks } from "@/lib/frameworks";
 import { mockNotes } from "@/lib/mock-data";
 import { calculateCompliance } from "@/lib/cms-requirements";
+import { validateEncounterState } from "@/lib/encounter-validator";
+import { serializeFactsForPrompt, type EncounterState } from "@/lib/encounter-state";
 
-async function callClaude(system: string, user: string, maxTokens: number = 4000) {
-  const maxRetries = 3;
-  for (let attempt = 1; attempt <= maxRetries; attempt++) {
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "x-api-key": process.env.ANTHROPIC_API_KEY || "",
-        "anthropic-version": "2023-06-01",
-        "content-type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "claude-sonnet-4-20250514",
-        max_tokens: maxTokens,
-        temperature: 0,
-        system,
-        messages: [{ role: "user", content: user }],
-      }),
-    });
+// Validate API key tier on module load
+assertProductionApiKey();
 
-    if (response.ok) {
-      const result = await response.json();
-      return {
-        content: result.content?.[0]?.text || "",
-        tokens: result.usage?.input_tokens + result.usage?.output_tokens || 0,
-        usage: result.usage,
-      };
-    }
-
-    const errorText = await response.text();
-    const isOverloaded = errorText.includes("overloaded") || response.status === 529;
-    if (isOverloaded && attempt < maxRetries) {
-      const waitSec = attempt * 10;
-      console.log("[GenNote] Claude overloaded, retry " + attempt + "/" + maxRetries + " in " + waitSec + "s...");
-      await new Promise(r => setTimeout(r, waitSec * 1000));
-      continue;
-    }
-    throw new Error("Claude API error (attempt " + attempt + "): " + errorText);
-  }
-  throw new Error("Claude API: max retries exceeded");
+// Strip markdown code fences that LLMs sometimes wrap JSON in
+function stripFences(raw: string): string {
+  return raw.replace(/^```(?:json)?\s*/gm, '').replace(/^```\s*/gm, '').trim();
 }
 
 async function callDeepSeek(system: string, user: string, maxTokens: number = 4000) {
@@ -92,7 +64,7 @@ async function callDeepSeek(system: string, user: string, maxTokens: number = 40
 
 function parseJsonArray(raw: string): { title: string; content: string }[] {
   try {
-    const trimmed = raw.trim();
+    const trimmed = stripFences(raw);
     const jsonMatch = trimmed.match(/\[[\s\S]*\]/);
     if (jsonMatch) {
       return JSON.parse(jsonMatch[0]);
@@ -100,8 +72,12 @@ function parseJsonArray(raw: string): { title: string; content: string }[] {
     const parsed = JSON.parse(trimmed);
     return Array.isArray(parsed) ? parsed : parsed.sections || parsed.note || [parsed];
   } catch (e) {
-    console.error("[GenNote] JSON parse failed:", String(e), "Raw:", raw.substring(0, 300));
-    return [{ title: "Note", content: raw }];
+    appLog('error', 'GenNote', 'JSON parse failed in parseJsonArray', { error: scrubError(e), rawLength: raw.length });
+    // Visible fallback — clinician sees a warning, not raw JSON
+    return [{
+      title: "⚠ Formatting Error",
+      content: "The note could not be formatted correctly. The raw output is shown below — please regenerate.\n\n---\n\n" + raw.substring(0, 2000),
+    }];
   }
 }
 
@@ -112,10 +88,10 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json();
-  const { transcript, frameworkId, useMock, regenerateFrom } = body;
+  const { transcript, frameworkId, useMock, regenerateFrom, mode, encounterState } = body;
 
   // Mock mode — return JSON directly (no streaming needed)
-  if (useMock === true || (!process.env.ANTHROPIC_API_KEY && !process.env.OPENAI_API_KEY)) {
+  if (useMock === true || (!process.env.ANTHROPIC_API_KEY && !process.env.XAI_API_KEY && !process.env.DEEPSEEK_API_KEY)) {
     await new Promise((resolve) => setTimeout(resolve, 2000));
     let noteKey = "pt-eval";
     if (frameworkId === "med-soap-followup" || frameworkId === "med-soap-new" || frameworkId === "med-awv") {
@@ -139,6 +115,14 @@ export async function POST(request: NextRequest) {
     return new Response(JSON.stringify({ success: false, error: "Framework not found" }), { status: 400, headers: { "Content-Type": "application/json" } });
   }
 
+  // ═══════════════════════════════════════════════════════════════
+  // ENCOUNTER-STATE MODE — 2-pass pipeline (30-45 seconds)
+  // Used when real-time extraction built the EncounterState during recording
+  // ═══════════════════════════════════════════════════════════════
+  if (mode === 'encounter-state' && encounterState) {
+    return handleEncounterStateMode(encounterState as EncounterState, framework, frameworkId, session);
+  }
+
   const transcriptText = regenerateFrom || transcript;
   if (!transcriptText || transcriptText.trim().length === 0) {
     return new Response(JSON.stringify({ success: false, error: "No transcript provided" }), { status: 400, headers: { "Content-Type": "application/json" } });
@@ -155,7 +139,7 @@ export async function POST(request: NextRequest) {
       try {
         const startTime = Date.now();
         let totalTokens = 0;
-        console.log("[GenNote] Starting. Framework:", frameworkId, "Transcript length:", transcriptText.length);
+        appLog('info', 'GenNote', 'Starting generation', { frameworkId, transcriptLength: transcriptText.length });
 
         // ═══════════════════════════════════════════════════════════════
         // PASS 0: PHI DE-IDENTIFICATION (Claude — keeps PHI local to Anthropic)
@@ -251,7 +235,10 @@ ABSOLUTE RULES:
 10. If the clinician says "everything else is within normal limits" or "the rest is normal", mark those items as value: "WNL" with source: "transcript".
 11. If the transcript says "no substance use" or "denies substance use" globally, apply to ALL substance subcategories with source "patient_denies".
 12. If demographics are stated, ensure they appear in BOTH patient_demographics AND any relevant section fields.
-13. The transcript may have speaker labels (Clinician/Patient). Use these to distinguish:
+13. The transcript may contain [silence] markers indicating periods of no speech
+    (e.g., patient performing exercises, manual therapy). Ignore these markers
+    entirely — do not extract or fabricate data for silent periods.
+14. The transcript may have speaker labels (Clinician/Patient). Use these to distinguish:
     - Patient-reported symptoms, history, and goals (source: "transcript", note who reported it)
     - Clinician observations, measurements, and assessments (source: "transcript")
     - If the Patient states something, prefer "Patient reports..." phrasing
@@ -283,14 +270,15 @@ ${safeTranscript}
 
 Remember: null and "not_documented" for ANYTHING not explicitly stated.`;
 
-        const extractResult = await callDeepSeek(extractSystem, extractUser, 4000);
-        const structuredFacts = extractResult.content;
-        totalTokens += (extractResult.usage?.input_tokens || 0) + (extractResult.usage?.output_tokens || 0);
-        console.log("[GenNote] Pass 1 (fact extraction) complete. Length:", structuredFacts.length);
+        const extractResult = await callAI(extractSystem, extractUser, 4000);
+        // Strip markdown code fences — LLMs frequently wrap JSON in ```json``` blocks
+        const structuredFacts = stripFences(extractResult.content);
+        totalTokens += extractResult.usage.input_tokens + extractResult.usage.output_tokens;
+        appLog('info', 'GenNote', 'Pass 1 complete', { factsLength: structuredFacts.length });
 
         // COMPLIANCE SCORING
         const compliance = calculateCompliance(frameworkId, structuredFacts);
-        console.log("[GenNote] Compliance score:", compliance.score, "% Grade:", compliance.grade, "Missing:", compliance.missing.length);
+        appLog('info', 'GenNote', 'Compliance calculated', { score: compliance.score, grade: compliance.grade, missingCount: compliance.missing.length });
 
         // ═══════════════════════════════════════════════════════════════
         // PASS 2: CLINICAL SYNTHESIS
@@ -349,8 +337,8 @@ Framework: ${framework.name} (${framework.type} — ${framework.subtype})
 
 Synthesize ONLY from documented facts (source: "transcript").`;
 
-        const synthesisResult = await callDeepSeek(synthesisSystem, synthesisUser, 2000);
-        totalTokens += (synthesisResult.usage?.input_tokens || 0) + (synthesisResult.usage?.output_tokens || 0);
+        const synthesisResult = await callAI(synthesisSystem, synthesisUser, 2000);
+        totalTokens += synthesisResult.usage.input_tokens + synthesisResult.usage.output_tokens;
         let clinicalSynthesis;
         try {
           const raw = synthesisResult.content.replace(/```json\n?/g, "").replace(/```/g, "").trim();
@@ -358,7 +346,7 @@ Synthesize ONLY from documented facts (source: "transcript").`;
         } catch {
           clinicalSynthesis = { clinical_impression: synthesisResult.content, problem_list: [], severity_assessment: "", rehab_potential: "", recommended_focus: [], reasoning_notes: "" };
         }
-        console.log("[GenNote] Pass 2 (clinical synthesis) complete.");
+        appLog('info', 'GenNote', 'Pass 2 complete');
 
         // ═══════════════════════════════════════════════════════════════
         // PASS 3: PARSED DATA
@@ -402,10 +390,10 @@ ${structuredFacts}
 
 Every null/"not_documented" item → "___". Do not skip any items.`;
 
-        const parsedDataResult = await callDeepSeek(parsedDataSystem, parsedDataUser, 4000);
-        totalTokens += (parsedDataResult.usage?.input_tokens || 0) + (parsedDataResult.usage?.output_tokens || 0);
+        const parsedDataResult = await callAI(parsedDataSystem, parsedDataUser, 6000);
+        totalTokens += parsedDataResult.usage.input_tokens + parsedDataResult.usage.output_tokens;
         const parsedData = parseJsonArray(parsedDataResult.content);
-        console.log("[GenNote] Pass 3 (parsed data) complete. Sections:", parsedData.length);
+        appLog('info', 'GenNote', 'Pass 3 complete', { sections: parsedData.length });
 
         // ═══════════════════════════════════════════════════════════════
         // PASS 4: FINAL CLINICAL NOTE
@@ -464,10 +452,10 @@ ${JSON.stringify(clinicalSynthesis, null, 2)}
 
 Write the final clinical note. Merge the parsed data and clinical reasoning into a cohesive, professional clinical document. Assessment and Plan sections should reflect the clinical reasoning integrated with documented findings. Keep ___ for undocumented items.`;
 
-        const clinicalNoteResult = await callDeepSeek(clinicalNoteSystem, clinicalNoteUser, 5000);
-        totalTokens += (clinicalNoteResult.usage?.input_tokens || 0) + (clinicalNoteResult.usage?.output_tokens || 0);
+        const clinicalNoteResult = await callAI(clinicalNoteSystem, clinicalNoteUser, 8000);
+        totalTokens += clinicalNoteResult.usage.input_tokens + clinicalNoteResult.usage.output_tokens;
         const clinicalNote = parseJsonArray(clinicalNoteResult.content);
-        console.log("[GenNote] Pass 4 (clinical note) complete. Sections:", clinicalNote.length);
+        appLog('info', 'GenNote', 'Pass 4 complete', { sections: clinicalNote.length });
 
         // Re-identify: restore PHI tokens to original values in the final note
         for (const section of clinicalNote) {
@@ -489,7 +477,7 @@ Write the final clinical note. Merge the parsed data and clinical reasoning into
         let auditClean = true;
         let auditIssues: string[] = [];
         try {
-          const auditResult = await callDeepSeek(
+          const auditResult = await callAI(
             `You are a clinical note auditor. Compare the final clinical note against the structured facts AND clinical synthesis.
 
 RULES:
@@ -504,13 +492,13 @@ Return ONLY valid JSON: { "issues": ["description"], "clean": true/false }`,
             500
           );
           try {
-            const auditJson = JSON.parse(auditResult.content.replace(/```json\n?/g, "").replace(/```/g, "").trim());
+            const auditJson = JSON.parse(stripFences(auditResult.content));
             auditClean = auditJson.clean !== false;
             auditIssues = auditJson.issues || [];
           } catch { /* ok */ }
-          totalTokens += (auditResult.usage?.input_tokens || 0) + (auditResult.usage?.output_tokens || 0);
+          totalTokens += auditResult.usage.input_tokens + auditResult.usage.output_tokens;
         } catch { /* non-critical */ }
-        console.log("[GenNote] Pass 5 (audit) complete. Clean:", auditClean);
+        appLog('info', 'GenNote', 'Pass 5 complete', { auditClean: auditClean ?? true, issueCount: auditIssues?.length ?? 0 });
 
         // ═══════════════════════════════════════════════════════════════
         // PASS 6: SUMMARY
@@ -519,17 +507,27 @@ Return ONLY valid JSON: { "issues": ["description"], "clean": true/false }`,
 
         let summary = "Clinical note generated from encounter transcript.";
         try {
-          const summaryResult = await callDeepSeek(
+          const summaryResult = await callAI(
             "Write a 2-3 sentence visit summary including the clinical impression. Be concise and clinical.",
             `SYNTHESIS: ${JSON.stringify(clinicalSynthesis)}\nNOTE: ${JSON.stringify(clinicalNote)}`,
             300
           );
           summary = reidentify(summaryResult.content || summary);
-          totalTokens += (summaryResult.usage?.input_tokens || 0) + (summaryResult.usage?.output_tokens || 0);
+          totalTokens += summaryResult.usage.input_tokens + summaryResult.usage.output_tokens;
         } catch { /* non-critical */ }
 
         const generationTime = (Date.now() - startTime) / 1000;
-        console.log("[GenNote] Complete. Time:", generationTime, "s. Tokens:", totalTokens);
+        appLog('info', 'GenNote', 'Complete', { generationTime, totalTokens, frameworkId });
+
+        // HIPAA audit log — note generation event
+        try {
+          await auditLog({
+            userId: (session.user as any).id,
+            action: "GENERATE_NOTE",
+            resource: `framework:${frameworkId}`,
+            details: { frameworkId, transcriptLength: transcriptText.length, tokensUsed: totalTokens, generationTime },
+          });
+        } catch { /* non-critical — don't fail the note */ }
 
         // Send final result
         send("result", {
@@ -543,12 +541,13 @@ Return ONLY valid JSON: { "issues": ["description"], "clean": true/false }`,
           auditClean,
           auditIssues: auditIssues.length > 0 ? auditIssues : undefined,
           generationTime: Math.round(generationTime * 10) / 10,
-          source: "deepseek+claude-deident",
+          source: getActiveProvider(),
           tokensUsed: totalTokens,
         });
       } catch (error) {
-        console.error("Note generation error:", error);
-        send("error", { success: false, error: "Note generation service error", details: String(error) });
+        const code = errorCode();
+        appLog('error', 'GenNote', 'Pipeline error', { code, error: scrubError(error) });
+        send("error", { success: false, error: "Note generation failed", code });
       } finally {
         controller.close();
       }
@@ -558,7 +557,230 @@ Return ONLY valid JSON: { "issues": ["description"], "clean": true/false }`,
   return new Response(stream, {
     headers: {
       "Content-Type": "text/event-stream",
-      "Cache-Control": "no-cache",
+      "Cache-Control": "no-store, no-cache, must-revalidate",
+      "Pragma": "no-cache",
+      "Connection": "keep-alive",
+    },
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════
+// ENCOUNTER-STATE 2-PASS PIPELINE
+// ═══════════════════════════════════════════════════════════════
+
+async function handleEncounterStateMode(
+  encounterState: EncounterState,
+  framework: (typeof frameworks)[number],
+  frameworkId: string,
+  session: any,
+) {
+  const encoder = new TextEncoder();
+  const stream = new ReadableStream({
+    async start(controller) {
+      function send(event: string, data: any) {
+        controller.enqueue(encoder.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`));
+      }
+
+      try {
+        const startTime = Date.now();
+        let totalTokens = 0;
+
+        appLog('info', 'GenNote', 'Starting encounter-state 2-pass pipeline', {
+          frameworkId,
+          chunkCount: encounterState.chunk_count,
+        });
+
+        // ─── Step 0: Deterministic validation (zero tokens) ───
+        const validation = validateEncounterState(encounterState, frameworkId);
+        appLog('info', 'GenNote', 'Validation complete', {
+          valid: validation.valid,
+          warningCount: validation.warnings.length,
+          errorCount: validation.errors.length,
+          documentedFacts: validation.documentedFactCount,
+          complianceScore: validation.compliance.score,
+          complianceGrade: validation.compliance.grade,
+        });
+
+        if (!validation.valid) {
+          send("error", {
+            success: false,
+            error: validation.errors.join('; '),
+            validation,
+          });
+          controller.close();
+          return;
+        }
+
+        // Serialize EncounterState facts to compact JSON for the prompt
+        const factsJson = serializeFactsForPrompt(encounterState);
+
+        const clinicianType = framework.domain === 'rehabilitation'
+          ? 'rehabilitation clinician (PT/OT/SLP)'
+          : framework.domain === 'behavioral_health'
+            ? 'behavioral health clinician'
+            : framework.type === 'ED Note'
+              ? 'emergency medicine physician'
+              : framework.type === 'Procedure Note'
+                ? 'proceduralist physician'
+                : framework.type === 'Discharge Summary'
+                  ? 'attending physician preparing a discharge summary'
+                  : 'physician';
+
+        const sectionPrompt = framework.sections
+          .map((s) => {
+            const items = s.items.join(", ");
+            return `### ${s.title}\nItems: ${items}`;
+          })
+          .join("\n\n");
+
+        // ═══════════════════════════════════════════════════════
+        // PASS 1: Generate Clinical Note from EncounterState
+        // ═══════════════════════════════════════════════════════
+        send("progress", { pass: 1, total: 2, message: "Generating clinical note..." });
+
+        const noteSystem = `You are a senior ${clinicianType} writing a clinical note from validated encounter data.
+
+INPUT: A validated EncounterState JSON containing:
+- Every fact has been extracted from the clinical encounter transcript
+- Facts are tagged as "transcript" (documented), "patient_denies" (explicitly denied), or omitted (not documented)
+- Speaker attribution indicates if CLINICIAN or PATIENT stated the information
+
+WRITE THE NOTE:
+1. Include ALL facts present in the JSON — use professional clinical language
+2. For items with source "patient_denies": include as "Patient denies [item]"
+3. For items NOT present in the JSON: render as "___" (blank for clinician to fill)
+4. Weave clinical reasoning naturally into Assessment — connect documented findings to clinical impressions, assess severity, functional impact
+5. Plan section: concrete treatment items linked to documented deficits
+6. Use professional third-person clinical voice
+7. Include tables for objective measurements (ROM, MMT, vitals) where applicable
+8. NEVER add clinical data not present in the EncounterState JSON
+9. The compliance score is ${validation.compliance.score}% (grade: ${validation.compliance.grade})${validation.requiredMissing.length > 0 ? ` — missing: ${validation.requiredMissing.join(', ')}` : ''}
+
+FRAMEWORK: ${framework.name}
+TYPE: ${framework.type} — ${framework.subtype}
+
+STRUCTURE:
+${sectionPrompt}
+
+OUTPUT: Return ONLY a JSON array: [{ "title": "section title", "content": "formatted section content with markdown" }]`;
+
+        const noteUser = `ENCOUNTERSTATE FACTS:
+${factsJson}
+
+Write the complete clinical note. Every fact in the JSON must appear in the note. Missing items get "___".`;
+
+        const noteResult = await callAI(noteSystem, noteUser, 8000);
+        totalTokens += noteResult.usage.input_tokens + noteResult.usage.output_tokens;
+        const clinicalNote = parseJsonArray(noteResult.content);
+        appLog('info', 'GenNote', 'Pass 1 (encounter-state) complete', { sections: clinicalNote.length });
+
+        // ═══════════════════════════════════════════════════════
+        // PASS 2: Audit + Summary (combined into one call)
+        // ═══════════════════════════════════════════════════════
+        send("progress", { pass: 2, total: 2, message: "Verifying accuracy..." });
+
+        let auditClean = true;
+        let auditIssues: string[] = [];
+        let summary = "Clinical note generated from encounter data.";
+
+        try {
+          const auditResult = await callAI(
+            `You have two tasks:
+
+TASK 1 — AUDIT: Compare this clinical note against the source EncounterState facts.
+- Documented facts appearing in note: OK
+- Clinical reasoning logically derived from documented facts: OK
+- Any clinical data NOT traceable to the EncounterState JSON: FLAG as hallucination
+- Blanks (___) for undocumented items: OK
+
+TASK 2 — SUMMARY: Write a 2-3 sentence visit summary from the note. Be concise and clinical.
+
+Return ONLY valid JSON:
+{
+  "audit": { "issues": ["description of any problems"], "clean": true },
+  "summary": "2-3 sentence clinical summary"
+}`,
+            `ENCOUNTERSTATE FACTS:\n${factsJson}\n\nCLINICAL NOTE:\n${JSON.stringify(clinicalNote)}`,
+            800,
+          );
+          totalTokens += auditResult.usage.input_tokens + auditResult.usage.output_tokens;
+
+          try {
+            const auditJson = JSON.parse(stripFences(auditResult.content));
+            if (auditJson.audit) {
+              auditClean = auditJson.audit.clean !== false;
+              auditIssues = auditJson.audit.issues || [];
+            }
+            if (auditJson.summary) {
+              summary = auditJson.summary;
+            }
+          } catch { /* keep defaults */ }
+        } catch { /* non-critical */ }
+
+        appLog('info', 'GenNote', 'Pass 2 (audit+summary) complete', {
+          auditClean,
+          issueCount: auditIssues.length,
+        });
+
+        const generationTime = (Date.now() - startTime) / 1000;
+        appLog('info', 'GenNote', 'EncounterState pipeline complete', {
+          generationTime,
+          totalTokens,
+          frameworkId,
+          passes: 2,
+        });
+
+        // HIPAA audit log
+        try {
+          await auditLog({
+            userId: (session.user as any).id,
+            action: "GENERATE_NOTE",
+            resource: `framework:${frameworkId}`,
+            details: {
+              frameworkId,
+              mode: 'encounter-state',
+              factsCount: validation.documentedFactCount,
+              tokensUsed: totalTokens,
+              generationTime,
+              complianceGrade: validation.compliance.grade,
+            },
+          });
+        } catch { /* non-critical */ }
+
+        // Send final result
+        send("result", {
+          success: true,
+          clinicalNote,
+          parsedData: clinicalNote, // Same format — for backward compat with UI
+          compliance: validation.compliance,
+          summary,
+          auditClean,
+          auditIssues: auditIssues.length > 0 ? auditIssues : undefined,
+          validation: {
+            warnings: validation.warnings,
+            documentedFactCount: validation.documentedFactCount,
+            evidenceLinkedCount: validation.evidenceLinkedCount,
+          },
+          generationTime: Math.round(generationTime * 10) / 10,
+          source: getActiveProvider(),
+          tokensUsed: totalTokens,
+          mode: 'encounter-state',
+        });
+      } catch (error) {
+        const code = errorCode();
+        appLog('error', 'GenNote', 'EncounterState pipeline error', { code, error: scrubError(error) });
+        send("error", { success: false, error: "Note generation failed", code });
+      } finally {
+        controller.close();
+      }
+    },
+  });
+
+  return new Response(stream, {
+    headers: {
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-store, no-cache, must-revalidate",
+      "Pragma": "no-cache",
       "Connection": "keep-alive",
     },
   });

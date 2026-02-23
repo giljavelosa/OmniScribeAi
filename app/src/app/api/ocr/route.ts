@@ -1,32 +1,9 @@
 import { auth } from "@/lib/auth";
 import { auditLog } from "@/lib/audit";
+import { callAIVision } from "@/lib/ai-provider";
+import { appLog, scrubError, errorCode } from "@/lib/logger";
 export const maxDuration = 300;
 import { NextRequest, NextResponse } from 'next/server';
-
-
-async function callClaude(messages: any[], maxTokens: number = 4096) {
-  const response = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": process.env.ANTHROPIC_API_KEY || "",
-      "anthropic-version": "2023-06-01",
-    },
-    body: JSON.stringify({
-      model: "claude-sonnet-4-20250514",
-      max_tokens: maxTokens,
-      messages,
-    }),
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`Anthropic API error: ${response.status} — ${errorText}`);
-  }
-
-  const data = await response.json();
-  return data.content[0]?.text || '';
-}
 
 function parseJSON(text: string) {
   try {
@@ -72,7 +49,7 @@ export async function POST(req: NextRequest) {
     const startTime = Date.now();
 
     // Step 1: OCR — Extract all text and structured data from document
-    const ocrText = await callClaude([
+    const ocrResult = await callAIVision([
       {
         role: 'user',
         content: [
@@ -134,10 +111,10 @@ Return ONLY valid JSON, no markdown.`,
       },
     ]);
 
-    const ocrData = parseJSON(ocrText);
+    const ocrData = parseJSON(ocrResult.content);
 
     // Step 2: Map OCR data to clinical note sections
-    const mappingText = await callClaude([
+    const mappingResult = await callAIVision([
       {
         role: 'user',
         content: `You are a clinical documentation specialist. Map the following OCR-extracted document data to clinical note sections.
@@ -183,7 +160,7 @@ Return ONLY valid JSON, no markdown.`,
       },
     ]);
 
-    const mappingData = parseJSON(mappingText);
+    const mappingData = parseJSON(mappingResult.content);
     const processingTime = ((Date.now() - startTime) / 1000).toFixed(1);
 
     return NextResponse.json({
@@ -193,13 +170,14 @@ Return ONLY valid JSON, no markdown.`,
       processingTime: parseFloat(processingTime),
       fileName: file.name,
       fileSize: file.size,
-    });
+    }, { headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate', 'Pragma': 'no-cache' } });
 
-  } catch (error: any) {
-    console.error('OCR error:', error);
+  } catch (error: unknown) {
+    const code = errorCode();
+    appLog('error', 'OCR', 'Processing error', { code, error: scrubError(error) });
     return NextResponse.json(
-      { error: error.message || 'OCR processing failed' },
-      { status: 500 }
+      { error: 'OCR processing failed', code },
+      { status: 500, headers: { 'Cache-Control': 'no-store' } }
     );
   }
 }
