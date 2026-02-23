@@ -30,7 +30,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   }
 
   await auditLog({
-    userId: (session.user as any).id,
+    userId: session.user.id,
     action: `ADD_${type.toUpperCase()}`,
     resource: `patient:${id}`,
   });
@@ -55,7 +55,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   }
 
   await auditLog({
-    userId: (session.user as any).id,
+    userId: session.user.id,
     action: `REMOVE_${type.toUpperCase()}`,
     resource: `patient:${id}`,
   });

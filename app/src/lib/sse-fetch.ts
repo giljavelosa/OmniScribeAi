@@ -1,10 +1,10 @@
 // Fetch generate-note via SSE with retry on connection drop
 export async function fetchNoteSSE(
-  body: Record<string, any>,
+  body: Record<string, unknown>,
   onProgress?: (pass: number, total: number, message: string) => void,
   signal?: AbortSignal,
   maxRetries = 2,
-): Promise<any> {
+): Promise<Record<string, unknown>> {
   let lastAttempt = 0;
 
   for (let attempt = 1; attempt <= maxRetries + 1; attempt++) {
@@ -35,7 +35,7 @@ export async function fetchNoteSSE(
       const reader = res.body!.getReader();
       const decoder = new TextDecoder();
       let buffer = '';
-      let result: any = null;
+      let result: Record<string, unknown> | null = null;
 
       while (true) {
         const { done, value } = await reader.read();

@@ -128,10 +128,16 @@ function EditableList({ items, onChange }: { items: string[]; onChange: (items: 
 export default function ClinicalSynthesis({ synthesis, onUpdate, onRegenerateNote, regenerating }: ClinicalSynthesisProps) {
   const [local, setLocal] = useState<ClinicalSynthesisData>(synthesis);
   const [dirty, setDirty] = useState(false);
+  const [prevSynthesis, setPrevSynthesis] = useState(synthesis);
 
-  useEffect(() => { setLocal(synthesis); setDirty(false); }, [synthesis]);
+  // Sync local state when parent prop changes (e.g., after regeneration)
+  if (prevSynthesis !== synthesis) {
+    setPrevSynthesis(synthesis);
+    setLocal(synthesis);
+    setDirty(false);
+  }
 
-  const update = (field: keyof ClinicalSynthesisData, value: any) => {
+  const update = (field: keyof ClinicalSynthesisData, value: string | string[]) => {
     const updated = { ...local, [field]: value };
     setLocal(updated);
     setDirty(true);

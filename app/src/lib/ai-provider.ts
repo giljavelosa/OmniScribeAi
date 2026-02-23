@@ -82,26 +82,29 @@ function getModel(provider: AIProvider): string {
 
 // ── Normalize usage from different response formats ──────────────────
 
-function normalizeUsage(provider: AIProvider, data: any): AIUsage {
+function normalizeUsage(provider: AIProvider, data: Record<string, unknown>): AIUsage {
+  const usage = data.usage as Record<string, number> | undefined;
   if (provider === "anthropic") {
     return {
-      input_tokens: data.usage?.input_tokens ?? 0,
-      output_tokens: data.usage?.output_tokens ?? 0,
+      input_tokens: usage?.input_tokens ?? 0,
+      output_tokens: usage?.output_tokens ?? 0,
     };
   }
   // OpenAI-compatible (Grok, DeepSeek)
   return {
-    input_tokens: data.usage?.prompt_tokens ?? 0,
-    output_tokens: data.usage?.completion_tokens ?? 0,
+    input_tokens: usage?.prompt_tokens ?? 0,
+    output_tokens: usage?.completion_tokens ?? 0,
   };
 }
 
-function extractContent(provider: AIProvider, data: any): string {
+function extractContent(provider: AIProvider, data: Record<string, unknown>): string {
   if (provider === "anthropic") {
-    return data.content?.[0]?.text || "";
+    const content = data.content as Array<{ text?: string }> | undefined;
+    return content?.[0]?.text || "";
   }
   // OpenAI-compatible
-  return data.choices?.[0]?.message?.content || "";
+  const choices = data.choices as Array<{ message?: { content?: string } }> | undefined;
+  return choices?.[0]?.message?.content || "";
 }
 
 // ── Build request body per provider format ───────────────────────────
@@ -134,21 +137,32 @@ function buildTextBody(
   };
 }
 
+interface VisionMessagePart {
+  type: string;
+  text?: string;
+  source?: { type: string; media_type: string; data: string };
+}
+
+interface VisionMessage {
+  role: string;
+  content: string | VisionMessagePart[];
+}
+
 function buildVisionBody(
   provider: AIProvider,
   model: string,
-  messages: any[],
+  messages: VisionMessage[],
   maxTokens: number,
 ): Record<string, unknown> {
   if (provider === "anthropic") {
     return { model, max_tokens: maxTokens, messages };
   }
   // OpenAI-compatible — convert Anthropic vision format to OpenAI format
-  const converted = messages.map((msg: any) => {
+  const converted = messages.map((msg: VisionMessage) => {
     if (!Array.isArray(msg.content)) return msg;
     return {
       ...msg,
-      content: msg.content.map((part: any) => {
+      content: msg.content.map((part: VisionMessagePart) => {
         if (part.type === "image" && part.source?.type === "base64") {
           return {
             type: "image_url",
@@ -260,7 +274,7 @@ export async function callAI(
  * to OpenAI format for Grok/DeepSeek.
  */
 export async function callAIVision(
-  messages: any[],
+  messages: VisionMessage[],
   maxTokens: number = 4096,
 ): Promise<AIResponse> {
   const provider = getProvider();

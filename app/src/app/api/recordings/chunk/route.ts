@@ -2,7 +2,6 @@ import { auth } from "@/lib/auth";
 import { appLog } from "@/lib/logger";
 import { NextRequest, NextResponse } from "next/server";
 
-export const config = { api: { bodyParser: false } };
 export const maxDuration = 30;
 
 /**

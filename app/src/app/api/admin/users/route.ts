@@ -5,9 +5,9 @@ import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 
 // GET /api/admin/users — list all users (admin only)
-export async function GET(req: NextRequest) {
+export async function GET() {
   const session = await auth();
-  if (!session?.user || (session.user as any).role !== "ADMIN") {
+  if (!session?.user || session.user.role !== "ADMIN") {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -27,7 +27,7 @@ export async function GET(req: NextRequest) {
 // POST /api/admin/users — create user (admin only)
 export async function POST(req: NextRequest) {
   const session = await auth();
-  if (!session?.user || (session.user as any).role !== "ADMIN") {
+  if (!session?.user || session.user.role !== "ADMIN") {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -53,7 +53,7 @@ export async function POST(req: NextRequest) {
   });
 
   await auditLog({
-    userId: (session.user as any).id,
+    userId: session.user.id,
     action: "CREATE_USER",
     resource: `user:${user.id}`,
     details: { email: user.email, role: user.role },

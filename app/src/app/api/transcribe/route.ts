@@ -1,15 +1,10 @@
 import { auth } from "@/lib/auth";
-import { auditLog } from "@/lib/audit";
 import { assertPhiApprovedEndpoint } from "@/lib/phi-boundaries";
 import { appLog, scrubError, errorCode } from "@/lib/logger";
 export const maxDuration = 300;
 import { NextRequest, NextResponse } from 'next/server';
 import { mockTranscripts } from '@/lib/mock-data';
 
-
-export const config = {
-  api: { bodyParser: false },
-};
 
 // Map common audio extensions to MIME types Deepgram accepts
 function getAudioMimeType(file: File): string {
@@ -115,7 +110,7 @@ export async function POST(request: NextRequest) {
 
     if (paragraphs) {
       // Count unique speakers
-      const speakers = new Set(paragraphs.map((p: any) => p.speaker).filter((s: any) => s !== undefined));
+      const speakers = new Set(paragraphs.map((p: { speaker?: number }) => p.speaker).filter((s: number | undefined) => s !== undefined));
       speakerCount = speakers.size;
 
       // Neutral labels — clinician can swap via UI

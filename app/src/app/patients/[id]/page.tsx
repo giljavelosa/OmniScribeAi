@@ -5,9 +5,26 @@ import Link from "next/link";
 import Header from "@/components/Header";
 import Sidebar from "@/components/Sidebar";
 
+interface Allergy { id: string; substance: string; reaction: string | null }
+interface Medication { id: string; name: string; dose: string | null; frequency: string | null }
+interface Condition { id: string; description: string; icdCode: string | null }
+interface Coverage { id: string; payerName: string; memberId: string | null; groupNumber: string | null; planType: string | null }
+interface VisitSummary { id: string; frameworkId: string; date: string; status: string; domain: string; summary: string | null }
+interface PatientDetail {
+  id: string; identifier: string; firstName: string | null; lastName: string | null;
+  dateOfBirth: string | null; gender: string | null; phone: string | null;
+  email: string | null; addressLine1: string | null; city: string | null;
+  state: string | null; zip: string | null; pcpName: string | null; pcpPhone: string | null;
+  referringProvider: string | null;
+  emergencyContactName: string | null; emergencyContactPhone: string | null;
+  emergencyContactRelation: string | null;
+  allergies: Allergy[]; medications: Medication[]; conditions: Condition[];
+  coverages: Coverage[]; visits: VisitSummary[];
+}
+
 export default function PatientDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  const [patient, setPatient] = useState<any>(null);
+  const [patient, setPatient] = useState<PatientDetail | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -71,7 +88,7 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
                   <div>
                     <h3 className="text-xs font-semibold text-gray-500 uppercase mb-1">Allergies</h3>
                     {patient.allergies?.length ? (
-                      <div className="flex flex-wrap gap-2">{patient.allergies.map((a: any) => (
+                      <div className="flex flex-wrap gap-2">{patient.allergies.map((a: Allergy) => (
                         <span key={a.id} className="px-2 py-1 bg-red-50 text-red-700 rounded text-xs font-medium">
                           {a.substance}{a.reaction ? ` (${a.reaction})` : ""}
                         </span>
@@ -81,7 +98,7 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
                   <div>
                     <h3 className="text-xs font-semibold text-gray-500 uppercase mb-1">Medications</h3>
                     {patient.medications?.length ? (
-                      <div className="space-y-1">{patient.medications.map((m: any) => (
+                      <div className="space-y-1">{patient.medications.map((m: Medication) => (
                         <p key={m.id} className="text-sm text-gray-600">{m.name}{m.dose ? ` ${m.dose}` : ""}{m.frequency ? ` ${m.frequency}` : ""}</p>
                       ))}</div>
                     ) : <p className="text-sm text-gray-400">None</p>}
@@ -89,7 +106,7 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
                   <div>
                     <h3 className="text-xs font-semibold text-gray-500 uppercase mb-1">Conditions</h3>
                     {patient.conditions?.length ? (
-                      <div className="space-y-1">{patient.conditions.map((c: any) => (
+                      <div className="space-y-1">{patient.conditions.map((c: Condition) => (
                         <p key={c.id} className="text-sm text-gray-600">{c.description}{c.icdCode ? ` (${c.icdCode})` : ""}</p>
                       ))}</div>
                     ) : <p className="text-sm text-gray-400">None documented</p>}
@@ -102,7 +119,7 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
                 <h2 className="font-semibold text-gray-900 mb-3">Visit History</h2>
                 {patient.visits?.length ? (
                   <div className="divide-y divide-gray-100">
-                    {patient.visits.map((v: any) => (
+                    {patient.visits.map((v: VisitSummary) => (
                       <Link key={v.id} href={`/visit/${v.id}`} className="flex items-center justify-between py-3 hover:bg-gray-50 -mx-2 px-2 rounded transition-colors">
                         <div>
                           <p className="text-sm font-medium text-gray-900">{v.frameworkId}</p>
@@ -124,7 +141,7 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
               <div className="bg-white rounded-xl border border-gray-200 p-5">
                 <h2 className="font-semibold text-gray-900 mb-3">Insurance</h2>
                 {patient.coverages?.length ? (
-                  <div className="space-y-3">{patient.coverages.map((c: any) => (
+                  <div className="space-y-3">{patient.coverages.map((c: Coverage) => (
                     <div key={c.id} className="p-3 bg-blue-50 rounded-lg">
                       <p className="text-sm font-medium text-blue-900">{c.payerName}</p>
                       {c.memberId && <p className="text-xs text-blue-700">Member: {c.memberId}</p>}

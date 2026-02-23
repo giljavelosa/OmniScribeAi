@@ -20,47 +20,6 @@ function stripFences(raw: string): string {
   return raw.replace(/^```(?:json)?\s*/gm, '').replace(/^```\s*/gm, '').trim();
 }
 
-async function callDeepSeek(system: string, user: string, maxTokens: number = 4000) {
-  const maxRetries = 3;
-  for (let attempt = 1; attempt <= maxRetries; attempt++) {
-    const response = await fetch("https://api.deepseek.com/chat/completions", {
-      method: "POST",
-      headers: {
-        "Authorization": "Bearer " + (process.env.DEEPSEEK_API_KEY || ""),
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "deepseek-chat",
-        max_tokens: maxTokens,
-        temperature: 0,
-        messages: [
-          { role: "system", content: system },
-          { role: "user", content: user },
-        ],
-      }),
-    });
-
-    if (response.ok) {
-      const result = await response.json();
-      const usage = result.usage || {};
-      return {
-        content: result.choices?.[0]?.message?.content || "",
-        tokens: (usage.prompt_tokens || 0) + (usage.completion_tokens || 0),
-        usage: { input_tokens: usage.prompt_tokens || 0, output_tokens: usage.completion_tokens || 0 },
-      };
-    }
-
-    const errorText = await response.text();
-    if (attempt < maxRetries && (response.status === 429 || response.status >= 500)) {
-      const waitSec = attempt * 5;
-      console.log("[GenNote] DeepSeek error " + response.status + ", retry " + attempt + "/" + maxRetries + " in " + waitSec + "s...");
-      await new Promise(r => setTimeout(r, waitSec * 1000));
-      continue;
-    }
-    throw new Error("DeepSeek API error (attempt " + attempt + "): " + errorText);
-  }
-  throw new Error("DeepSeek API: max retries exceeded");
-}
 
 function parseJsonArray(raw: string): { title: string; content: string }[] {
   try {
@@ -132,7 +91,7 @@ export async function POST(request: NextRequest) {
   const encoder = new TextEncoder();
   const stream = new ReadableStream({
     async start(controller) {
-      function send(event: string, data: any) {
+      function send(event: string, data: Record<string, unknown>) {
         controller.enqueue(encoder.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`));
       }
 
@@ -180,7 +139,7 @@ Return JSON:
   "phi_map": { "[PATIENT_NAME]": "original name", "[DOB]": "original DOB", ... }
 }`;
 
-        const deidentifyResult = await callClaude(deidentifySystem, transcriptText, 16000);
+        const deidentifyResult = await callAI(deidentifySystem, transcriptText, 16000);
         totalTokens += (deidentifyResult.usage?.input_tokens || 0) + (deidentifyResult.usage?.output_tokens || 0);
         
         let scrubbedTranscript = transcriptText;
@@ -522,7 +481,7 @@ Return ONLY valid JSON: { "issues": ["description"], "clean": true/false }`,
         // HIPAA audit log — note generation event
         try {
           await auditLog({
-            userId: (session.user as any).id,
+            userId: session.user.id,
             action: "GENERATE_NOTE",
             resource: `framework:${frameworkId}`,
             details: { frameworkId, transcriptLength: transcriptText.length, tokensUsed: totalTokens, generationTime },
@@ -572,12 +531,12 @@ async function handleEncounterStateMode(
   encounterState: EncounterState,
   framework: (typeof frameworks)[number],
   frameworkId: string,
-  session: any,
+  session: { user: { id: string; name: string | null; email: string } },
 ) {
   const encoder = new TextEncoder();
   const stream = new ReadableStream({
     async start(controller) {
-      function send(event: string, data: any) {
+      function send(event: string, data: Record<string, unknown>) {
         controller.enqueue(encoder.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`));
       }
 
@@ -733,7 +692,7 @@ Return ONLY valid JSON:
         // HIPAA audit log
         try {
           await auditLog({
-            userId: (session.user as any).id,
+            userId: session.user.id,
             action: "GENERATE_NOTE",
             resource: `framework:${frameworkId}`,
             details: {

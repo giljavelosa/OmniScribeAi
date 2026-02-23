@@ -1,5 +1,4 @@
 import { auth } from "@/lib/auth";
-import { auditLog } from "@/lib/audit";
 import { callAIVision } from "@/lib/ai-provider";
 import { appLog, scrubError, errorCode } from "@/lib/logger";
 export const maxDuration = 300;

@@ -8,7 +8,7 @@
  *   await audioContext.audioWorklet.addModule('/pcm-capture-processor.js');
  *   const node = new AudioWorkletNode(audioContext, 'pcm-capture-processor');
  *   sourceNode.connect(node);
- *   node.port.onmessage = (e) => { /* e.data.samples: Float32Array */ };
+ *   node.port.onmessage = (e) => { // e.data.samples is a Float32Array };
  */
 class PCMCaptureProcessor extends AudioWorkletProcessor {
   process(inputs) {

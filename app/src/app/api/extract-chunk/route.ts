@@ -166,7 +166,7 @@ Extract speakers + clinical facts. Return JSON only.`;
 
       // Validate and normalize statements
       const statements: DiarizedStatement[] = (parsed.statements || []).map(
-        (s: any) => ({
+        (s: { speaker: unknown; text: unknown; t0: unknown; t1: unknown }) => ({
           speaker: validateSpeaker(s.speaker),
           text: String(s.text || ""),
           t0: Number(s.t0) || globalStartSec,
@@ -181,7 +181,7 @@ Extract speakers + clinical facts. Return JSON only.`;
           if (typeof fields !== "object" || fields === null) continue;
           facts[sectionKey] = {};
           for (const [fieldKey, fact] of Object.entries(
-            fields as Record<string, any>,
+            fields as Record<string, unknown>,
           )) {
             facts[sectionKey][fieldKey] = normalizeFact(fact);
           }
@@ -192,8 +192,8 @@ Extract speakers + clinical facts. Return JSON only.`;
       const additional_facts: Array<{ label: string; fact: ClinicalFact }> = (
         parsed.additional_facts || []
       )
-        .filter((af: any) => af?.label && af?.fact?.value)
-        .map((af: any) => ({
+        .filter((af: { label?: string; fact?: { value?: string } }) => af?.label && af?.fact?.value)
+        .map((af: { label: string; fact: unknown }) => ({
           label: String(af.label),
           fact: normalizeFact(af.fact),
         }));
@@ -239,24 +239,26 @@ function validateSpeaker(
   return "UNKNOWN";
 }
 
-function normalizeFact(raw: any): ClinicalFact {
+function normalizeFact(raw: unknown): ClinicalFact {
   if (!raw || typeof raw !== "object") {
     return { value: null, source: "not_documented", evidence: null };
   }
 
-  const value = raw.value != null ? String(raw.value) : null;
+  const r = raw as Record<string, unknown>;
+  const value = r.value != null ? String(r.value) : null;
   const source =
-    raw.source === "transcript" || raw.source === "patient_denies"
-      ? raw.source
+    r.source === "transcript" || r.source === "patient_denies"
+      ? r.source
       : "not_documented";
 
   let evidence = null;
-  if (raw.evidence && typeof raw.evidence === "object" && value !== null) {
+  if (r.evidence && typeof r.evidence === "object" && value !== null) {
+    const ev = r.evidence as Record<string, unknown>;
     evidence = {
-      speaker: validateSpeaker(raw.evidence.speaker),
-      text: String(raw.evidence.text || ""),
-      t0: Number(raw.evidence.t0) || 0,
-      t1: Number(raw.evidence.t1) || 0,
+      speaker: validateSpeaker(ev.speaker),
+      text: String(ev.text || ""),
+      t0: Number(ev.t0) || 0,
+      t1: Number(ev.t1) || 0,
     };
   }
 

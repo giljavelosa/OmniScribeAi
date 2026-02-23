@@ -21,7 +21,7 @@ interface VisitMeta {
   complianceScore?: number;
   complianceDocumented?: number;
   complianceTotal?: number;
-  amendments?: any[];
+  amendments?: { id: string; timestamp: string; authorName: string; reason: string; changes?: { section: string; oldContent?: string; newContent?: string }[] }[];
 }
 
 interface NoteEditorProps {
@@ -200,7 +200,7 @@ const EditableSection = memo(function EditableSection({
 });
 
 // Action Banner — shows encounter-specific missing items as a checklist
-function ActionBanner({ missingItems, sections }: { missingItems: MissingItem[]; sections: NoteSection[] }) {
+function ActionBanner({ missingItems }: { missingItems: MissingItem[] }) {
   const [collapsed, setCollapsed] = useState(false);
 
   // Filter: only encounter-specific items (not emrProvided), only critical + required
@@ -273,12 +273,18 @@ function ActionBanner({ missingItems, sections }: { missingItems: MissingItem[];
 export default function NoteEditor({ sections, onUpdate, readOnly, missingItems, visitMeta, onSaveStatus }: NoteEditorProps) {
   const [localSections, setLocalSections] = useState<NoteSection[]>(sections);
   const localSectionsRef = useRef<NoteSection[]>(sections);
+  const [prevSections, setPrevSections] = useState(sections);
 
   // Sync when sections prop changes (e.g., after regeneration)
-  useEffect(() => {
+  if (prevSections !== sections) {
+    setPrevSections(sections);
     setLocalSections(sections);
-    localSectionsRef.current = sections;
-  }, [sections]);
+  }
+
+  // Keep ref in sync with state for use in callbacks
+  useEffect(() => {
+    localSectionsRef.current = localSections;
+  }, [localSections]);
 
   const [savedSectionId, setSavedSectionId] = useState<string | null>(null);
   const [editingSectionId, setEditingSectionId] = useState<string | null>(null);
@@ -312,8 +318,6 @@ export default function NoteEditor({ sections, onUpdate, readOnly, missingItems,
 
   // Filter encounter-specific missing items
   const encounterMissing = missingItems?.filter(m => !m.emrProvided) || [];
-  const actionableCount = encounterMissing.filter(m => m.category === 'critical' || m.category === 'required').length;
-
   // Copy All: header + sections + amendments
   const copyAll = async () => {
     // Build header
@@ -396,7 +400,7 @@ export default function NoteEditor({ sections, onUpdate, readOnly, missingItems,
     <div className="space-y-4">
       {/* Action Banner */}
       {missingItems && missingItems.length > 0 && (
-        <ActionBanner missingItems={encounterMissing} sections={localSections} />
+        <ActionBanner missingItems={encounterMissing} />
       )}
 
       {/* Copy All button */}

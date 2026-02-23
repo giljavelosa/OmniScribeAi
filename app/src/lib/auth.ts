@@ -50,21 +50,21 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
-        token.id = user.id;
-        token.role = (user as any).role;
-        token.clinicianType = (user as any).clinicianType;
-        token.mustChangePassword = (user as any).mustChangePassword;
-        token.extendedSessionAcknowledged = (user as any).extendedSessionAcknowledged;
+        token.id = user.id!;
+        token.role = user.role ?? "CLINICIAN";
+        token.clinicianType = user.clinicianType ?? null;
+        token.mustChangePassword = user.mustChangePassword ?? false;
+        token.extendedSessionAcknowledged = user.extendedSessionAcknowledged ?? false;
       }
       return token;
     },
     async session({ session, token }) {
       if (session.user) {
-        (session.user as any).id = token.id;
-        (session.user as any).role = token.role;
-        (session.user as any).clinicianType = token.clinicianType;
-        (session.user as any).mustChangePassword = token.mustChangePassword;
-        (session.user as any).extendedSessionAcknowledged = token.extendedSessionAcknowledged;
+        session.user.id = token.id;
+        session.user.role = token.role;
+        session.user.clinicianType = token.clinicianType;
+        session.user.mustChangePassword = token.mustChangePassword;
+        session.user.extendedSessionAcknowledged = token.extendedSessionAcknowledged;
       }
       return session;
     },

@@ -130,7 +130,7 @@ export async function POST(req: NextRequest) {
     const extracted = parseJSON(result.content);
 
     await auditLog({
-      userId: (session.user as any).id,
+      userId: session.user.id,
       action: "OCR_SCAN",
       details: { docType, fileName: file.name, confidence: extracted.confidence },
     });

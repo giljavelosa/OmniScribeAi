@@ -27,7 +27,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   if (!visit) return NextResponse.json({ error: "Visit not found" }, { status: 404 });
 
   await auditLog({
-    userId: (session.user as any).id,
+    userId: session.user.id,
     action: "VIEW_VISIT",
     resource: `visit:${visit.id}`,
   });
@@ -51,7 +51,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const visit = await prisma.visit.update({ where: { id }, data });
 
   await auditLog({
-    userId: (session.user as any).id,
+    userId: session.user.id,
     action: "UPDATE_VISIT",
     resource: `visit:${visit.id}`,
     details: { fields: Object.keys(data) },

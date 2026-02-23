@@ -24,7 +24,11 @@ export default function PatientSelector({ onSelect, selectedId }: Props) {
 
   // Search patients
   useEffect(() => {
-    if (query.length < 1) { setResults([]); return; }
+    if (query.length < 1) {
+      // Defer state update to avoid synchronous setState in effect body
+      const t = setTimeout(() => { setResults([]); }, 0);
+      return () => clearTimeout(t);
+    }
     const t = setTimeout(async () => {
       const res = await fetch(`/api/patients?q=${encodeURIComponent(query)}&limit=10`);
       const data = await res.json();
@@ -47,7 +51,7 @@ export default function PatientSelector({ onSelect, selectedId }: Props) {
           }
         });
     }
-  }, [selectedId]);
+  }, [selectedId, selected, onSelect]);
 
   // Close dropdown on outside click
   useEffect(() => {

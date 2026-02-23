@@ -24,7 +24,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   if (!patient) return NextResponse.json({ error: "Patient not found" }, { status: 404 });
 
   await auditLog({
-    userId: (session.user as any).id,
+    userId: session.user.id,
     action: "VIEW_PATIENT",
     resource: `patient:${patient.id}`,
   });
@@ -53,7 +53,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   });
 
   await auditLog({
-    userId: (session.user as any).id,
+    userId: session.user.id,
     action: "UPDATE_PATIENT",
     resource: `patient:${patient.id}`,
     details: { fields: Object.keys(data) },

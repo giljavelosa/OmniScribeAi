@@ -11,7 +11,7 @@ export async function GET(req: NextRequest) {
   const patientId = req.nextUrl.searchParams.get("patientId");
   const limit = parseInt(req.nextUrl.searchParams.get("limit") || "50");
 
-  const where: any = { userId: (session.user as any).id };
+  const where: { userId: string; patientId?: string } = { userId: session.user.id };
   if (patientId) where.patientId = patientId;
 
   const visits = await prisma.visit.findMany({
@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
   const visit = await prisma.visit.create({
     data: {
       patientId: data.patientId,
-      userId: (session.user as any).id,
+      userId: session.user.id,
       frameworkId: data.frameworkId,
       domain: data.domain || "medical",
       date: data.date ? new Date(data.date) : new Date(),
@@ -61,7 +61,7 @@ export async function POST(req: NextRequest) {
   });
 
   await auditLog({
-    userId: (session.user as any).id,
+    userId: session.user.id,
     action: "CREATE_VISIT",
     resource: `visit:${visit.id}`,
     details: { frameworkId: data.frameworkId, patientId: data.patientId },

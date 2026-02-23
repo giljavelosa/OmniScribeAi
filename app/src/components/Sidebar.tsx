@@ -18,7 +18,7 @@ const adminNav = [
 export default function Sidebar() {
   const pathname = usePathname();
   const { data: session } = useSession();
-  const isAdmin = (session?.user as any)?.role === 'ADMIN';
+  const isAdmin = session?.user?.role === 'ADMIN';
 
   return (
     <aside className="hidden lg:flex flex-col w-64 border-r border-gray-200 bg-white fixed top-16 bottom-0 left-0 z-40">

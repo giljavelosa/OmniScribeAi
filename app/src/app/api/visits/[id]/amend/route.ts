@@ -2,6 +2,18 @@ import { auth } from "@/lib/auth";
 import { auditLog } from "@/lib/audit";
 import { prisma } from "@/lib/db";
 import { NextRequest, NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
+
+interface NoteDataSection {
+  title: string;
+  content: string;
+}
+
+interface AmendmentChange {
+  section: string;
+  oldContent: string;
+  newContent: string;
+}
 
 // POST /api/visits/:id/amend — add amendment to finalized note
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -25,8 +37,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: "Only finalized notes can be amended" }, { status: 400 });
   }
 
-  const userName = (session.user as any).name || (session.user as any).email || "Unknown";
-  const userId = (session.user as any).id;
+  const userName = session.user.name || session.user.email || "Unknown";
+  const userId = session.user.id;
 
   // Build amendment record
   const amendment = {
@@ -39,13 +51,13 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   };
 
   // Append to existing amendments array
-  const existingAmendments = (visit.amendments as any[]) || [];
-  const updatedAmendments = [...existingAmendments, amendment];
+  const existingAmendments = (visit.amendments as Prisma.JsonArray) || [];
+  const updatedAmendments = [...existingAmendments, amendment as unknown as Prisma.JsonValue];
 
   // Apply changes to noteData
-  let updatedNoteData = (visit.noteData as any[]) || [];
+  let updatedNoteData = ((visit.noteData as Prisma.JsonArray) || []) as unknown as NoteDataSection[];
   for (const change of changes) {
-    updatedNoteData = updatedNoteData.map((section: any) => {
+    updatedNoteData = updatedNoteData.map((section: NoteDataSection) => {
       if (section.title === change.section) {
         return { ...section, content: change.newContent };
       }
@@ -57,8 +69,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const updatedVisit = await prisma.visit.update({
     where: { id },
     data: {
-      amendments: updatedAmendments,
-      noteData: updatedNoteData,
+      amendments: updatedAmendments as unknown as Prisma.InputJsonValue,
+      noteData: updatedNoteData as unknown as Prisma.InputJsonValue,
       status: "AMENDED",
     },
   });
@@ -67,7 +79,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     userId,
     action: "AMEND_VISIT",
     resource: "visit:" + visit.id,
-    details: { amendmentId: amendment.id, reason: amendment.reason, sectionsChanged: changes.map((c: any) => c.section) },
+    details: { amendmentId: amendment.id, reason: amendment.reason, sectionsChanged: changes.map((c: AmendmentChange) => c.section) },
   });
 
   return NextResponse.json({ success: true, amendment, visit: updatedVisit });

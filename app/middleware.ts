@@ -27,7 +27,7 @@ export default auth((req) => {
 
   // Logged in but must change password — force to /change-password
   if (
-    (req.auth.user as any)?.mustChangePassword &&
+    req.auth.user?.mustChangePassword &&
     !pathname.startsWith("/change-password") &&
     !pathname.startsWith("/api/")
   ) {

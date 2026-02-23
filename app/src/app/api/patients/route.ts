@@ -77,7 +77,7 @@ export async function POST(req: NextRequest) {
   });
 
   await auditLog({
-    userId: (session.user as any).id,
+    userId: session.user.id,
     action: "CREATE_PATIENT",
     resource: `patient:${patient.id}`,
   });

@@ -6,7 +6,7 @@ import { NextRequest, NextResponse } from "next/server";
 // PATCH /api/admin/users/:id — update user (admin only)
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth();
-  if (!session?.user || (session.user as any).role !== "ADMIN") {
+  if (!session?.user || session.user.role !== "ADMIN") {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -14,7 +14,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const data = await req.json();
 
   // Only allow specific fields
-  const allowed: Record<string, any> = {};
+  const allowed: Record<string, string | boolean> = {};
   if (data.name !== undefined) allowed.name = data.name;
   if (data.role !== undefined) allowed.role = data.role;
   if (data.clinicianType !== undefined) allowed.clinicianType = data.clinicianType;
@@ -24,7 +24,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const user = await prisma.user.update({ where: { id }, data: allowed });
 
   await auditLog({
-    userId: (session.user as any).id,
+    userId: session.user.id,
     action: "UPDATE_USER",
     resource: `user:${id}`,
     details: { fields: Object.keys(allowed) },

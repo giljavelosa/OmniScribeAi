@@ -334,7 +334,7 @@ export const cmsRequirements: Record<string, CMSRequirement[]> = {
 
 // Calculate compliance score from extracted facts
 // Deep recursive search through any JSON structure for a key with a documented value
-function findDocumentedValue(obj: any, targetKey: string): boolean {
+function findDocumentedValue(obj: unknown, targetKey: string): boolean {
   if (!obj || typeof obj !== 'object') return false;
   
   for (const [key, val] of Object.entries(obj)) {
@@ -342,8 +342,8 @@ function findDocumentedValue(obj: any, targetKey: string): boolean {
     
     // Direct key match with a documented value
     if (normalizedKey === targetKey || normalizedKey.includes(targetKey) || targetKey.includes(normalizedKey)) {
-      if (val && typeof val === 'object' && 'value' in (val as any)) {
-        const v = val as any;
+      if (val && typeof val === 'object' && 'value' in (val as Record<string, unknown>)) {
+        const v = val as Record<string, unknown>;
         if (v.value !== null && v.source !== 'not_documented') return true;
       }
       if (typeof val === 'string' && val.trim() !== '' && val !== '___' && val.toLowerCase() !== 'null') return true;
@@ -358,7 +358,7 @@ function findDocumentedValue(obj: any, targetKey: string): boolean {
 }
 
 // Search the entire facts JSON as a flattened string for keyword presence
-function factsContainKeyword(facts: any, keyword: string): boolean {
+function factsContainKeyword(facts: unknown, keyword: string): boolean {
   const flatText = JSON.stringify(facts).toLowerCase();
   const kw = keyword.toLowerCase();
   // Check for the keyword with a non-null value nearby
@@ -390,6 +390,7 @@ export function calculateCompliance(
     };
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let facts: Record<string, any>;
   try {
     facts = JSON.parse(extractedFacts);
@@ -423,7 +424,7 @@ export function calculateCompliance(
         for (const [k, v] of Object.entries(section)) {
           const nk = k.toLowerCase().replace(/[^a-z0-9]/g, '_');
           if ((nk === itemKey || nk.includes(itemKey) || itemKey.includes(nk)) && v) {
-            if (typeof v === 'object' && (v as any).value !== null && (v as any).source !== 'not_documented') { found = true; break; }
+            if (typeof v === 'object' && (v as Record<string, unknown>).value !== null && (v as Record<string, unknown>).source !== 'not_documented') { found = true; break; }
             if (typeof v === 'string' && v.trim() !== '' && v !== '___') { found = true; break; }
           }
         }

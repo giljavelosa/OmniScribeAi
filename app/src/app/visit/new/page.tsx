@@ -9,7 +9,7 @@ import Sidebar from '@/components/Sidebar';
 import AudioRecorder, { SilenceStats } from '@/components/AudioRecorder';
 import FrameworkSelector from '@/components/FrameworkSelector';
 import { ProviderType } from '@/lib/types';
-import type { EncounterState, ChunkResult } from '@/lib/encounter-state';
+import type { EncounterState } from '@/lib/encounter-state';
 
 const providerTypes: ProviderType[] = ['MD', 'DO', 'PA-C', 'NP', 'PT', 'OT', 'SLP', 'LCSW', 'PhD', 'PsyD'];
 
@@ -72,7 +72,7 @@ export default function NewVisitPage() {
       clearTimeout(noteTimeout);
 
       if (!noteData.success) {
-        throw new Error(noteData.error || 'Note generation failed');
+        throw new Error(String(noteData.error || 'Note generation failed'));
       }
 
       setProgress(85);
@@ -175,7 +175,7 @@ export default function NewVisitPage() {
       );
       clearTimeout(noteTimeout);
       if (!noteData.success) {
-        throw new Error(noteData.error || 'Note generation failed');
+        throw new Error(String(noteData.error || 'Note generation failed'));
       }
 
       setProgress(80);
@@ -223,7 +223,6 @@ export default function NewVisitPage() {
     sessionId: string,
     silenceStats?: SilenceStats,
     encounterState?: EncounterState,
-    chunkResults?: ChunkResult[],
   ) => {
     lastBlobRef.current = blob;
     lastSessionIdRef.current = sessionId;

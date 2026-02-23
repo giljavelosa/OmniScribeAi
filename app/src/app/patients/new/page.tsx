@@ -109,8 +109,8 @@ export default function NewPatientPage() {
         if (d.dateOfBirth) set("dateOfBirth", d.dateOfBirth);
         setMode("full");
       }
-    } catch (err: any) {
-      setError(err.message || "Scan failed");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Scan failed");
     } finally {
       setScanning(false);
     }
@@ -166,8 +166,8 @@ export default function NewPatientPage() {
       }
 
       router.push(`/patients/${patientId}`);
-    } catch (err: any) {
-      setError(err.message || "Failed to save");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to save");
       setSaving(false);
     }
   };

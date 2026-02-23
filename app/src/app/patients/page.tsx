@@ -29,7 +29,11 @@ export default function PatientsPage() {
     setLoading(false);
   };
 
-  useEffect(() => { fetchPatients(); }, []);
+  useEffect(() => {
+    fetch("/api/patients")
+      .then((res) => res.json())
+      .then((data) => { setPatients(data.patients || []); setLoading(false); });
+  }, []);
 
   useEffect(() => {
     const t = setTimeout(() => fetchPatients(search), 300);

@@ -8,7 +8,7 @@ export default function ExtendedSessionDisclaimer() {
   const [accepted, setAccepted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-  const user = session?.user as any;
+  const user = session?.user;
   if (!user) return null;
   if (user.mustChangePassword) return null;
   if (user.extendedSessionAcknowledged) return null;

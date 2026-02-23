@@ -94,7 +94,7 @@ Write the final clinical note. Merge the parsed data and clinical reasoning into
     // HIPAA audit log — note regeneration event
     try {
       await auditLog({
-        userId: (session.user as any).id,
+        userId: session.user.id,
         action: "REGENERATE_NOTE",
         resource: `framework:${frameworkId}`,
         details: { frameworkId, generationTime },

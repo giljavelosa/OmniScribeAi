@@ -1,12 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
 import { clearAllPhiItems } from "@/lib/phi-storage";
 
 export default function ChangePasswordPage() {
-  const router = useRouter();
   const { data: session } = useSession();
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -38,7 +36,7 @@ export default function ChangePasswordPage() {
       <div className="max-w-md w-full p-8 bg-white rounded-xl shadow-lg">
         <h1 className="text-xl font-bold text-gray-900 mb-2">Change Password</h1>
         <p className="text-sm text-gray-500 mb-6">
-          {(session?.user as any)?.mustChangePassword
+          {session?.user?.mustChangePassword
             ? "You must change your password before continuing."
             : "Update your password."}
         </p>

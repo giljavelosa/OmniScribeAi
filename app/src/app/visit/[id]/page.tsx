@@ -1,6 +1,6 @@
 'use client';
 import { getPhiItem, setPhiItem, sweepExpiredPhiItems } from '@/lib/phi-storage';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import Header from '@/components/Header';
@@ -40,6 +40,33 @@ interface ComplianceResult {
   summary: string;
 }
 
+interface ScanResult {
+  success: boolean;
+  fileName?: string;
+  fileSize?: number;
+  processingTime?: number;
+  ocr?: { document_type?: string; confidence?: string };
+  mapping?: {
+    key_findings?: string[];
+    merge_suggestions?: string;
+    sections?: { title: string; content: string }[];
+  };
+}
+
+interface AmendmentChange {
+  section: string;
+  oldContent: string;
+  newContent: string;
+}
+
+interface Amendment {
+  id: string;
+  timestamp: string;
+  authorName: string;
+  reason: string;
+  changes: AmendmentChange[];
+}
+
 interface VisitData {
   id: string;
   patientName: string;
@@ -67,6 +94,9 @@ interface VisitData {
   generationTime: number;
   mode?: 'encounter-state' | 'full-transcript';
   createdAt: string;
+  finalized?: boolean;
+  finalizedAt?: string;
+  amendments?: Amendment[];
 }
 
 export default function VisitDetailPage() {
@@ -96,10 +126,8 @@ export default function VisitDetailPage() {
   const [saveStatus, setSaveStatus] = useState('Saved just now');
   const [visitData, setVisitData] = useState<VisitData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [scannerOpen, setScannerOpen] = useState(false);
   const [scanning, setScanning] = useState(false);
-  const [scanResult, setScanResult] = useState<any>(null);
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [scanResult, setScanResult] = useState<ScanResult | null>(null);
   const [regenerating, setRegenerating] = useState(false);
   const [lastRegenTime, setLastRegenTime] = useState<string | null>(null);
   const [amendModalOpen, setAmendModalOpen] = useState(false);
@@ -146,10 +174,10 @@ export default function VisitDetailPage() {
   
   // Support both old format (note) and new format (parsedData + clinicalNote)
   const rawParsedData = visitData?.parsedData || visitData?.note || mockVisit?.note || [];
-  const parsedData = rawParsedData.map((s: any, i: number) => ({ id: s.id || `section-${i}`, title: s.title, content: s.content, feedback: s.feedback || null }));
+  const parsedData = rawParsedData.map((s: { id?: string; title: string; content: string; feedback?: string | null }, i: number) => ({ id: s.id || `section-${i}`, title: s.title, content: s.content, feedback: (s.feedback as 'up' | 'down' | null) || null }));
   
   const rawClinicalNote = visitData?.clinicalNote || visitData?.note || mockVisit?.note || [];
-  const clinicalNote = rawClinicalNote.map((s: any, i: number) => ({ id: s.id || `cn-${i}`, title: s.title, content: s.content, feedback: s.feedback || null }));
+  const clinicalNote = rawClinicalNote.map((s: { id?: string; title: string; content: string; feedback?: string | null }, i: number) => ({ id: s.id || `cn-${i}`, title: s.title, content: s.content, feedback: (s.feedback as 'up' | 'down' | null) || null }));
   
   const summary = visitData?.summary || mockVisit?.summary || '';
   const duration = visitData?.transcriptDuration || mockVisit?.duration || 0;
@@ -209,7 +237,7 @@ export default function VisitDetailPage() {
     // Pre-populate amendingSections with current note content
     const sections = visitData?.clinicalNote || visitData?.note || [];
     const sectionMap: Record<string, string> = {};
-    for (const s of sections as any[]) {
+    for (const s of sections) {
       sectionMap[s.title] = s.content;
     }
     setAmendingSections(sectionMap);
@@ -223,7 +251,7 @@ export default function VisitDetailPage() {
     try {
       const originalSections = visitData.clinicalNote || visitData.note || [];
       const changes: {section: string; oldContent: string; newContent: string}[] = [];
-      for (const s of originalSections as any[]) {
+      for (const s of originalSections) {
         if (amendingSections[s.title] && amendingSections[s.title] !== s.content) {
           changes.push({ section: s.title, oldContent: s.content, newContent: amendingSections[s.title] });
         }
@@ -252,8 +280,8 @@ export default function VisitDetailPage() {
       // Update local state
       const now = new Date().toISOString();
       const amendment = { id: 'amend-' + Date.now(), timestamp: now, authorName: 'Current User', reason: amendReason.trim(), changes };
-      const existingAmendments = (visitData as any).amendments || [];
-      const updatedNote = (visitData.clinicalNote || visitData.note || []).map((s: any) => {
+      const existingAmendments = visitData.amendments || [];
+      const updatedNote = (visitData.clinicalNote || visitData.note || []).map((s: { title: string; content: string }) => {
         const change = changes.find(c => c.section === s.title);
         return change ? { ...s, content: change.newContent } : s;
       });
@@ -266,8 +294,8 @@ export default function VisitDetailPage() {
       localStorage.setItem(`omniscribe-visit-${visitId}`, JSON.stringify(updatedVisit));
       setAmendModalOpen(false);
       setSaveStatus('Amendment saved');
-    } catch (err: any) {
-      alert('Amendment error: ' + err.message);
+    } catch (err: unknown) {
+      alert('Amendment error: ' + (err instanceof Error ? err.message : String(err)));
     } finally {
       setSubmittingAmendment(false);
     }
@@ -282,7 +310,7 @@ export default function VisitDetailPage() {
     const compLine = compliance ? `<div class="footer">CMS Compliance: ${compliance.grade} (${compliance.score}%) - ${compliance.documented}/${compliance.totalRequired} items documented</div>` : '';
     
     let body = '';
-    for (const s of sections as any[]) {
+    for (const s of sections) {
       const c = s.content
         .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
         .replace(/\n\n/g, '</p><p>')
@@ -320,7 +348,7 @@ ${compLine}
 
   // Regenerate clinical note from updated parsed data — uses the lightweight
   // /api/regenerate-note endpoint (single pass) instead of the full 6-pass pipeline
-  const regenerateFromParsedData = async (updatedParsedData: any[]) => {
+  const regenerateFromParsedData = async (updatedParsedData: { title: string; content: string }[]) => {
     if (!visitData || regenerating) return;
     setRegenerating(true);
     try {
@@ -351,7 +379,7 @@ ${compLine}
         setPhiItem(`omniscribe-visit-${visitId}`, updatedVisit);
         setLastRegenTime(new Date().toLocaleTimeString());
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Regeneration error:', err);
     } finally {
       setRegenerating(false);
@@ -398,14 +426,14 @@ ${compLine}
         setScanResult(data);
         // Auto-merge scanned sections into parsed data
         if (data.mapping?.sections && visitData) {
-          const newSections = data.mapping.sections.map((s: any, i: number) => ({
+          const newSections = data.mapping.sections.map((s: { title: string; content: string }, i: number) => ({
             id: `scan-${Date.now()}-${i}`,
             title: `📎 ${s.title} (from ${data.ocr.document_type})`,
             content: s.content,
             feedback: null,
           }));
           
-          const updatedParsedData = [...(visitData.parsedData || visitData.note || []), ...newSections.map((s: any) => ({ title: s.title, content: s.content }))];
+          const updatedParsedData = [...(visitData.parsedData || visitData.note || []), ...newSections.map((s: { title: string; content: string }) => ({ title: s.title, content: s.content }))];
           const updatedVisit = { ...visitData, parsedData: updatedParsedData };
           setVisitData(updatedVisit);
           setPhiItem(`omniscribe-visit-${visitId}`, updatedVisit);
@@ -416,8 +444,8 @@ ${compLine}
       } else {
         alert('Scan failed: ' + (data.error || 'Unknown error'));
       }
-    } catch (err: any) {
-      alert('Scan error: ' + err.message);
+    } catch (err: unknown) {
+      alert('Scan error: ' + (err instanceof Error ? err.message : String(err)));
     } finally {
       setScanning(false);
     }
@@ -487,17 +515,17 @@ ${compLine}
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
                   Export / Print
                 </button>
-                {!(visitData as any)?.finalized && (
+                {!visitData?.finalized && (
                   <button onClick={handleFinalize}
                     className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 transition-colors">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
                     Finalize Note
                   </button>
                 )}
-                {(visitData as any)?.finalized && (
+                {visitData?.finalized && (
                   <>
                     <div className="flex items-center gap-2 px-4 py-2 bg-green-50 border border-green-200 rounded-lg text-sm font-medium text-green-700">
-                      &#10003; Finalized {(visitData as any)?.finalizedAt ? new Date((visitData as any).finalizedAt).toLocaleString() : ''}
+                      &#10003; Finalized {visitData?.finalizedAt ? new Date(visitData.finalizedAt).toLocaleString() : ''}
                     </div>
                     <button onClick={handleOpenAmend}
                       className="flex items-center gap-2 px-4 py-2 bg-amber-500 text-white rounded-lg text-sm font-medium hover:bg-amber-600 transition-colors">
@@ -579,11 +607,11 @@ ${compLine}
               )}
 
               {/* Amendment History */}
-              {(visitData as any)?.amendments && (visitData as any).amendments.length > 0 && (
+              {visitData?.amendments && visitData.amendments.length > 0 && (
                 <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6">
                   <div className="text-xs font-semibold text-amber-700 uppercase tracking-wide mb-3">Amendment History</div>
                   <div className="space-y-3">
-                    {((visitData as any).amendments as any[]).map((a: any, i: number) => (
+                    {visitData!.amendments!.map((a: Amendment, i: number) => (
                       <div key={a.id || i} className="border-l-2 border-amber-400 pl-3">
                         <div className="flex items-center gap-2 text-xs text-amber-800 mb-1">
                           <span className="font-semibold">Amendment #{i + 1}</span>
@@ -594,7 +622,7 @@ ${compLine}
                         </div>
                         <div className="text-sm text-amber-900 mb-1"><strong>Reason:</strong> {a.reason}</div>
                         <div className="space-y-1">
-                          {a.changes.map((c: any, j: number) => (
+                          {a.changes.map((c: AmendmentChange, j: number) => (
                             <div key={j} className="text-xs text-amber-700">
                               <span className="font-medium">Section: {c.section}</span>
                               <details className="mt-1">
@@ -699,7 +727,7 @@ ${compLine}
                   complianceScore: compliance?.score,
                   complianceDocumented: compliance?.documented,
                   complianceTotal: compliance?.totalRequired,
-                  amendments: (visitData as any)?.amendments,
+                  amendments: visitData?.amendments,
                 }} onSaveStatus={setSaveStatus} />
               ) : tab === 'parsedData' ? (
                 <div>
@@ -850,7 +878,7 @@ ${compLine}
                               📎 Document Scanned: {scanResult.ocr?.document_type || 'Unknown'}
                             </h4>
                             <p className="text-xs text-blue-600 mt-0.5">
-                              {scanResult.fileName} · {(scanResult.fileSize / 1024).toFixed(0)}KB · {scanResult.processingTime}s
+                              {scanResult.fileName} · {((scanResult.fileSize ?? 0) / 1024).toFixed(0)}KB · {scanResult.processingTime}s
                             </p>
                           </div>
                           <button 
@@ -860,11 +888,11 @@ ${compLine}
                         </div>
 
                         {/* Key findings */}
-                        {scanResult.mapping?.key_findings?.length > 0 && (
+                        {scanResult.mapping?.key_findings && scanResult.mapping.key_findings.length > 0 && (
                           <div className="mb-2">
                             <div className="text-xs font-semibold text-blue-800 mb-1">Key Findings:</div>
                             <ul className="space-y-0.5">
-                              {scanResult.mapping.key_findings.map((f: string, i: number) => (
+                              {scanResult.mapping!.key_findings!.map((f: string, i: number) => (
                                 <li key={i} className="text-xs text-blue-700">• {f}</li>
                               ))}
                             </ul>

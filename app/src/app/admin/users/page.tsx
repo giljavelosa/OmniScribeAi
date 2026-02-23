@@ -25,7 +25,11 @@ export default function AdminUsersPage() {
     setLoading(false);
   };
 
-  useEffect(() => { fetchUsers(); }, []);
+  useEffect(() => {
+    fetch("/api/admin/users")
+      .then((res) => res.json())
+      .then((data) => { setUsers(data.users || []); setLoading(false); });
+  }, []);
 
   const createUser = async () => {
     setError("");

@@ -95,11 +95,13 @@ export default function AudioRecorder({ onRecordingComplete, onPartialTranscript
   const [elapsed, setElapsed]       = useState(0);
   const [levels, setLevels]         = useState<number[]>(new Array(40).fill(0));
   const [error, setError]           = useState<string | null>(null);
-  const [preflight, setPreflight]   = useState<PreflightResult>({ status: 'idle', message: '' });
+  const [preflight, setPreflight]   = useState<PreflightResult>({ status: 'checking', message: 'Checking recording readiness…' });
   const [savedChunks, setSavedChunks]     = useState(0);
   const [failedChunks, setFailedChunks]   = useState(0);
   const [toastMessage, setToastMessage]   = useState<string | null>(null);
   const [processingChunks, setProcessingChunks] = useState(0);
+  const [isRealtimeMode, setIsRealtimeMode] = useState(false);
+  const [transcribedChunks, setTranscribedChunks] = useState(0);
 
   // Refs
   const mediaRecorder   = useRef<MediaRecorder | null>(null);
@@ -134,11 +136,10 @@ export default function AudioRecorder({ onRecordingComplete, onPartialTranscript
 
   // Pre-flight on mount
   useEffect(() => {
-    setPreflight({ status: 'checking', message: 'Checking recording readiness…' });
     runPreflight().then(setPreflight);
   }, []);
 
-  // Waveform
+  // Waveform — update only (scheduling handled at call sites to avoid self-reference)
   const updateLevels = useCallback(() => {
     if (!analyserRef.current) return;
     const data = new Uint8Array(analyserRef.current.frequencyBinCount);
@@ -151,7 +152,6 @@ export default function AudioRecorder({ onRecordingComplete, onPartialTranscript
       lv.push(sum / step / 255);
     }
     setLevels(lv);
-    animFrameRef.current = requestAnimationFrame(updateLevels);
   }, []);
 
   // Show auto-dismiss toast
@@ -230,6 +230,8 @@ export default function AudioRecorder({ onRecordingComplete, onPartialTranscript
             encounterStateRef.current,
             extraction,
           );
+
+          setTranscribedChunks(encounterStateRef.current.chunk_count);
 
           // Notify parent with live transcript
           if (onPartialTranscript) {
@@ -311,6 +313,8 @@ export default function AudioRecorder({ onRecordingComplete, onPartialTranscript
     // Initialize EncounterState if we have a framework and real-time mode is enabled
     const isRealtime = (process.env.NEXT_PUBLIC_TRANSCRIPTION_PROVIDER || 'groq') === 'groq' && !!frameworkId;
     isRealtimeModeRef.current = isRealtime;
+    setIsRealtimeMode(isRealtime);
+    setTranscribedChunks(0);
 
     if (isRealtime && frameworkId) {
       const framework = frameworks.find(f => f.id === frameworkId);
@@ -347,6 +351,7 @@ export default function AudioRecorder({ onRecordingComplete, onPartialTranscript
         } catch (workletErr) {
           console.warn('[AudioRecorder] AudioWorklet failed, falling back to legacy mode:', workletErr);
           isRealtimeModeRef.current = false;
+          setIsRealtimeMode(false);
         }
       }
 
@@ -480,7 +485,8 @@ export default function AudioRecorder({ onRecordingComplete, onPartialTranscript
         });
       }, 1000);
 
-      animFrameRef.current = requestAnimationFrame(updateLevels);
+      const levelLoop = () => { updateLevels(); animFrameRef.current = requestAnimationFrame(levelLoop); };
+      animFrameRef.current = requestAnimationFrame(levelLoop);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
       if (msg.includes('NotAllowed') || msg.includes('Permission'))
@@ -556,7 +562,8 @@ export default function AudioRecorder({ onRecordingComplete, onPartialTranscript
           return next;
         });
       }, 1000);
-      animFrameRef.current = requestAnimationFrame(updateLevels);
+      const levelLoop = () => { updateLevels(); animFrameRef.current = requestAnimationFrame(levelLoop); };
+      animFrameRef.current = requestAnimationFrame(levelLoop);
     }
   };
 
@@ -673,12 +680,12 @@ export default function AudioRecorder({ onRecordingComplete, onPartialTranscript
           )}
         </div>
         {/* Real-time transcription indicator */}
-        {isRealtimeModeRef.current && (
+        {isRealtimeMode && (
           <div className="text-xs mt-0.5">
             {processingChunks > 0 ? (
               <span className="text-blue-500 animate-pulse">Transcribing…</span>
-            ) : encounterStateRef.current && encounterStateRef.current.chunk_count > 0 ? (
-              <span className="text-emerald-600">{encounterStateRef.current.chunk_count} chunk{encounterStateRef.current.chunk_count !== 1 ? 's' : ''} transcribed</span>
+            ) : transcribedChunks > 0 ? (
+              <span className="text-emerald-600">{transcribedChunks} chunk{transcribedChunks !== 1 ? 's' : ''} transcribed</span>
             ) : (
               <span className="text-gray-400">Real-time transcription active</span>
             )}
