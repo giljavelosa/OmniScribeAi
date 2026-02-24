@@ -490,15 +490,22 @@ Each item follows the same workflow as FIX-1 through FIX-17:
 
 ---
 
-## UX-5: Processing progress steps
+## UX-5: Processing progress steps ✅
+**Date:** 2026-02-24
 **Priority:** MEDIUM — shows Uploading → Transcribing → Generating instead of generic spinner
-**Files to change:**
-- `app/src/app/visit/new/page.tsx` — replace generic spinner with step indicator
-- `app/src/app/api/generate-note/route.ts` — already sends SSE progress events (reuse)
+**Files changed:**
+- `app/src/app/visit/new/page.tsx` — replaced generic spinner with 4-step progress indicator. Each step shows: checkmark (done), spinner (active), or gray dot (pending). Steps vary by flow:
+  - Legacy (upload): Transcribing audio → Generating clinical note → Verifying accuracy → Finalizing
+  - Encounter-state (recording): Validating clinical data → Generating clinical note → Verifying accuracy → Finalizing
+  Steps advance based on process milestones and SSE pass numbers. Progress bar + percentage retained below the step list. Added `processingSteps` state and `advanceStep()` helper.
+- `app/src/app/api/generate-note/route.ts` — no changes (already sends SSE progress with `pass` numbers; reused)
 
 **What could break:**
-- SSE event names/format must match what the UI expects
-- Upload mode vs record mode have different step sequences
+- SSE `pass` values map to step indices — if generate-note changes pass numbers, step indicator could get out of sync
+- Step indicator is purely cosmetic — doesn't affect processing logic
+
+**Build:** ✅ `tsc --noEmit` passes
+**Tests:** ✅ `vitest run` passes (43/43)
 
 ---
 

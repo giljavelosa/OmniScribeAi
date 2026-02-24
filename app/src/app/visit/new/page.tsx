@@ -82,6 +82,7 @@ function NewVisitContent() {
   const [step, setStep] = useState<'setup' | 'recording' | 'processing' | 'error'>('setup');
   const [progress, setProgress] = useState(0);
   const [progressText, setProgressText] = useState('');
+  const [processingSteps, setProcessingSteps] = useState<{ label: string; status: 'pending' | 'active' | 'done' }[]>([]);
   const [errorMsg, setErrorMsg] = useState('');
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [liveTranscript, setLiveTranscript] = useState('');
@@ -148,6 +149,16 @@ function NewVisitContent() {
     setPatientResults([]);
   };
 
+  // Helper to advance processing step indicator
+  const advanceStep = useCallback((stepIndex: number, steps: { label: string; status: 'pending' | 'active' | 'done' }[]) => {
+    const updated = steps.map((s, i) => ({
+      ...s,
+      status: (i < stepIndex ? 'done' : i === stepIndex ? 'active' : 'pending') as 'pending' | 'active' | 'done',
+    }));
+    setProcessingSteps(updated);
+    return updated;
+  }, []);
+
   const canGenerate = patientName.trim() !== '' && frameworkId !== '';
 
   // Callback for live transcript updates during recording
@@ -159,12 +170,20 @@ function NewVisitContent() {
 
   // Generate note from pre-built EncounterState (2-pass, 30-45s)
   const processWithEncounterState = async (encounterState: EncounterState) => {
+    const steps: { label: string; status: 'pending' | 'active' | 'done' }[] = [
+      { label: 'Validating clinical data', status: 'active' },
+      { label: 'Generating clinical note', status: 'pending' },
+      { label: 'Verifying accuracy', status: 'pending' },
+      { label: 'Finalizing', status: 'pending' },
+    ];
+    setProcessingSteps(steps);
     setStep('processing');
     setProgress(10);
     setProgressText('Validating clinical data...');
 
     try {
       // Step 1: Generate note via encounter-state mode (SSE)
+      advanceStep(1, steps);
       setProgress(20);
       setProgressText('Generating clinical note from encounter data...');
 
@@ -181,6 +200,8 @@ function NewVisitContent() {
           const pct = 20 + Math.round((pass / total) * 60);
           setProgress(pct);
           setProgressText(message);
+          // Map SSE pass to step indicator
+          if (pass >= 2) advanceStep(2, steps);
         },
         noteController.signal,
       );
@@ -190,6 +211,7 @@ function NewVisitContent() {
         throw new Error(String(noteData.error || 'Note generation failed'));
       }
 
+      advanceStep(3, steps);
       setProgress(85);
       setProgressText('Finalizing clinical note...');
 
@@ -249,6 +271,13 @@ function NewVisitContent() {
 
   // Legacy flow: transcribe full audio blob then generate note (6-pass)
   const processAudio = async (audioBlob: Blob) => {
+    const steps: { label: string; status: 'pending' | 'active' | 'done' }[] = [
+      { label: 'Transcribing audio', status: 'active' },
+      { label: 'Generating clinical note', status: 'pending' },
+      { label: 'Verifying accuracy', status: 'pending' },
+      { label: 'Finalizing', status: 'pending' },
+    ];
+    setProcessingSteps(steps);
     setStep('processing');
     setProgress(0);
 
@@ -281,8 +310,9 @@ function NewVisitContent() {
         throw new Error(transcribeData.error || 'Transcription failed');
       }
 
+      advanceStep(1, steps);
       setProgress(40);
-      setProgressText('Extracting clinical facts from transcript...');
+      setProgressText('Generating clinical note...');
 
       // Step 2: Generate note (SSE streaming to keep connection alive)
       const noteController = new AbortController();
@@ -293,6 +323,7 @@ function NewVisitContent() {
           const pct = 40 + Math.round((pass / total) * 40);
           setProgress(pct);
           setProgressText(message);
+          if (pass >= 2) advanceStep(2, steps);
         },
         noteController.signal
       );
@@ -301,6 +332,7 @@ function NewVisitContent() {
         throw new Error(String(noteData.error || 'Note generation failed'));
       }
 
+      advanceStep(3, steps);
       setProgress(80);
       setProgressText('Finalizing clinical note...');
 
@@ -430,18 +462,49 @@ function NewVisitContent() {
           </div>
 
           {step === 'processing' ? (
-            <div className="bg-white rounded-2xl border border-gray-200 p-12 text-center animate-fade-in">
-              <div className="w-16 h-16 rounded-full bg-[#0d9488]/10 flex items-center justify-center mx-auto mb-6">
-                <svg className="animate-spin" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#0d9488" strokeWidth="2">
-                  <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
-                </svg>
+            <div className="bg-white rounded-2xl border border-gray-200 p-8 md:p-12 animate-fade-in">
+              <h2 className="text-xl font-bold text-gray-900 mb-6 text-center">Generating your clinical note...</h2>
+
+              {/* Step indicator */}
+              <div className="max-w-sm mx-auto mb-8 space-y-3">
+                {processingSteps.map((s, i) => (
+                  <div key={i} className="flex items-center gap-3">
+                    {s.status === 'done' ? (
+                      <div className="w-7 h-7 rounded-full bg-[#0d9488] flex items-center justify-center shrink-0">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                      </div>
+                    ) : s.status === 'active' ? (
+                      <div className="w-7 h-7 rounded-full bg-[#0d9488]/10 flex items-center justify-center shrink-0">
+                        <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0d9488" strokeWidth="2.5">
+                          <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
+                        </svg>
+                      </div>
+                    ) : (
+                      <div className="w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center shrink-0">
+                        <div className="w-2 h-2 rounded-full bg-gray-300" />
+                      </div>
+                    )}
+                    <span className={`text-sm ${
+                      s.status === 'done' ? 'text-[#0d9488] font-medium' :
+                      s.status === 'active' ? 'text-gray-900 font-medium' :
+                      'text-gray-400'
+                    }`}>
+                      {s.label}
+                    </span>
+                  </div>
+                ))}
               </div>
-              <h2 className="text-xl font-bold text-gray-900 mb-2">Generating your clinical note...</h2>
-              <p className="text-gray-500 mb-6 text-sm">{progressText}</p>
-              <div className="w-full max-w-md mx-auto h-2 bg-gray-100 rounded-full overflow-hidden">
-                <div className="h-full bg-[#0d9488] rounded-full transition-all duration-500" style={{ width: `${progress}%` }} />
+
+              {/* Progress bar */}
+              <div className="text-center">
+                <p className="text-gray-500 mb-3 text-xs">{progressText}</p>
+                <div className="w-full max-w-md mx-auto h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                  <div className="h-full bg-[#0d9488] rounded-full transition-all duration-500" style={{ width: `${progress}%` }} />
+                </div>
+                <div className="text-xs text-gray-400 mt-1.5">{progress}%</div>
               </div>
-              <div className="text-xs text-gray-400 mt-2">{progress}%</div>
             </div>
           ) : step === 'error' ? (
             <div className="bg-white rounded-2xl border border-red-200 p-12 text-center">
