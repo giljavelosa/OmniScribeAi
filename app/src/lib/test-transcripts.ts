@@ -1,8 +1,23 @@
-export const testTranscripts = {
+export interface TestTranscript {
+  id: string;
+  label: string;
+  frameworkId: string;
+  domain: 'medical' | 'rehab' | 'bh';
+  text: string;
+  expectedFacts: Record<string, string>;
+  shouldNotAppear: string[];
+}
+
+export const testTranscripts: Record<string, TestTranscript> = {
+  // ═══════════════════════════════════════════════════════════
+  // REHAB DOMAIN
+  // ═══════════════════════════════════════════════════════════
+
   transcriptA: {
     id: "transcript-a",
-    label: "Brief PT Eval - Robert Johnson",
+    label: "PT Eval - Robert Johnson",
     frameworkId: "rehab-pt-eval",
+    domain: "rehab",
     text: "This is a PT initial evaluation for Robert Johnson, a 45-year-old male electrician presenting with low back pain for 2 weeks. Pain is 7 out of 10, worse with bending and lifting at work. Lumbar flexion is limited to 30 degrees with pain. Straight leg raise is positive on the right at 40 degrees. Everything else in the lumbar ROM is within normal limits. Hip ROM was not assessed today. No prior imaging. He takes ibuprofen as needed.",
     expectedFacts: {
       name: "Robert Johnson",
@@ -15,27 +30,241 @@ export const testTranscripts = {
       otherLumbarROM: "within normal limits",
       hipROM: "not assessed",
       imaging: "no prior imaging",
-      medications: "ibuprofen as needed"
+      medications: "ibuprofen as needed",
     },
-    shouldNotAppear: ["farmer", "construction worker", "teacher", "blood pressure", "heart rate", "temperature", "grip strength", "balance", "gait analysis", "Berg Balance"]
+    shouldNotAppear: ["farmer", "construction worker", "teacher", "blood pressure", "heart rate", "temperature", "grip strength", "balance", "gait analysis", "Berg Balance"],
   },
+
+  ptDaily: {
+    id: "pt-daily",
+    label: "PT Daily Note - Maria Garcia",
+    frameworkId: "rehab-pt-daily",
+    domain: "rehab",
+    text: "PT daily note for Maria Garcia, session 6 of 12. She reports pain today at 3 out of 10, down from 5 last visit. Lumbar flexion measured at 55 degrees, up from 45 last session. Performed supine hamstring stretches, prone press-ups, and bridging exercises. Tolerated 3 sets of 10 reps on all exercises without increased pain. Gait is normal and steady. Patient is progressing well toward goals.",
+    expectedFacts: {
+      name: "Maria Garcia",
+      session: "6 of 12",
+      pain: "3/10",
+      previousPain: "5",
+      lumbarFlexion: "55 degrees",
+      previousFlexion: "45",
+      exercises: "hamstring stretches, prone press-ups, bridging",
+      sets: "3 sets of 10 reps",
+      tolerance: "without increased pain",
+      gait: "normal and steady",
+    },
+    shouldNotAppear: ["blood pressure", "heart rate", "temperature", "Berg Balance", "wheelchair", "assistive device", "cognitive", "speech"],
+  },
+
+  otEval: {
+    id: "ot-eval",
+    label: "OT Eval - Helen Nakamura",
+    frameworkId: "rehab-ot-eval",
+    domain: "rehab",
+    text: "OT initial evaluation for Helen Nakamura, a 68-year-old retired librarian, status post left distal radius fracture with ORIF 4 weeks ago. She is right-hand dominant. Left wrist flexion is 25 degrees, extension 15 degrees. Grip strength on the left is 8 pounds compared to 45 pounds on the right. She reports pain at 5 out of 10 with movement. She is unable to open jars, button shirts, or turn doorknobs with her left hand. Independent with all ADLs using her right hand only.",
+    expectedFacts: {
+      name: "Helen Nakamura",
+      age: "68",
+      occupation: "retired librarian",
+      diagnosis: "left distal radius fracture",
+      surgery: "ORIF 4 weeks ago",
+      dominance: "right-hand dominant",
+      wristFlexion: "25 degrees",
+      wristExtension: "15 degrees",
+      gripLeft: "8 pounds",
+      gripRight: "45 pounds",
+      pain: "5/10",
+      functionalLimits: "unable to open jars, button shirts, turn doorknobs",
+      adlStatus: "independent with right hand only",
+    },
+    shouldNotAppear: ["shoulder ROM", "elbow ROM", "Berg Balance", "gait", "cognitive", "speech", "blood pressure", "heart rate"],
+  },
+
+  slpEval: {
+    id: "slp-eval",
+    label: "SLP Eval - Thomas Williams",
+    frameworkId: "rehab-slp-eval",
+    domain: "rehab",
+    text: "SLP initial evaluation for Thomas Williams, 63-year-old retired engineer, status post left MCA stroke 2 weeks ago. He presents with moderate Broca's aphasia and mild oropharyngeal dysphagia. Verbal output is limited to 2 to 3 word phrases with frequent word-finding pauses. Auditory comprehension intact for 1-step commands, impaired for complex instructions. Modified barium swallow showed delayed oral transit and reduced laryngeal elevation with thin liquids. Recommended nectar-thick liquids and mechanical soft diet. Wife is present and engaged in education.",
+    expectedFacts: {
+      name: "Thomas Williams",
+      age: "63",
+      occupation: "retired engineer",
+      diagnosis: "left MCA stroke",
+      onset: "2 weeks ago",
+      aphasia: "moderate Broca's aphasia",
+      dysphagia: "mild oropharyngeal dysphagia",
+      verbalOutput: "2 to 3 word phrases",
+      comprehension: "intact for 1-step commands, impaired for complex",
+      mbsFindings: "delayed oral transit, reduced laryngeal elevation",
+      dietRecommendation: "nectar-thick liquids and mechanical soft diet",
+      familyInvolvement: "wife present and engaged",
+    },
+    shouldNotAppear: ["gait", "balance", "ROM", "grip strength", "blood pressure", "heart rate", "suicidal ideation", "depression screening"],
+  },
+
+  rehabDischarge: {
+    id: "rehab-discharge",
+    label: "PT Discharge - Robert Johnson",
+    frameworkId: "rehab-discharge",
+    domain: "rehab",
+    text: "PT discharge summary for Robert Johnson after 10 visits over 6 weeks. All goals have been met. Pain decreased from 7 out of 10 at initial evaluation to 1 out of 10 at discharge. Lumbar flexion improved from 30 degrees to 60 degrees. He has returned to full duty at work as an electrician without restrictions. Patient was educated on a home exercise program including daily stretching and core strengthening. Recommend follow-up with PCP in 4 weeks if symptoms recur.",
+    expectedFacts: {
+      name: "Robert Johnson",
+      visits: "10 visits",
+      duration: "6 weeks",
+      goalsStatus: "all goals met",
+      painInitial: "7/10",
+      painDischarge: "1/10",
+      flexionInitial: "30 degrees",
+      flexionDischarge: "60 degrees",
+      workStatus: "returned to full duty, no restrictions",
+      hep: "daily stretching and core strengthening",
+      followUp: "PCP in 4 weeks if symptoms recur",
+    },
+    shouldNotAppear: ["blood pressure", "heart rate", "temperature", "BMI", "cognitive", "speech", "suicidal ideation"],
+  },
+
+  // ═══════════════════════════════════════════════════════════
+  // MEDICAL DOMAIN
+  // ═══════════════════════════════════════════════════════════
+
   transcriptB: {
     id: "transcript-b",
-    label: "Brief SOAP Follow-up - Maria Garcia",
+    label: "SOAP Follow-up - Maria Garcia",
     frameworkId: "med-soap-followup",
+    domain: "medical",
     text: "Follow-up for Maria Garcia, she's doing much better. Pain went from 7 to 4 out of 10. Lumbar flexion improved to 50 degrees. Continue current plan.",
     expectedFacts: {
       name: "Maria Garcia",
       pain: "4/10",
       previousPain: "7/10",
-      lumbarFlexion: "50 degrees"
+      lumbarFlexion: "50 degrees",
     },
-    shouldNotAppear: ["blood pressure", "heart rate", "temperature", "weight", "BMI", "respiratory rate"]
+    shouldNotAppear: ["blood pressure", "heart rate", "temperature", "weight", "BMI", "respiratory rate"],
   },
+
+  soapNew: {
+    id: "soap-new",
+    label: "SOAP New Patient - Linda Okafor",
+    frameworkId: "med-soap-new",
+    domain: "medical",
+    text: "New patient visit for Linda Okafor, 58-year-old retired teacher presenting with a dry cough and shortness of breath for 3 weeks. She has a history of well-controlled hypertension on lisinopril 10mg daily. No fever, no weight loss, no hemoptysis. Lung exam reveals bilateral fine inspiratory crackles at the bases. Heart regular rate and rhythm. Oxygen saturation is 95% on room air. Ordering chest X-ray and PFTs. Plan to follow up in 2 weeks with results.",
+    expectedFacts: {
+      name: "Linda Okafor",
+      age: "58",
+      occupation: "retired teacher",
+      chiefComplaint: "dry cough and shortness of breath",
+      duration: "3 weeks",
+      pmh: "hypertension",
+      medications: "lisinopril 10mg daily",
+      noFever: "no fever",
+      noWeightLoss: "no weight loss",
+      noHemoptysis: "no hemoptysis",
+      lungExam: "bilateral fine inspiratory crackles at the bases",
+      heartExam: "regular rate and rhythm",
+      o2Sat: "95%",
+      orders: "chest X-ray and PFTs",
+      followUp: "2 weeks",
+    },
+    shouldNotAppear: ["diabetes", "smoking history", "CT scan", "antibiotics", "MRI", "echocardiogram"],
+  },
+
+  hp: {
+    id: "hp",
+    label: "H&P - Samuel Reeves",
+    frameworkId: "med-hp",
+    domain: "medical",
+    text: "History and physical for Samuel Reeves, 72-year-old retired postal worker, admitted for right total knee arthroplasty. Past medical history includes osteoarthritis of the right knee for 5 years, type 2 diabetes on metformin 1000mg twice daily, and hypertension on amlodipine 5mg daily. Allergies to penicillin causing rash. Right knee has 10 degrees flexion contracture and flexion limited to 90 degrees. Vascular exam shows palpable pedal pulses bilaterally. Labs show HbA1c 7.1, creatinine 1.0. Surgical consent obtained. NPO after midnight. DVT prophylaxis ordered.",
+    expectedFacts: {
+      name: "Samuel Reeves",
+      age: "72",
+      occupation: "retired postal worker",
+      admitReason: "right total knee arthroplasty",
+      osteoarthritis: "right knee, 5 years",
+      diabetes: "type 2",
+      metformin: "1000mg twice daily",
+      hypertension: "amlodipine 5mg daily",
+      allergy: "penicillin causing rash",
+      flexionContracture: "10 degrees",
+      flexionLimit: "90 degrees",
+      pedalPulses: "palpable bilaterally",
+      hba1c: "7.1",
+      creatinine: "1.0",
+      consent: "obtained",
+      npoStatus: "NPO after midnight",
+      dvtProphylaxis: "ordered",
+    },
+    shouldNotAppear: ["shoulder", "lumbar", "speech", "cognitive screening", "depression", "suicidal ideation"],
+  },
+
+  procedure: {
+    id: "procedure",
+    label: "Procedure Note - Priya Sharma",
+    frameworkId: "med-procedure",
+    domain: "medical",
+    text: "Procedure note for Priya Sharma, 44-year-old accountant. Procedure performed is right carpal tunnel release. Indication is severe right carpal tunnel syndrome confirmed on EMG with thenar atrophy and persistent numbness despite 3 months of conservative treatment. Anesthesia was local with lidocaine 1% and IV sedation. A 3 cm longitudinal incision was made at the wrist. The transverse carpal ligament was identified and released completely. The median nerve was visualized and appeared compressed but intact. Hemostasis achieved. Wound closed with 4-0 nylon sutures. Sterile dressing and volar splint applied. No complications. Estimated blood loss less than 5 mL. Patient tolerated the procedure well.",
+    expectedFacts: {
+      name: "Priya Sharma",
+      age: "44",
+      occupation: "accountant",
+      procedure: "right carpal tunnel release",
+      indication: "severe right carpal tunnel syndrome",
+      emgConfirmed: "confirmed on EMG",
+      thenarAtrophy: "thenar atrophy",
+      anesthesia: "local with lidocaine 1% and IV sedation",
+      incision: "3 cm longitudinal",
+      ligamentRelease: "transverse carpal ligament released completely",
+      nerveStatus: "compressed but intact",
+      closure: "4-0 nylon sutures",
+      splint: "volar splint applied",
+      ebl: "less than 5 mL",
+      complications: "no complications",
+    },
+    shouldNotAppear: ["blood pressure", "heart rate", "BMI", "gait", "cognitive", "depression"],
+  },
+
+  ed: {
+    id: "ed",
+    label: "ED Note - James Rivera",
+    frameworkId: "med-ed",
+    domain: "medical",
+    text: "Emergency department note for James Rivera, 28-year-old warehouse worker presenting with left ankle injury after an inversion injury at work 2 hours ago. He heard a pop and had immediate swelling. Pain is 8 out of 10. Unable to bear weight. On exam there is significant swelling and ecchymosis over the lateral malleolus. Tenderness over the anterior talofibular ligament. No tenderness over the medial malleolus or proximal fibula. Neurovascular status intact distally with strong dorsalis pedis pulse. X-ray shows no fracture. Assessment is grade 2 left ankle sprain. Applied a stirrup splint, gave crutches for non-weight-bearing. Prescribed ibuprofen 600mg three times daily and ice elevation instructions. Follow up with orthopedics in 1 week.",
+    expectedFacts: {
+      name: "James Rivera",
+      age: "28",
+      occupation: "warehouse worker",
+      mechanism: "inversion injury at work",
+      timeOfInjury: "2 hours ago",
+      pop: "heard a pop",
+      swelling: "immediate swelling",
+      pain: "8/10",
+      weightBearing: "unable to bear weight",
+      lateralMalleolus: "swelling and ecchymosis",
+      atflTenderness: "tenderness over anterior talofibular ligament",
+      medialMalleolus: "no tenderness",
+      proxFibula: "no tenderness",
+      neurovascular: "intact distally",
+      dpPulse: "strong dorsalis pedis pulse",
+      xray: "no fracture",
+      assessment: "grade 2 left ankle sprain",
+      splint: "stirrup splint",
+      crutches: "non-weight-bearing",
+      medication: "ibuprofen 600mg three times daily",
+      followUp: "orthopedics in 1 week",
+    },
+    shouldNotAppear: ["right ankle", "knee", "hip", "CT scan", "MRI", "surgery", "admission"],
+  },
+
+  // ═══════════════════════════════════════════════════════════
+  // BEHAVIORAL HEALTH DOMAIN
+  // ═══════════════════════════════════════════════════════════
+
   transcriptC: {
     id: "transcript-c",
     label: "BH Intake - David Park",
     frameworkId: "bh-intake",
+    domain: "bh",
     text: "Initial intake for David Park, 32-year-old software engineer referred by his PCP for anxiety. He reports difficulty sleeping for the past 3 months and feeling overwhelmed at work. No prior mental health treatment. Denies suicidal ideation. No substance use.",
     expectedFacts: {
       name: "David Park",
@@ -47,8 +276,112 @@ export const testTranscripts = {
       workStress: "feeling overwhelmed at work",
       priorMHTreatment: "none",
       si: "denies",
-      substanceUse: "no"
+      substanceUse: "no",
     },
-    shouldNotAppear: ["married", "divorced", "children", "alcohol use", "PHQ-9 score", "GAD-7 score", "Beck Depression", "trauma history"]
-  }
+    shouldNotAppear: ["married", "divorced", "children", "alcohol use", "PHQ-9 score", "GAD-7 score", "Beck Depression", "trauma history"],
+  },
+
+  bhProgress: {
+    id: "bh-progress",
+    label: "BH Progress Note - David Park",
+    frameworkId: "bh-progress",
+    domain: "bh",
+    text: "Progress note for David Park, session 8. He reports anxiety has improved significantly since starting CBT. GAD-7 score today is 8, down from 14 at intake. Sleep has improved to 6 to 7 hours per night. He is using breathing exercises and cognitive restructuring regularly. Work stress is more manageable. He still has occasional worry about performance reviews. Denies suicidal ideation. Plan to continue weekly CBT sessions, introduce exposure exercises for work-related anxiety next session.",
+    expectedFacts: {
+      name: "David Park",
+      session: "8",
+      anxietyStatus: "improved significantly",
+      treatment: "CBT",
+      gad7Current: "8",
+      gad7Intake: "14",
+      sleep: "6 to 7 hours per night",
+      copingSkills: "breathing exercises and cognitive restructuring",
+      workStress: "more manageable",
+      residualSymptom: "occasional worry about performance reviews",
+      si: "denies",
+      plan: "continue weekly CBT, introduce exposure exercises",
+    },
+    shouldNotAppear: ["medications", "blood pressure", "physical exam", "ROM", "grip strength", "gait"],
+  },
+
+  psychEval: {
+    id: "psych-eval",
+    label: "Psych Eval - Angela Foster",
+    frameworkId: "bh-psych-eval",
+    domain: "bh",
+    text: "Psychiatric evaluation for Angela Foster, 41-year-old single mother, works as a nurse. Referred by her therapist for medication evaluation. She has been in therapy for 6 months for major depressive disorder. PHQ-9 score is 18 indicating moderately severe depression. She reports persistent low mood, anhedonia, fatigue, difficulty concentrating at work, and insomnia with early morning awakening for the past 8 months. She has lost 12 pounds unintentionally. No prior psychiatric medications. Family history of depression in her mother. Denies suicidal ideation, homicidal ideation, and psychotic symptoms. No substance use. Starting bupropion XL 150mg daily, follow up in 2 weeks to assess response and tolerability.",
+    expectedFacts: {
+      name: "Angela Foster",
+      age: "41",
+      maritalStatus: "single mother",
+      occupation: "nurse",
+      referralSource: "therapist",
+      therapyDuration: "6 months",
+      diagnosis: "major depressive disorder",
+      phq9: "18",
+      severity: "moderately severe depression",
+      symptoms: "low mood, anhedonia, fatigue, difficulty concentrating, insomnia",
+      earlyMorningAwakening: "early morning awakening",
+      duration: "8 months",
+      weightLoss: "12 pounds unintentionally",
+      priorMeds: "no prior psychiatric medications",
+      familyHistory: "depression in mother",
+      si: "denies",
+      hi: "denies",
+      psychosis: "denies",
+      substanceUse: "no",
+      medication: "bupropion XL 150mg daily",
+      followUp: "2 weeks",
+    },
+    shouldNotAppear: ["blood pressure", "physical exam", "ROM", "gait", "grip strength", "ECG"],
+  },
+
+  bhGroup: {
+    id: "bh-group",
+    label: "BH Group Note - Anxiety Management",
+    frameworkId: "bh-group",
+    domain: "bh",
+    text: "Group therapy note for Anxiety Management group, session 12 of 16. Six members present today, two absent. Topic was exposure hierarchy planning. Members collaboratively built individualized exposure hierarchies for their primary anxiety triggers. Three members volunteered to share their hierarchies with the group and received constructive feedback. Group cohesion remains strong. One member reported a panic attack earlier this week but was able to use grounding techniques learned in session 9 to manage it independently. All members denied suicidal ideation during check-in. Plan to begin in-session exposure practice next week.",
+    expectedFacts: {
+      session: "12 of 16",
+      attendance: "six present, two absent",
+      topic: "exposure hierarchy planning",
+      activity: "individualized exposure hierarchies",
+      participation: "three members volunteered to share",
+      groupCohesion: "strong",
+      panicIncident: "one member had panic attack this week",
+      copingUsed: "grounding techniques from session 9",
+      si: "all members denied",
+      plan: "in-session exposure practice next week",
+    },
+    shouldNotAppear: ["blood pressure", "medications", "physical exam", "ROM", "specific member names", "diagnosis codes"],
+  },
+
+  bhCrisis: {
+    id: "bh-crisis",
+    label: "BH Crisis Note - Kenji Watanabe",
+    frameworkId: "bh-crisis",
+    domain: "bh",
+    text: "Crisis assessment for Kenji Watanabe, 19-year-old college sophomore studying computer science. Presented to walk-in clinic reporting passive suicidal ideation after a breakup 3 days ago. He states he has been thinking that everyone would be better off without him but denies any plan or intent to harm himself. Denies access to firearms or other lethal means. No prior suicide attempts. No history of self-harm. He has been isolating in his dorm room and skipping classes for 3 days. Sleep is poor, eating very little. Support system includes his parents who live locally and a close friend. He agreed to a safety plan including calling 988 if thoughts intensify, removing the belt from his bathrobe, and contacting his parents today. PHQ-9 is 22. Follow up tomorrow by phone and in-person within 72 hours.",
+    expectedFacts: {
+      name: "Kenji Watanabe",
+      age: "19",
+      occupation: "college sophomore, computer science",
+      presentingProblem: "passive suicidal ideation",
+      trigger: "breakup 3 days ago",
+      ideation: "thinking everyone would be better off without him",
+      planOrIntent: "denies plan or intent",
+      accessToMeans: "denies access to firearms or lethal means",
+      priorAttempts: "no prior suicide attempts",
+      selfHarm: "no history of self-harm",
+      isolation: "isolating in dorm room, skipping classes for 3 days",
+      sleep: "poor",
+      appetite: "eating very little",
+      supportSystem: "parents live locally, close friend",
+      safetyPlan: "call 988, remove belt from bathrobe, contact parents today",
+      phq9: "22",
+      followUp: "phone tomorrow, in-person within 72 hours",
+    },
+    shouldNotAppear: ["active suicidal ideation", "suicide attempt", "involuntary hold", "blood pressure", "physical exam", "medications prescribed"],
+  },
 };
