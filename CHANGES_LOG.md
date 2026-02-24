@@ -174,3 +174,22 @@ Track every fix applied to the codebase. Read this before every change to avoid 
 
 **Build:** ✅ passes
 **Tests:** ✅ passes (43/43)
+
+## FIX-10: Retry logic on single-file transcription ✅
+**Date:** 2026-02-24
+**Files changed:**
+- `app/src/app/api/transcribe/route.ts` (MODIFIED) — `transcribeSingle()` now retries up to 2 times
+
+**What it does:**
+- Up to 2 retries (3 attempts total) on 429 (rate limit) or 5xx (server error) responses
+- Also retries on network/timeout errors (AbortError)
+- Exponential backoff: 1.5s first retry, 3s second retry
+- Non-retryable errors (400, 401, 413) fail immediately
+- Logs each retry attempt for debugging
+
+**What could break:**
+- Total request time increases slightly for failing requests (max +4.5s of retry delays)
+- FormData rebuilt for each attempt (negligible memory impact for ≤24MB files)
+
+**Build:** ✅ passes
+**Tests:** ✅ passes (43/43)

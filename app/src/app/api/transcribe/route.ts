@@ -96,60 +96,88 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// ── Single Groq Whisper request ──
+// ── Single Groq Whisper request with retry ──
+const MAX_RETRIES = 2;
+const RETRY_DELAY_MS = 1500;
+
 async function transcribeSingle(
   audioBuffer: ArrayBuffer,
   mimeType: string,
   fileName: string,
   apiKey: string,
 ): Promise<NextResponse> {
-  const groqFormData = new FormData();
-  groqFormData.append('file', new Blob([audioBuffer], { type: mimeType }), fileName);
-  groqFormData.append('model', 'whisper-large-v3-turbo');
-  groqFormData.append('response_format', 'verbose_json');
-  groqFormData.append('language', 'en');
-  groqFormData.append('timestamp_granularities[]', 'word');
-  groqFormData.append('prompt', MEDICAL_PROMPT);
-
   assertPhiApprovedEndpoint(GROQ_URL);
 
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 120_000);
+  let lastStatus = 0;
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    const groqFormData = new FormData();
+    groqFormData.append('file', new Blob([audioBuffer], { type: mimeType }), fileName);
+    groqFormData.append('model', 'whisper-large-v3-turbo');
+    groqFormData.append('response_format', 'verbose_json');
+    groqFormData.append('language', 'en');
+    groqFormData.append('timestamp_granularities[]', 'word');
+    groqFormData.append('prompt', MEDICAL_PROMPT);
 
-  const groqResponse = await fetch(GROQ_URL, {
-    method: 'POST',
-    headers: { 'Authorization': `Bearer ${apiKey}` },
-    body: groqFormData,
-    signal: controller.signal,
-  });
-  clearTimeout(timeout);
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 120_000);
 
-  if (!groqResponse.ok) {
-    const code = errorCode();
-    appLog('error', 'Transcribe', 'Groq Whisper request failed', { status: groqResponse.status, code });
-    return NextResponse.json(
-      { success: false, error: 'Transcription failed', code },
-      { status: 500, headers: { 'Cache-Control': 'no-store' } }
-    );
+    try {
+      const groqResponse = await fetch(GROQ_URL, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${apiKey}` },
+        body: groqFormData,
+        signal: controller.signal,
+      });
+      clearTimeout(timeout);
+      lastStatus = groqResponse.status;
+
+      if (groqResponse.ok) {
+        const groqResult = await groqResponse.json();
+        const transcript: string = groqResult.text || '';
+        const duration: number = groqResult.duration || 0;
+        const wordCount = transcript.split(/\s+/).filter(Boolean).length;
+
+        appLog('info', 'Transcribe', 'Success', {
+          wordCount, durationSec: Math.round(duration), attempt,
+        });
+
+        return NextResponse.json({
+          success: true,
+          transcript: transcript.trim(),
+          duration: Math.round(duration),
+          wordCount,
+          confidence: 0.95,
+          source: 'groq-whisper',
+        }, { headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate', 'Pragma': 'no-cache' } });
+      }
+
+      // Retry on 429 (rate limit) or 5xx (server error)
+      if ((groqResponse.status === 429 || groqResponse.status >= 500) && attempt < MAX_RETRIES) {
+        appLog('warn', 'Transcribe', 'Retrying Groq request', { status: groqResponse.status, attempt });
+        await new Promise(r => setTimeout(r, RETRY_DELAY_MS * (attempt + 1)));
+        continue;
+      }
+    } catch (err) {
+      clearTimeout(timeout);
+      // Retry on network/timeout errors
+      if (attempt < MAX_RETRIES) {
+        appLog('warn', 'Transcribe', 'Network error, retrying', { attempt, error: scrubError(err) });
+        await new Promise(r => setTimeout(r, RETRY_DELAY_MS * (attempt + 1)));
+        continue;
+      }
+      throw err;
+    }
+
+    // Non-retryable error (4xx except 429)
+    break;
   }
 
-  const groqResult = await groqResponse.json();
-  const transcript: string = groqResult.text || '';
-  const duration: number = groqResult.duration || 0;
-  const wordCount = transcript.split(/\s+/).filter(Boolean).length;
-
-  appLog('info', 'Transcribe', 'Success', {
-    wordCount, durationSec: Math.round(duration),
-  });
-
-  return NextResponse.json({
-    success: true,
-    transcript: transcript.trim(),
-    duration: Math.round(duration),
-    wordCount,
-    confidence: 0.95,
-    source: 'groq-whisper',
-  }, { headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate', 'Pragma': 'no-cache' } });
+  const code = errorCode();
+  appLog('error', 'Transcribe', 'Groq Whisper request failed after retries', { status: lastStatus, code });
+  return NextResponse.json(
+    { success: false, error: 'Transcription failed', code },
+    { status: 500, headers: { 'Cache-Control': 'no-store' } }
+  );
 }
 
 // ── Chunked WAV transcription for files > 24MB ──
