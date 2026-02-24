@@ -3,6 +3,10 @@
 import { useState, useRef, useEffect, useCallback, memo } from 'react';
 import { NoteSection } from '@/lib/types';
 
+function escapeHtml(s: string): string {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
 interface MissingItem {
   item: string;
   section: string;
@@ -82,7 +86,7 @@ function getBlankPriority(line: string, sectionTitle: string, missingItems: Miss
 }
 
 function renderMarkdown(text: string, sectionTitle: string, missingItems?: MissingItem[]): string {
-  const lines = text.split('\n');
+  const lines = escapeHtml(text).split('\n');
   const coloredLines: string[] = [];
 
   for (const line of lines) {
