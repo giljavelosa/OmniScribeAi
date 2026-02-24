@@ -10,5 +10,8 @@ OmniScribeAI-Audit-Report.*
 test-results/
 test-audio/
 
+# Dependencies
+node_modules/
+
 # OS
 .DS_Store
