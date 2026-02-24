@@ -9,17 +9,13 @@ export async function auditLog(params: {
   ipAddress?: string;
   userAgent?: string;
 }) {
-  try {
-    const data: Prisma.AuditLogUncheckedCreateInput = {
-      action: params.action,
-      resource: params.resource,
-      details: params.details as Prisma.InputJsonValue,
-      ipAddress: params.ipAddress,
-      userAgent: params.userAgent,
-    };
-    if (params.userId) data.userId = params.userId;
-    await prisma.auditLog.create({ data });
-  } catch (e) {
-    console.error("Audit log failed:", e);
-  }
+  const data: Prisma.AuditLogUncheckedCreateInput = {
+    action: params.action,
+    resource: params.resource,
+    details: params.details as Prisma.InputJsonValue,
+    ipAddress: params.ipAddress,
+    userAgent: params.userAgent,
+  };
+  if (params.userId) data.userId = params.userId;
+  await prisma.auditLog.create({ data });
 }
