@@ -11,6 +11,10 @@ import FrameworkSelector from '@/components/FrameworkSelector';
 import { ProviderType } from '@/lib/types';
 import type { EncounterState } from '@/lib/encounter-state';
 
+function escapeHtml(s: string): string {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
 const providerTypes: ProviderType[] = ['MD', 'DO', 'PA-C', 'NP', 'PT', 'OT', 'SLP', 'LCSW', 'PhD', 'PsyD'];
 
 const ACCEPTED_AUDIO = '.mp3,.mp4,.m4a,.wav,.webm,.ogg,.aac,.flac,.wma';
@@ -408,7 +412,7 @@ export default function NewVisitPage() {
                         </div>
                         <div className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed prose prose-sm max-w-none"
                           dangerouslySetInnerHTML={{
-                            __html: liveTranscript
+                            __html: escapeHtml(liveTranscript)
                               .replace(/\*\*(Clinician|Patient|Speaker):\*\*/g, '<strong class="text-[#1e3a5f]">$1:</strong>')
                               .replace(/_\[silence[^]]*?\]_/g, '<span class="text-gray-400 italic text-xs">$&</span>')
                           }}

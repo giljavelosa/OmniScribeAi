@@ -12,6 +12,10 @@ import { NoteSection } from "@/lib/types";
 import MiniRecorder from '@/components/MiniRecorder';
 import ClinicalSynthesis from '@/components/ClinicalSynthesis';
 
+function escapeHtml(s: string): string {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
 interface ClinicalSynthesis {
   clinical_impression: string;
   problem_list: string[];
@@ -1014,7 +1018,7 @@ ${compLine}
                   <div className="bg-white border border-gray-200 rounded-xl p-6">
                     {transcript ? (
                       <div className="whitespace-pre-wrap text-sm text-gray-700 leading-relaxed font-sans"
-                        dangerouslySetInnerHTML={{ __html: formatTranscript(transcript)
+                        dangerouslySetInnerHTML={{ __html: escapeHtml(formatTranscript(transcript))
                           .replace(/\*\*(.+?):\*\*/g, '<strong class="text-[#1e3a5f]">$1:</strong>')
                           .replace(/_\[silence — ([^\]]+)\]_/g, '<span class="text-gray-400 italic text-xs bg-gray-50 px-2 py-0.5 rounded inline-block">[silence — $1]</span>')
                           .replace(/\n\n/g, '<br/><br/>')
