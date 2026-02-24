@@ -88,3 +88,25 @@ Track every fix applied to the codebase. Read this before every change to avoid 
 
 **Build:** ✅ passes
 **Tests:** ✅ passes (20/20)
+
+## FIX-5: Patient search ownership check + FIX-14: Pagination bounds ✅
+**Date:** 2026-02-24
+**Files changed:**
+- `app/src/app/api/patients/route.ts` (MODIFIED) — ownership filtering + limit capped at 100
+- `app/src/app/api/visits/route.ts` (MODIFIED) — limit capped at 100
+
+**What it does:**
+- GET /api/patients now scopes results by ownership:
+  - Admins see all patients
+  - Users with an org see only their org's patients
+  - Users without an org see only patients they have visits with
+- Removed `mrn` from search filter (now encrypted per FIX-1, can't use LIKE)
+- POST /api/patients auto-links new patients to user's organization
+- Both patients and visits list endpoints cap `limit` at 100 via `Math.min()`
+
+**What could break:**
+- Users who previously saw all patients will now only see their org's patients (intended)
+- mrn search no longer works (tradeoff of FIX-1 encryption)
+
+**Build:** ✅ passes
+**Tests:** ✅ passes (20/20)

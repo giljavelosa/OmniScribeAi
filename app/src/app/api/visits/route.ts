@@ -11,7 +11,7 @@ export async function GET(req: NextRequest) {
 
   try {
     const patientId = req.nextUrl.searchParams.get("patientId");
-    const limit = parseInt(req.nextUrl.searchParams.get("limit") || "50");
+    const limit = Math.min(parseInt(req.nextUrl.searchParams.get("limit") || "50") || 50, 100);
 
     const where: { userId: string; patientId?: string } = { userId: session.user.id };
     if (patientId) where.patientId = patientId;
