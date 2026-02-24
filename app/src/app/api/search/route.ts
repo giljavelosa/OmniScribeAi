@@ -54,7 +54,7 @@ export async function GET(req: NextRequest) {
     });
 
     // Search visits by user (most recent, matching patient names, max 5)
-    const visitWhere: Record<string, unknown> = { userId: session.user.id };
+    const visitWhere: Record<string, unknown> = {};
     if (!isAdmin) {
       visitWhere.userId = session.user.id;
     }
@@ -80,7 +80,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({ success: true, patients, visits });
   } catch (error) {
-    appLog("error", "GET /api/search", scrubError(error));
+    appLog("error", "Search", "Search query failed", { error: scrubError(error) });
     return NextResponse.json({ success: false, error: "Internal server error" }, { status: 500 });
   }
 }

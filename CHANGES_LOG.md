@@ -753,3 +753,18 @@ Each item follows the same workflow as FIX-1 through FIX-17:
 
 **Build:** ✅ `npm run build` — zero Turbopack warnings
 **Tests:** ✅ `vitest run` passes (43/43)
+
+## FIX-24: api/search admin visit scoping + appLog signature ✅
+**Date:** 2026-02-24
+**Files changed:**
+- `app/src/app/api/search/route.ts` (MODIFIED) — fixed two bugs
+
+**What it does:**
+- **Admin visit scoping bug**: `visitWhere` always set `userId: session.user.id` on line 57, making the `if (!isAdmin)` check redundant. Admins couldn't see visits from other clinicians in search. Fixed: only set `userId` for non-admins.
+- **appLog signature**: Called `appLog("error", "GET /api/search", scrubError(error))` with 3 args but signature requires `(level, component, message, metadata)`. Fixed to `appLog("error", "Search", "Search query failed", { error: scrubError(error) })`.
+
+**What could break:**
+- Admin search now returns visits from ALL users matching the query (correct behavior — mirrors patient search scoping)
+
+**Build:** ✅ `npm run build` passes
+**Tests:** ✅ `vitest run` passes (43/43)
