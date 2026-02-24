@@ -27,8 +27,14 @@ function factFoundInNote(factValue: string, noteText: string): boolean {
   // Direct substring match
   if (normNote.includes(normFact)) return true;
 
-  // Try individual key phrases (for compound facts like "swelling and ecchymosis")
-  // If the fact contains "and", check that each part appears
+  // Comma-separated compound facts: "call 988, remove belt, contact parents"
+  // Each comma-delimited part must appear somewhere in the note
+  if (normFact.includes(', ')) {
+    const parts = normFact.split(', ').map(p => p.trim()).filter(Boolean);
+    if (parts.length >= 2 && parts.every(part => normNote.includes(part))) return true;
+  }
+
+  // "and"-separated compound facts: "swelling and ecchymosis"
   if (normFact.includes(' and ')) {
     const parts = normFact.split(' and ').map(p => p.trim());
     if (parts.every(part => normNote.includes(part))) return true;
@@ -87,6 +93,8 @@ export interface HallucinationResult {
 
 /**
  * Check for hallucinations: terms that should NOT appear in the note.
+ * Uses word-boundary matching for short terms (≤4 chars) to prevent
+ * false positives like "ROM" matching inside "from".
  */
 export function scoreHallucinations(
   shouldNotAppear: string[],
@@ -96,8 +104,17 @@ export function scoreHallucinations(
   const found: string[] = [];
 
   for (const term of shouldNotAppear) {
-    if (normNote.includes(normalize(term))) {
-      found.push(term);
+    const normTerm = normalize(term);
+    if (normTerm.length <= 4) {
+      // Word-boundary match for short terms to avoid substring false positives
+      const regex = new RegExp(`\\b${normTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`);
+      if (regex.test(normNote)) {
+        found.push(term);
+      }
+    } else {
+      if (normNote.includes(normTerm)) {
+        found.push(term);
+      }
     }
   }
 
