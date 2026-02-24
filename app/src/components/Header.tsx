@@ -35,6 +35,16 @@ export default function Header() {
       </div>
 
       <div className="flex items-center gap-4">
+        <button
+          onClick={() => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', metaKey: true }))}
+          className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm text-gray-500 transition-colors"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+          </svg>
+          <span className="text-xs">Search...</span>
+          <kbd className="text-[10px] font-medium text-gray-400 bg-white px-1 py-0.5 rounded border border-gray-200 ml-1">&#8984;K</kbd>
+        </button>
         <Link
           href="/visit/new"
           className="bg-[#0d9488] hover:bg-[#0f766e] text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"

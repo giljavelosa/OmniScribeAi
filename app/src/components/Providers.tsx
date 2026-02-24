@@ -5,6 +5,7 @@ import { SessionProvider } from 'next-auth/react';
 import { sweepExpiredPhiItems } from '@/lib/phi-storage';
 import SessionTimeout from './SessionTimeout';
 import ExtendedSessionDisclaimer from './ExtendedSessionDisclaimer';
+import SearchModal from './SearchModal';
 
 export default function Providers({ children }: { children: React.ReactNode }) {
   // Sweep expired PHI on app startup (catches stale data from previous sessions)
@@ -17,6 +18,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
       {children}
       <SessionTimeout />
       <ExtendedSessionDisclaimer />
+      <SearchModal />
     </SessionProvider>
   );
 }

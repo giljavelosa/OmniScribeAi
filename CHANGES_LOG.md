@@ -471,16 +471,22 @@ Each item follows the same workflow as FIX-1 through FIX-17:
 
 ---
 
-## UX-4: Universal search (Cmd+K)
+## UX-4: Universal search (Cmd+K) ✅
+**Date:** 2026-02-24
 **Priority:** MEDIUM — find any patient/note/visit instantly
-**Files to change:**
-- `app/src/components/SearchModal.tsx` (NEW) — modal with keyboard shortcut
-- `app/src/components/Header.tsx` — add search icon + Cmd+K listener
-- `app/src/app/api/search/route.ts` (NEW) — unified search across patients + visits
+**Files changed:**
+- `app/src/app/api/search/route.ts` (NEW) — unified search endpoint. Queries patients (firstName, lastName, identifier) and visits (joined via patient). Max 5 results per type. Respects ownership scoping (admin sees all, org-scoped sees org, no-org sees own visits). Returns `{ patients, visits }`.
+- `app/src/components/SearchModal.tsx` (NEW) — full-featured search modal. Opens on Cmd+K (Mac) / Ctrl+K. Debounced search (250ms, min 2 chars). Results grouped by Patients and Visits with keyboard navigation (arrow keys + Enter). Shows patient name/identifier/visit count and visit patient/framework/date/status. ESC or click-outside to close.
+- `app/src/components/Header.tsx` (MODIFIED) — added search pill button ("Search... ⌘K") between logo and "New Visit" button. Hidden on small screens. Dispatches synthetic Cmd+K to open the modal.
+- `app/src/components/Providers.tsx` (MODIFIED) — added `<SearchModal />` as global component so it's available on all pages.
 
 **What could break:**
-- Search on encrypted fields (phone, email, mrn) won't work — only name/identifier
-- Must respect patient ownership scoping (FIX-5)
+- Search on encrypted fields (phone, email, mrn) won't work — only name/identifier are searchable (by design, per FIX-1)
+- Respects patient ownership scoping (same logic as /api/patients, per FIX-5)
+- Visits stored only in localStorage (not DB) won't appear in search results — only DB-persisted visits are searchable
+
+**Build:** ✅ `tsc --noEmit` passes
+**Tests:** ✅ `vitest run` passes (43/43)
 
 ---
 
