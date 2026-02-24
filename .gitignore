@@ -1,0 +1,10 @@
+# Credentials & infrastructure docs (never commit)
+infrastructure.md
+*.env
+*.env.*
+
+# Audit reports
+OmniScribeAI-Audit-Report.*
+
+# OS
+.DS_Store
