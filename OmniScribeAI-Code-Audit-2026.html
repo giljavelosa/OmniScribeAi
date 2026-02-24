@@ -1,0 +1,1332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OmniScribeAI — Code Audit Report — February 23, 2026</title>
+<style>
+  /* ===== Reset & Base ===== */
+  *, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  html {
+    font-size: 14px;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    color: #1a1a2e;
+    background: #f0f2f5;
+    line-height: 1.6;
+  }
+
+  /* ===== Page Container ===== */
+  .page-container {
+    max-width: 800px;
+    margin: 0 auto;
+    background: #ffffff;
+    box-shadow: 0 2px 24px rgba(0,0,0,0.08);
+  }
+
+  /* ===== Cover Header ===== */
+  .cover-header {
+    background: linear-gradient(135deg, #1e3a5f 0%, #0f2440 60%, #0d9488 100%);
+    color: #ffffff;
+    padding: 60px 50px 50px 50px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .cover-header::before {
+    content: "";
+    position: absolute;
+    top: -60px;
+    right: -60px;
+    width: 260px;
+    height: 260px;
+    border-radius: 50%;
+    background: rgba(13, 148, 136, 0.15);
+  }
+
+  .cover-header::after {
+    content: "";
+    position: absolute;
+    bottom: -40px;
+    left: -40px;
+    width: 180px;
+    height: 180px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.04);
+  }
+
+  .cover-logo {
+    font-size: 2.6rem;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    margin-bottom: 4px;
+  }
+
+  .cover-logo span {
+    color: #5eead4;
+  }
+
+  .cover-subtitle {
+    font-size: 1.35rem;
+    font-weight: 300;
+    color: #94d5cf;
+    margin-bottom: 32px;
+    letter-spacing: 0.5px;
+  }
+
+  .cover-meta-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px 32px;
+    font-size: 0.92rem;
+    color: #c8dce8;
+  }
+
+  .cover-meta-grid .label {
+    font-weight: 600;
+    color: #5eead4;
+    display: inline;
+  }
+
+  .cover-badge {
+    display: inline-block;
+    margin-top: 24px;
+    padding: 6px 18px;
+    border: 1.5px solid #5eead4;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #5eead4;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  /* ===== Content Area ===== */
+  .content {
+    padding: 40px 50px 60px 50px;
+  }
+
+  /* ===== Section Headers ===== */
+  h2 {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: #1e3a5f;
+    margin-top: 40px;
+    margin-bottom: 16px;
+    padding-bottom: 8px;
+    border-bottom: 3px solid #0d9488;
+    page-break-after: avoid;
+  }
+
+  h2 .section-num {
+    color: #0d9488;
+    margin-right: 6px;
+  }
+
+  h3 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #1e3a5f;
+    margin-top: 24px;
+    margin-bottom: 10px;
+    page-break-after: avoid;
+  }
+
+  /* ===== Paragraphs & Text ===== */
+  p {
+    margin-bottom: 12px;
+    color: #2d3748;
+  }
+
+  strong {
+    color: #1e3a5f;
+  }
+
+  .zero-badge {
+    display: inline-block;
+    background: #d1fae5;
+    color: #065f46;
+    font-weight: 700;
+    padding: 1px 10px;
+    border-radius: 10px;
+    font-size: 0.85rem;
+  }
+
+  .total-remediated {
+    background: linear-gradient(135deg, #d1fae5, #ccfbf1);
+    border-left: 4px solid #0d9488;
+    padding: 12px 20px;
+    border-radius: 0 8px 8px 0;
+    font-weight: 700;
+    color: #065f46;
+    margin: 16px 0 8px 0;
+    font-size: 1rem;
+  }
+
+  /* ===== Tables ===== */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 12px 0 20px 0;
+    font-size: 0.88rem;
+    page-break-inside: auto;
+  }
+
+  thead {
+    page-break-after: avoid;
+  }
+
+  thead th {
+    background: #1e3a5f;
+    color: #ffffff;
+    font-weight: 600;
+    text-align: left;
+    padding: 10px 14px;
+    font-size: 0.82rem;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    border: 1px solid #1e3a5f;
+  }
+
+  tbody td {
+    padding: 9px 14px;
+    border: 1px solid #e2e8f0;
+    color: #2d3748;
+  }
+
+  tbody tr:nth-child(even) {
+    background: #f7fafc;
+  }
+
+  tbody tr:nth-child(odd) {
+    background: #ffffff;
+  }
+
+  tbody tr:hover {
+    background: #edf7f6;
+  }
+
+  /* Tables: special cell styling */
+  .cell-pass {
+    color: #065f46;
+    font-weight: 700;
+  }
+
+  .cell-zero {
+    color: #065f46;
+    font-weight: 700;
+  }
+
+  .cell-before {
+    color: #991b1b;
+    font-weight: 600;
+  }
+
+  .cell-after {
+    color: #065f46;
+    font-weight: 700;
+  }
+
+  .cell-code {
+    font-family: "SF Mono", "Fira Code", "Fira Mono", Menlo, Consolas, monospace;
+    font-size: 0.82rem;
+    color: #1e3a5f;
+  }
+
+  /* ===== Schema/Model Descriptions ===== */
+  .model-group-title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #0d9488;
+    margin-top: 20px;
+    margin-bottom: 8px;
+  }
+
+  .model-list {
+    list-style: none;
+    margin: 0 0 12px 0;
+    padding: 0;
+  }
+
+  .model-list li {
+    padding: 6px 0 6px 16px;
+    border-left: 2px solid #e2e8f0;
+    margin-bottom: 4px;
+    font-size: 0.9rem;
+    color: #2d3748;
+    line-height: 1.5;
+  }
+
+  .model-list li strong {
+    color: #1e3a5f;
+    font-weight: 700;
+  }
+
+  .model-list li .mdash {
+    color: #94a3b8;
+    margin: 0 4px;
+  }
+
+  .enum-line {
+    font-size: 0.9rem;
+    color: #475569;
+    margin-top: 8px;
+    padding: 8px 14px;
+    background: #f8fafc;
+    border-radius: 6px;
+    border: 1px solid #e2e8f0;
+  }
+
+  .enum-line code {
+    font-family: "SF Mono", "Fira Code", "Fira Mono", Menlo, Consolas, monospace;
+    font-size: 0.82rem;
+    background: #e0f2fe;
+    padding: 1px 6px;
+    border-radius: 3px;
+    color: #0c4a6e;
+  }
+
+  /* ===== API Route Groups ===== */
+  .route-group-title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #0d9488;
+    margin-top: 18px;
+    margin-bottom: 6px;
+  }
+
+  .route-list {
+    list-style: none;
+    margin: 0 0 8px 0;
+    padding: 0;
+  }
+
+  .route-list li {
+    padding: 5px 0 5px 16px;
+    border-left: 2px solid #e2e8f0;
+    margin-bottom: 2px;
+    font-size: 0.88rem;
+    color: #2d3748;
+    line-height: 1.5;
+  }
+
+  .route-list li .method {
+    font-family: "SF Mono", "Fira Code", "Fira Mono", Menlo, Consolas, monospace;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: #ffffff;
+    background: #1e3a5f;
+    padding: 1px 6px;
+    border-radius: 3px;
+    margin-right: 6px;
+    display: inline-block;
+    min-width: 42px;
+    text-align: center;
+  }
+
+  .route-list li .method.post {
+    background: #0d9488;
+  }
+
+  .route-list li .method.get {
+    background: #2563eb;
+  }
+
+  .route-list li .method.patch {
+    background: #d97706;
+  }
+
+  .route-list li .method.delete {
+    background: #dc2626;
+  }
+
+  .route-list li .method.mixed {
+    background: #6b21a8;
+  }
+
+  .route-list li .path {
+    font-family: "SF Mono", "Fira Code", "Fira Mono", Menlo, Consolas, monospace;
+    font-size: 0.82rem;
+    color: #1e3a5f;
+  }
+
+  .route-list li .desc {
+    color: #64748b;
+    margin-left: 4px;
+  }
+
+  /* ===== Page List ===== */
+  .page-route-list {
+    list-style: none;
+    margin: 0 0 12px 0;
+    padding: 0;
+  }
+
+  .page-route-list li {
+    padding: 6px 0 6px 16px;
+    border-left: 2px solid #e2e8f0;
+    margin-bottom: 2px;
+    font-size: 0.88rem;
+    color: #2d3748;
+  }
+
+  .page-route-list li code {
+    font-family: "SF Mono", "Fira Code", "Fira Mono", Menlo, Consolas, monospace;
+    font-size: 0.82rem;
+    background: #f1f5f9;
+    padding: 2px 8px;
+    border-radius: 4px;
+    color: #1e3a5f;
+    font-weight: 600;
+    border: 1px solid #e2e8f0;
+  }
+
+  .page-route-list li .rdesc {
+    color: #475569;
+    margin-left: 6px;
+  }
+
+  /* ===== Code / Pipeline Blocks ===== */
+  .pipeline-block {
+    background: #0f172a;
+    color: #e2e8f0;
+    font-family: "SF Mono", "Fira Code", "Fira Mono", Menlo, Consolas, monospace;
+    font-size: 0.82rem;
+    line-height: 1.7;
+    padding: 20px 24px;
+    border-radius: 8px;
+    overflow-x: auto;
+    margin: 12px 0 20px 0;
+    border: 1px solid #1e293b;
+  }
+
+  .pipeline-block .arrow {
+    color: #0d9488;
+  }
+
+  .pipeline-block .pipe {
+    color: #475569;
+  }
+
+  .pipeline-block .label {
+    color: #5eead4;
+    font-weight: 600;
+  }
+
+  .pipeline-block .prov {
+    color: #94a3b8;
+  }
+
+  .pipeline-block .highlight {
+    color: #fbbf24;
+  }
+
+  /* ===== HIPAA Section ===== */
+  .hipaa-list {
+    list-style: none;
+    margin: 0 0 16px 0;
+    padding: 0;
+  }
+
+  .hipaa-list li {
+    padding: 8px 0 8px 28px;
+    position: relative;
+    font-size: 0.9rem;
+    color: #2d3748;
+    line-height: 1.5;
+    border-bottom: 1px solid #f1f5f9;
+  }
+
+  .hipaa-list li::before {
+    content: "\2713";
+    position: absolute;
+    left: 4px;
+    top: 8px;
+    color: #0d9488;
+    font-weight: 800;
+    font-size: 0.95rem;
+  }
+
+  .baa-block {
+    background: #fef3c7;
+    border-left: 4px solid #d97706;
+    padding: 12px 20px;
+    border-radius: 0 8px 8px 0;
+    margin: 16px 0;
+    font-size: 0.9rem;
+    color: #92400e;
+  }
+
+  .baa-block strong {
+    color: #92400e;
+  }
+
+  /* ===== Frameworks Section ===== */
+  .fw-group {
+    margin-bottom: 10px;
+  }
+
+  .fw-group-label {
+    font-weight: 700;
+    color: #1e3a5f;
+    font-size: 0.92rem;
+  }
+
+  .fw-group-items {
+    color: #475569;
+    font-size: 0.9rem;
+  }
+
+  .fw-summary {
+    margin-top: 12px;
+    padding: 10px 16px;
+    background: #f0fdfa;
+    border: 1px solid #99f6e4;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    color: #134e4a;
+  }
+
+  /* ===== Not Implemented ===== */
+  .pending-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .pending-list li {
+    padding: 8px 0 8px 28px;
+    position: relative;
+    font-size: 0.9rem;
+    color: #475569;
+    border-bottom: 1px solid #f1f5f9;
+  }
+
+  .pending-list li::before {
+    content: "\25CB";
+    position: absolute;
+    left: 6px;
+    top: 8px;
+    color: #94a3b8;
+    font-size: 0.9rem;
+  }
+
+  .pending-list li code {
+    font-family: "SF Mono", "Fira Code", "Fira Mono", Menlo, Consolas, monospace;
+    font-size: 0.8rem;
+    background: #f1f5f9;
+    padding: 1px 6px;
+    border-radius: 3px;
+    color: #64748b;
+    border: 1px solid #e2e8f0;
+  }
+
+  /* ===== Footer ===== */
+  .report-footer {
+    text-align: center;
+    padding: 30px 50px;
+    border-top: 2px solid #e2e8f0;
+    color: #64748b;
+    font-size: 0.82rem;
+  }
+
+  .report-footer .foot-line {
+    margin-bottom: 4px;
+  }
+
+  .report-footer .foot-brand {
+    font-weight: 700;
+    color: #1e3a5f;
+  }
+
+  /* ===== Horizontal Rule ===== */
+  hr {
+    border: none;
+    border-top: 1px solid #e2e8f0;
+    margin: 28px 0;
+  }
+
+  /* ===== PRINT STYLES ===== */
+  @media print {
+    @page {
+      size: A4;
+      margin: 18mm 15mm 22mm 15mm;
+    }
+
+    html {
+      font-size: 12px;
+    }
+
+    body {
+      background: #ffffff;
+    }
+
+    .page-container {
+      max-width: none;
+      box-shadow: none;
+      margin: 0;
+    }
+
+    .cover-header {
+      padding: 40px 30px 35px 30px;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    .content {
+      padding: 20px 30px 30px 30px;
+    }
+
+    h2 {
+      page-break-after: avoid;
+      margin-top: 28px;
+    }
+
+    table {
+      page-break-inside: auto;
+    }
+
+    tr {
+      page-break-inside: avoid;
+    }
+
+    thead {
+      display: table-header-group;
+    }
+
+    .pipeline-block {
+      page-break-inside: avoid;
+    }
+
+    .section-break {
+      page-break-before: always;
+    }
+
+    .total-remediated {
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    thead th {
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    tbody tr:nth-child(even) {
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    .route-list li .method {
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    .hipaa-list li::before {
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    .report-footer {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      padding: 10px 30px;
+      border-top: 1px solid #cbd5e1;
+      font-size: 0.72rem;
+    }
+  }
+</style>
+</head>
+<body>
+
+<div class="page-container">
+
+  <!-- ============================================== -->
+  <!-- COVER HEADER                                   -->
+  <!-- ============================================== -->
+  <header class="cover-header">
+    <div class="cover-logo">OmniScribe<span>AI</span></div>
+    <div class="cover-subtitle">Code Audit Report</div>
+    <div class="cover-meta-grid">
+      <div><span class="label">Date:</span> February 23, 2026</div>
+      <div><span class="label">Branch:</span> main</div>
+      <div><span class="label">Auditor:</span> Claude Opus 4.6 (Anthropic)</div>
+      <div><span class="label">Commit:</span> 2786e13</div>
+      <div style="grid-column: 1 / -1;"><span class="label">Repository:</span> github.com/giljavelosa/OmniScribeAi</div>
+    </div>
+    <div class="cover-badge">All Quality Gates Passing</div>
+  </header>
+
+  <!-- ============================================== -->
+  <!-- CONTENT                                        -->
+  <!-- ============================================== -->
+  <div class="content">
+
+    <!-- ========== SECTION 1: AUDIT SUMMARY ========== -->
+    <h2><span class="section-num">1.</span> Audit Summary</h2>
+
+    <p>All automated quality gates pass with zero issues:</p>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Gate</th>
+          <th>Result</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="cell-code">TypeScript (tsc --noEmit)</td>
+          <td class="cell-pass">0 errors</td>
+        </tr>
+        <tr>
+          <td class="cell-code">ESLint (eslint src/)</td>
+          <td class="cell-pass">0 errors, 0 warnings</td>
+        </tr>
+        <tr>
+          <td class="cell-code">Prisma Schema (prisma validate)</td>
+          <td class="cell-pass">Valid</td>
+        </tr>
+        <tr>
+          <td class="cell-code">Production Build (next build)</td>
+          <td class="cell-pass">24/24 pages compiled, 0 warnings</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>Remediation History (Fixes 1&ndash;12)</h3>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Fix</th>
+          <th>Rule</th>
+          <th>Before</th>
+          <th>After</th>
+          <th>Files</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>1</td>
+          <td>Dead code: callClaude &rarr; callAI</td>
+          <td class="cell-before">1</td>
+          <td class="cell-after">0</td>
+          <td>1</td>
+        </tr>
+        <tr>
+          <td>2</td>
+          <td>Dead code: callDeepSeek</td>
+          <td class="cell-before">1</td>
+          <td class="cell-after">0</td>
+          <td>1</td>
+        </tr>
+        <tr>
+          <td>3</td>
+          <td>Unused auditLog imports</td>
+          <td class="cell-before">2</td>
+          <td class="cell-after">0</td>
+          <td>2</td>
+        </tr>
+        <tr>
+          <td>4</td>
+          <td>Unused req parameter</td>
+          <td class="cell-before">1</td>
+          <td class="cell-after">0</td>
+          <td>1</td>
+        </tr>
+        <tr>
+          <td>5</td>
+          <td>Deprecated config exports</td>
+          <td class="cell-before">1</td>
+          <td class="cell-after">0</td>
+          <td>1</td>
+        </tr>
+        <tr>
+          <td>6</td>
+          <td>set-state-in-effect (admin)</td>
+          <td class="cell-before">1</td>
+          <td class="cell-after">0</td>
+          <td>1</td>
+        </tr>
+        <tr>
+          <td>7</td>
+          <td>pcm-capture-processor parse error</td>
+          <td class="cell-before">1</td>
+          <td class="cell-after">0</td>
+          <td>1</td>
+        </tr>
+        <tr>
+          <td>8</td>
+          <td>no-explicit-any</td>
+          <td class="cell-before">103</td>
+          <td class="cell-after">0</td>
+          <td>20+</td>
+        </tr>
+        <tr>
+          <td>9</td>
+          <td>set-state-in-effect</td>
+          <td class="cell-before">4</td>
+          <td class="cell-after">0</td>
+          <td>4</td>
+        </tr>
+        <tr>
+          <td>10</td>
+          <td>react-hooks/immutability + refs</td>
+          <td class="cell-before">1+8</td>
+          <td class="cell-after">0</td>
+          <td>3</td>
+        </tr>
+        <tr>
+          <td>11</td>
+          <td>no-unused-vars</td>
+          <td class="cell-before">7</td>
+          <td class="cell-after">0</td>
+          <td>4</td>
+        </tr>
+        <tr>
+          <td>12</td>
+          <td>exhaustive-deps + unused param</td>
+          <td class="cell-before">2</td>
+          <td class="cell-after">0</td>
+          <td>2</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="total-remediated">Total issues remediated: 133 &rarr; 0</div>
+
+    <hr>
+
+    <!-- ========== SECTION 2: TECH STACK ========== -->
+    <h2 class="section-break"><span class="section-num">2.</span> Tech Stack</h2>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Layer</th>
+          <th>Technology</th>
+          <th>Version</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Framework</td>
+          <td>Next.js (App Router, Turbopack)</td>
+          <td>16.1.6</td>
+        </tr>
+        <tr>
+          <td>Frontend</td>
+          <td>React + React DOM</td>
+          <td>19.2.3</td>
+        </tr>
+        <tr>
+          <td>Styling</td>
+          <td>Tailwind CSS</td>
+          <td>4</td>
+        </tr>
+        <tr>
+          <td>UI Primitives</td>
+          <td>Radix UI</td>
+          <td>3.3.0</td>
+        </tr>
+        <tr>
+          <td>Backend</td>
+          <td>Next.js API Routes (serverless)</td>
+          <td>&mdash;</td>
+        </tr>
+        <tr>
+          <td>Database</td>
+          <td>PostgreSQL via Prisma ORM</td>
+          <td>6.19.2</td>
+        </tr>
+        <tr>
+          <td>Auth</td>
+          <td>NextAuth.js (JWT, 8h sessions, bcrypt)</td>
+          <td>5.0.0-beta.30</td>
+        </tr>
+        <tr>
+          <td>AI Providers</td>
+          <td>Anthropic Claude, xAI Grok, DeepSeek</td>
+          <td>&mdash;</td>
+        </tr>
+        <tr>
+          <td>Transcription</td>
+          <td>Deepgram Nova-3-Medical</td>
+          <td>&mdash;</td>
+        </tr>
+        <tr>
+          <td>Language</td>
+          <td>TypeScript (strict mode)</td>
+          <td>5</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <hr>
+
+    <!-- ========== SECTION 3: DATABASE SCHEMA ========== -->
+    <h2 class="section-break"><span class="section-num">3.</span> Database Schema (13 Prisma Models)</h2>
+
+    <div class="model-group-title">Auth &amp; Organization</div>
+    <ul class="model-list">
+      <li><strong>User</strong><span class="mdash">&mdash;</span>id, email, passwordHash, role (ADMIN/CLINICIAN/SUPERVISOR), clinicianType, credentials, npiNumber, organizationId, MFA fields, session tracking</li>
+      <li><strong>Account</strong><span class="mdash">&mdash;</span>NextAuth OAuth accounts</li>
+      <li><strong>Session</strong><span class="mdash">&mdash;</span>NextAuth DB sessions</li>
+      <li><strong>VerificationToken</strong><span class="mdash">&mdash;</span>NextAuth email verification</li>
+      <li><strong>Organization</strong><span class="mdash">&mdash;</span>id, name, npi, address, phone, fax</li>
+    </ul>
+
+    <div class="model-group-title">FHIR-Aligned Patient</div>
+    <ul class="model-list">
+      <li><strong>Patient</strong><span class="mdash">&mdash;</span>identifier, demographics, emergency contact, PCP, referring provider, organizationId</li>
+      <li><strong>Coverage</strong><span class="mdash">&mdash;</span>insurance (rank, payer, member ID, group, plan, copay, deductible)</li>
+      <li><strong>Allergy</strong><span class="mdash">&mdash;</span>substance, reaction, severity, status</li>
+      <li><strong>Medication</strong><span class="mdash">&mdash;</span>name, dose, frequency, route, prescriber, status</li>
+      <li><strong>Condition</strong><span class="mdash">&mdash;</span>description, ICD code, status, onset</li>
+      <li><strong>PatientDocument</strong><span class="mdash">&mdash;</span>scanned docs with extracted JSON data</li>
+    </ul>
+
+    <div class="model-group-title">Clinical</div>
+    <ul class="model-list">
+      <li><strong>Visit</strong><span class="mdash">&mdash;</span>patientId, userId, frameworkId, domain, transcript, extractedFacts (JSON), clinicalSynthesis (JSON), noteData (JSON), auditResult (JSON), cmsScore, amendments (JSON), status lifecycle</li>
+      <li><strong>AuditLog</strong><span class="mdash">&mdash;</span>userId, action, resource, details (JSON), IP, user agent</li>
+    </ul>
+
+    <div class="enum-line">
+      <strong>Enums:</strong> <code>Role</code>, <code>VisitStatus</code> (RECORDING &rarr; TRANSCRIBING &rarr; GENERATING &rarr; COMPLETE &rarr; FINALIZED &rarr; AMENDED &rarr; ARCHIVED), <code>Gender</code>
+    </div>
+
+    <hr>
+
+    <!-- ========== SECTION 4: API ROUTES ========== -->
+    <h2 class="section-break"><span class="section-num">4.</span> API Routes (31 Endpoints)</h2>
+
+    <div class="route-group-title">Auth (3)</div>
+    <ul class="route-list">
+      <li><span class="method post">POST</span><span class="path">/api/auth/[...nextauth]</span><span class="desc">&mdash; NextAuth handler</span></li>
+      <li><span class="method post">POST</span><span class="path">/api/auth/acknowledge-disclaimer</span><span class="desc">&mdash; HIPAA extended session acknowledgment</span></li>
+      <li><span class="method post">POST</span><span class="path">/api/auth/change-password</span><span class="desc">&mdash; Password change</span></li>
+    </ul>
+
+    <div class="route-group-title">Admin (4)</div>
+    <ul class="route-list">
+      <li><span class="method mixed">GET/POST</span><span class="path">/api/admin/users</span><span class="desc">&mdash; List/create users</span></li>
+      <li><span class="method mixed">GET/PATCH/DEL</span><span class="path">/api/admin/users/[id]</span><span class="desc">&mdash; User CRUD</span></li>
+    </ul>
+
+    <div class="route-group-title">Patients (6)</div>
+    <ul class="route-list">
+      <li><span class="method mixed">GET/POST</span><span class="path">/api/patients</span><span class="desc">&mdash; List/create patients</span></li>
+      <li><span class="method mixed">GET/PATCH/DEL</span><span class="path">/api/patients/[id]</span><span class="desc">&mdash; Patient CRUD</span></li>
+      <li><span class="method get">GET</span><span class="path">/api/patients/[id]/medical</span><span class="desc">&mdash; Allergies, medications, conditions</span></li>
+    </ul>
+
+    <div class="route-group-title">Visits (5)</div>
+    <ul class="route-list">
+      <li><span class="method mixed">GET/POST</span><span class="path">/api/visits</span><span class="desc">&mdash; List/create visits</span></li>
+      <li><span class="method mixed">GET/PATCH/DEL</span><span class="path">/api/visits/[id]</span><span class="desc">&mdash; Visit CRUD</span></li>
+      <li><span class="method post">POST</span><span class="path">/api/visits/[id]/amend</span><span class="desc">&mdash; Amendment to finalized visit</span></li>
+    </ul>
+
+    <div class="route-group-title">Transcription &amp; AI (5)</div>
+    <ul class="route-list">
+      <li><span class="method post">POST</span><span class="path">/api/transcribe</span><span class="desc">&mdash; Deepgram full-audio transcription</span></li>
+      <li><span class="method post">POST</span><span class="path">/api/transcribe-chunk</span><span class="desc">&mdash; Real-time chunk transcription (Groq Whisper)</span></li>
+      <li><span class="method post">POST</span><span class="path">/api/extract-chunk</span><span class="desc">&mdash; Real-time fact extraction from chunk</span></li>
+      <li><span class="method post">POST</span><span class="path">/api/generate-note</span><span class="desc">&mdash; 7-pass AI note generation (SSE)</span></li>
+      <li><span class="method post">POST</span><span class="path">/api/regenerate-note</span><span class="desc">&mdash; Regenerate from existing transcript</span></li>
+    </ul>
+
+    <div class="route-group-title">OCR &amp; Recording (3)</div>
+    <ul class="route-list">
+      <li><span class="method post">POST</span><span class="path">/api/ocr</span><span class="desc">&mdash; 2-pass document OCR (Claude Vision)</span></li>
+      <li><span class="method post">POST</span><span class="path">/api/ocr/scan</span><span class="desc">&mdash; OCR scan endpoint</span></li>
+      <li><span class="method post">POST</span><span class="path">/api/recordings/chunk</span><span class="desc">&mdash; Audio chunk upload</span></li>
+    </ul>
+
+    <hr>
+
+    <!-- ========== SECTION 5: PAGES ========== -->
+    <h2 class="section-break"><span class="section-num">5.</span> Pages (10 Routes)</h2>
+
+    <ul class="page-route-list">
+      <li><code>/</code><span class="rdesc">&mdash; Landing page (marketing, feature showcase)</span></li>
+      <li><code>/login</code><span class="rdesc">&mdash; Authentication (credentials)</span></li>
+      <li><code>/change-password</code><span class="rdesc">&mdash; Forced password change (mustChangePassword)</span></li>
+      <li><code>/dashboard</code><span class="rdesc">&mdash; Main dashboard (visit list, quick actions)</span></li>
+      <li><code>/frameworks</code><span class="rdesc">&mdash; Framework catalog (19 frameworks by domain)</span></li>
+      <li><code>/patients</code><span class="rdesc">&mdash; Patient list with search</span></li>
+      <li><code>/patients/new</code><span class="rdesc">&mdash; New patient form (FHIR-aligned)</span></li>
+      <li><code>/patients/[id]</code><span class="rdesc">&mdash; Patient detail (demographics, visits, medical history)</span></li>
+      <li><code>/visit/new</code><span class="rdesc">&mdash; New visit (select framework &rarr; patient &rarr; record &rarr; generate)</span></li>
+      <li><code>/visit/[id]</code><span class="rdesc">&mdash; Visit detail/editor (note editing, OCR, amendments)</span></li>
+      <li><code>/admin/users</code><span class="rdesc">&mdash; User management (admin only)</span></li>
+    </ul>
+
+    <hr>
+
+    <!-- ========== SECTION 6: COMPONENTS ========== -->
+    <h2 class="section-break"><span class="section-num">6.</span> Components (11)</h2>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Component</th>
+          <th>Purpose</th>
+          <th>Size</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="cell-code">AudioRecorder</td>
+          <td>VAD + PCM + 10s chunking + smart auto-stop (90min)</td>
+          <td>33KB</td>
+        </tr>
+        <tr>
+          <td class="cell-code">NoteEditor</td>
+          <td>Rich clinical note editor with feedback + export</td>
+          <td>20KB</td>
+        </tr>
+        <tr>
+          <td class="cell-code">ClinicalSynthesis</td>
+          <td>AI reasoning display (editable)</td>
+          <td>11KB</td>
+        </tr>
+        <tr>
+          <td class="cell-code">FrameworkSelector</td>
+          <td>Framework picker by domain with search</td>
+          <td>6KB</td>
+        </tr>
+        <tr>
+          <td class="cell-code">PatientSelector</td>
+          <td>Patient search autocomplete</td>
+          <td>5KB</td>
+        </tr>
+        <tr>
+          <td class="cell-code">MiniRecorder</td>
+          <td>Compact recorder widget</td>
+          <td>4KB</td>
+        </tr>
+        <tr>
+          <td class="cell-code">ExtendedSessionDisclaimer</td>
+          <td>HIPAA 8h session warning</td>
+          <td>4KB</td>
+        </tr>
+        <tr>
+          <td class="cell-code">SessionTimeout</td>
+          <td>Session expiry countdown + auto-logout</td>
+          <td>3KB</td>
+        </tr>
+        <tr>
+          <td class="cell-code">Header</td>
+          <td>App header with user menu</td>
+          <td>3KB</td>
+        </tr>
+        <tr>
+          <td class="cell-code">Sidebar</td>
+          <td>Navigation sidebar (role-based)</td>
+          <td>3KB</td>
+        </tr>
+        <tr>
+          <td class="cell-code">Providers</td>
+          <td>NextAuth SessionProvider wrapper</td>
+          <td>0.4KB</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <hr>
+
+    <!-- ========== SECTION 7: LIB/UTILS ========== -->
+    <h2 class="section-break"><span class="section-num">7.</span> Lib/Utils (17 Modules)</h2>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Module</th>
+          <th>Purpose</th>
+          <th>Size</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="cell-code">cms-requirements.ts</td>
+          <td>708 CMS compliance items across 19 frameworks</td>
+          <td>58KB</td>
+        </tr>
+        <tr>
+          <td class="cell-code">frameworks.ts</td>
+          <td>19 clinical frameworks (Medical/Rehab/BH)</td>
+          <td>36KB</td>
+        </tr>
+        <tr>
+          <td class="cell-code">mock-data.ts</td>
+          <td>Mock transcripts + notes for demo/testing</td>
+          <td>130KB</td>
+        </tr>
+        <tr>
+          <td class="cell-code">ai-provider.ts</td>
+          <td>Multi-provider AI abstraction (Claude/Grok/DeepSeek)</td>
+          <td>9KB</td>
+        </tr>
+        <tr>
+          <td class="cell-code">encounter-state.ts</td>
+          <td>Real-time encounter state management</td>
+          <td>9KB</td>
+        </tr>
+        <tr>
+          <td class="cell-code">encounter-validator.ts</td>
+          <td>Encounter state validation</td>
+          <td>9KB</td>
+        </tr>
+        <tr>
+          <td class="cell-code">sse-fetch.ts</td>
+          <td>Server-sent events fetch wrapper</td>
+          <td>4KB</td>
+        </tr>
+        <tr>
+          <td class="cell-code">wav-encoder.ts</td>
+          <td>WAV/PCM audio encoding</td>
+          <td>4KB</td>
+        </tr>
+        <tr>
+          <td class="cell-code">phi-boundaries.ts</td>
+          <td>PHI endpoint whitelist enforcement</td>
+          <td>3KB</td>
+        </tr>
+        <tr>
+          <td class="cell-code">phi-storage.ts</td>
+          <td>Client-side PHI storage isolation</td>
+          <td>3KB</td>
+        </tr>
+        <tr>
+          <td class="cell-code">test-transcripts.ts</td>
+          <td>Test transcript data</td>
+          <td>3KB</td>
+        </tr>
+        <tr>
+          <td class="cell-code">auth.ts</td>
+          <td>NextAuth config (JWT + Credentials + Prisma)</td>
+          <td>2KB</td>
+        </tr>
+        <tr>
+          <td class="cell-code">logger.ts</td>
+          <td>Structured logging with PHI scrubbing</td>
+          <td>2KB</td>
+        </tr>
+        <tr>
+          <td class="cell-code">types.ts</td>
+          <td>Shared TypeScript types</td>
+          <td>1KB</td>
+        </tr>
+        <tr>
+          <td class="cell-code">vad.ts</td>
+          <td>Voice Activity Detection</td>
+          <td>0.9KB</td>
+        </tr>
+        <tr>
+          <td class="cell-code">audit.ts</td>
+          <td>HIPAA audit logging helper</td>
+          <td>0.7KB</td>
+        </tr>
+        <tr>
+          <td class="cell-code">db.ts</td>
+          <td>Prisma client singleton</td>
+          <td>0.3KB</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <hr>
+
+    <!-- ========== SECTION 8: AI/ML PIPELINE ========== -->
+    <h2 class="section-break"><span class="section-num">8.</span> AI/ML Pipeline</h2>
+
+    <h3>7-Pass Note Generation (SSE Streaming)</h3>
+
+    <div class="pipeline-block">
+<span class="highlight">Audio</span> <span class="arrow">&rarr;</span> <span class="label">Deepgram Nova-3-Medical</span> <span class="arrow">&rarr;</span> <span class="highlight">Transcript</span>
+<span class="pipe">                                      |</span>
+<span class="label">Pass 0:</span> PHI De-identification         <span class="prov">(Claude)</span>
+<span class="label">Pass 1:</span> Fact Extraction               <span class="prov">(DeepSeek/Claude/Grok)</span>
+<span class="pipe">  &boxur;&HorizontalLine;&HorizontalLine;</span> CMS Compliance Scoring          <span class="prov">(deterministic, 708 items)</span>
+<span class="label">Pass 2:</span> Clinical Synthesis            <span class="prov">(Claude)</span>
+<span class="label">Pass 3:</span> Parsed Data                   <span class="prov">(Claude)</span>
+<span class="label">Pass 4:</span> Final Clinical Note           <span class="prov">(Claude + PHI re-identification)</span>
+<span class="label">Pass 5:</span> Hallucination Audit           <span class="prov">(Claude)</span>
+<span class="label">Pass 6:</span> Summary                       <span class="prov">(Claude)</span>
+    </div>
+
+    <h3>Fast 2-Pass Mode (Real-Time Encounter State)</h3>
+
+    <div class="pipeline-block">
+<span class="highlight">Recording</span> <span class="arrow">&rarr;</span> <span class="label">VAD + 10s chunks</span> <span class="arrow">&rarr;</span> <span class="label">Groq Whisper</span> <span class="arrow">&rarr;</span> <span class="label">LLM extraction</span>
+<span class="pipe">                                                    |</span>
+<span class="pipe">                                         </span><span class="highlight">EncounterState</span> <span class="prov">(live)</span>
+<span class="pipe">                                                    |</span>
+<span class="label">Pass 1:</span> Generate note from validated facts    <span class="prov">(Claude)</span>
+<span class="label">Pass 2:</span> Audit + summary                       <span class="prov">(Claude)</span>
+    </div>
+
+    <h3>2-Pass OCR Pipeline</h3>
+
+    <div class="pipeline-block">
+<span class="highlight">Image/PDF</span> <span class="arrow">&rarr;</span> <span class="label">Claude Vision</span> <span class="arrow">&rarr;</span> <span class="highlight">Text Extraction</span> <span class="arrow">&rarr;</span> <span class="label">Clinical Mapping</span> <span class="arrow">&rarr;</span> <span class="highlight">Structured JSON</span>
+    </div>
+
+    <hr>
+
+    <!-- ========== SECTION 9: HIPAA SECURITY ========== -->
+    <h2 class="section-break"><span class="section-num">9.</span> HIPAA Security Architecture</h2>
+
+    <ul class="hipaa-list">
+      <li><strong>PHI Endpoint Whitelist</strong> &mdash; all external API calls validated against approved endpoints</li>
+      <li><strong>PHI De-identification</strong> &mdash; Pass 0 strips all PHI before sending to AI providers; re-identified only in final output</li>
+      <li><strong>Client-side PHI Isolation</strong> &mdash; separate storage namespace via phi-storage.ts</li>
+      <li><strong>8-Hour JWT Sessions</strong> &mdash; with forced extended session disclaimer acknowledgment</li>
+      <li><strong>Forced Password Change</strong> &mdash; mustChangePassword flag for new users</li>
+      <li><strong>Middleware Auth Enforcement</strong> &mdash; all routes protected except /login, /api/auth, /</li>
+      <li><strong>Audit Logging</strong> &mdash; all clinical actions logged to AuditLog table (user, action, IP, user agent)</li>
+      <li><strong>Password Hashing</strong> &mdash; bcryptjs</li>
+      <li><strong>Session Tracking</strong> &mdash; lastLoginAt, extendedSessionAcknowledgedAt</li>
+    </ul>
+
+    <div class="baa-block">
+      <strong>BAA Status (All PENDING):</strong><br>
+      Deepgram, Anthropic, xAI, DeepSeek, Groq &mdash; no BAAs signed yet
+    </div>
+
+    <hr>
+
+    <!-- ========== SECTION 10: CLINICAL FRAMEWORKS ========== -->
+    <h2 class="section-break"><span class="section-num">10.</span> Clinical Frameworks (19)</h2>
+
+    <div class="fw-group">
+      <span class="fw-group-label">Medical (7):</span>
+      <span class="fw-group-items">SOAP Follow-Up, SOAP New Patient, H&amp;P, Procedure Note, Annual Wellness Visit, ED/Urgent Care, Discharge Summary</span>
+    </div>
+
+    <div class="fw-group">
+      <span class="fw-group-label">Rehabilitation (6):</span>
+      <span class="fw-group-items">PT Evaluation, PT Daily Note, OT Evaluation, SLP Evaluation, Rehab Progress Note, Rehab Discharge Summary</span>
+    </div>
+
+    <div class="fw-group">
+      <span class="fw-group-label">Behavioral Health (6):</span>
+      <span class="fw-group-items">Biopsychosocial Intake, Therapy Progress Note, Psychiatric Evaluation, Group Therapy Note, Crisis Assessment, BH Discharge Summary</span>
+    </div>
+
+    <div class="fw-summary">
+      <strong>708 total documentation items</strong> with categories: <em>critical</em> (claim denied without), <em>required</em> (strengthens claim), <em>recommended</em> (best practice)<br><br>
+      <strong>30+ regulatory sources:</strong> CMS, APTA, AOTA, ASHA, DSM-5-TR, AMA CPT, etc.
+    </div>
+
+    <hr>
+
+    <!-- ========== SECTION 11: KEY STATISTICS ========== -->
+    <h2 class="section-break"><span class="section-num">11.</span> Key Statistics</h2>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Metric</th>
+          <th>Count</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Source files (TS/TSX)</td>
+          <td>58</td>
+        </tr>
+        <tr>
+          <td>API routes</td>
+          <td>31</td>
+        </tr>
+        <tr>
+          <td>Pages</td>
+          <td>10</td>
+        </tr>
+        <tr>
+          <td>Components</td>
+          <td>11</td>
+        </tr>
+        <tr>
+          <td>Lib modules</td>
+          <td>17</td>
+        </tr>
+        <tr>
+          <td>Database models</td>
+          <td>13</td>
+        </tr>
+        <tr>
+          <td>Clinical frameworks</td>
+          <td>19</td>
+        </tr>
+        <tr>
+          <td>CMS compliance items</td>
+          <td>708</td>
+        </tr>
+        <tr>
+          <td>AI providers</td>
+          <td>3</td>
+        </tr>
+        <tr>
+          <td>Audio formats supported</td>
+          <td>9</td>
+        </tr>
+        <tr>
+          <td>Max recording duration</td>
+          <td>90 min</td>
+        </tr>
+        <tr>
+          <td>Session timeout</td>
+          <td>8 hours</td>
+        </tr>
+        <tr>
+          <td>ESLint issues remediated</td>
+          <td>133 &rarr; 0</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <hr>
+
+    <!-- ========== SECTION 12: NOT YET IMPLEMENTED ========== -->
+    <h2 class="section-break"><span class="section-num">12.</span> Not Yet Implemented</h2>
+
+    <ul class="pending-list">
+      <li>Mobile app (React Native/Expo) &mdash; <code>apps/mobile/</code></li>
+      <li>Chrome extension &mdash; <code>apps/chrome-extension/</code></li>
+      <li>Integration testing with live database (Docker Compose + Prisma seed)</li>
+      <li>Real API keys and BAA agreements for production</li>
+      <li>Stripe billing integration</li>
+      <li>MFA enforcement (schema supports it, UI not built)</li>
+    </ul>
+
+  </div><!-- .content -->
+
+  <!-- ============================================== -->
+  <!-- FOOTER                                         -->
+  <!-- ============================================== -->
+  <footer class="report-footer">
+    <div class="foot-line"><span class="foot-brand">OmniScribeAI</span> &mdash; Code Audit Report</div>
+    <div class="foot-line">Report generated by Claude Opus 4.6 &mdash; February 23, 2026</div>
+    <div class="foot-line">github.com/giljavelosa/OmniScribeAi &middot; Branch: main &middot; Commit: 2786e13</div>
+  </footer>
+
+</div><!-- .page-container -->
+
+</body>
+</html>
