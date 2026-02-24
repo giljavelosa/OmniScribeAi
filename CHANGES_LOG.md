@@ -589,13 +589,22 @@ Each item follows the same workflow as FIX-1 through FIX-17:
 
 ---
 
-## UX-9: Framework search field
-**Priority:** LOW — search all 19 frameworks by keyword
-**Files to change:**
-- `app/src/app/visit/new/page.tsx` — add search input above framework list
+## UX-9: Framework search field ✅
+**Date:** 2026-02-24
+**Files changed:**
+- `app/src/components/FrameworkSelector.tsx` (MODIFIED) — added search input and cross-domain search
 
-**What could break:**
-- Minor — purely additive UI change
+**What it does:**
+- Search input at top of FrameworkSelector, always visible (above domain/framework selection)
+- Searches across all 19 frameworks by name, description, type, subtype, and domain label
+- Min 2 chars to trigger search, shows result count
+- Search results show domain badge on each card (since results cross domains)
+- Extracted `FrameworkCard` helper component to avoid duplicating card markup
+- When search is empty, normal domain → framework flow is shown
+- Clears search query when framework is deselected
+
+**Build:** ✅ `tsc --noEmit` passes
+**Tests:** ✅ `vitest run` passes (43/43)
 
 ---
 
