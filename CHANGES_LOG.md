@@ -449,21 +449,25 @@ Each item follows the same workflow as FIX-1 through FIX-17:
 
 ---
 
-## UX-3: Record-first workflow
+## UX-3: Record-first workflow ✅
+**Date:** 2026-02-24
 **Priority:** HIGH — biggest differentiator; captures full encounter from first word
-**Files to change:**
-- `app/src/app/visit/new/page.tsx` — remove gating (allow record before patient/framework filled)
-- `app/src/components/AudioRecorder.tsx` — enable without framework selected
-- `app/src/app/api/extract-chunk/route.ts` — handle missing frameworkId gracefully
+**Files changed:**
+- `app/src/app/visit/new/page.tsx` — removed recording gating. Record button is now always enabled (only disabled by mic preflight errors). Renamed `canRecord` → `canGenerate` and applied it only to Upload/Generate buttons. Added `recordingReady` state: when recording completes but patient/framework aren't filled, shows a banner with "Recording complete!" and either a "Generate Clinical Note" button (if fields are filled) or a prompt to fill missing fields. Added `pendingEncounterRef` to preserve encounter state from recording while user fills in fields. Updated hint text: "You can start recording now — fill in patient name and framework before or during recording".
+- `app/src/components/AudioRecorder.tsx` — no changes needed (`disabled` prop already optional, real-time mode gracefully skips when `frameworkId` is empty)
+- `app/src/app/api/extract-chunk/route.ts` — no changes needed (real-time extraction only triggered when `frameworkId` is set in AudioRecorder)
+
+**Design decision:**
+- Record button: always enabled (captures audio from first word)
+- Generate button: gated on patient + framework
+- Real-time transcription: activates only if framework is selected BEFORE recording starts (limitation accepted — user gets legacy flow otherwise)
 
 **What could break:**
-- Extract-chunk requires frameworkId for schema — need fallback/generic extraction
-- Note generation requires frameworkId — must be set before "Generate" not before "Record"
-- Flow logic: recording state must persist while user fills in metadata
+- If user starts recording without framework, no real-time extraction happens — falls back to legacy transcribe-then-generate flow (acceptable trade-off)
+- Recording ready banner shows inline on setup form — doesn't change step state
 
-**Design decision needed:**
-- Gate "Generate Note" button on patient+framework, NOT the "Record" button
-- Allow framework selection during/after recording
+**Build:** ✅ `tsc --noEmit` passes
+**Tests:** ✅ `vitest run` passes (43/43)
 
 ---
 

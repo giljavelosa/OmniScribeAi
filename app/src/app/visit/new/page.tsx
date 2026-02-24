@@ -86,6 +86,8 @@ function NewVisitContent() {
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [liveTranscript, setLiveTranscript] = useState('');
   const [transcriptWordCount, setTranscriptWordCount] = useState(0);
+  const [recordingReady, setRecordingReady] = useState(false);
+  const pendingEncounterRef = useRef<EncounterState | null>(null);
   const encounterStateRef = useRef<EncounterState | null>(null);
 
   // Pre-select framework from URL query param (e.g., /visit/new?frameworkId=rehab-pt-eval)
@@ -146,7 +148,7 @@ function NewVisitContent() {
     setPatientResults([]);
   };
 
-  const canRecord = patientName.trim() !== '' && frameworkId !== '';
+  const canGenerate = patientName.trim() !== '' && frameworkId !== '';
 
   // Callback for live transcript updates during recording
   const handlePartialTranscript = useCallback((transcript: string, wordCount: number, state: EncounterState) => {
@@ -348,8 +350,15 @@ function NewVisitContent() {
   ) => {
     lastBlobRef.current = blob;
     lastSessionIdRef.current = sessionId;
+    pendingEncounterRef.current = encounterState ?? null;
     if (silenceStats) {
       console.log(`[NewVisit] Silence stripped: ${silenceStats.silenceStrippedSec}s of ${silenceStats.originalDurationSec}s total`);
+    }
+
+    // If patient name or framework not yet set, hold the recording and wait
+    if (!patientName.trim() || !frameworkId) {
+      setRecordingReady(true);
+      return;
     }
 
     // Use encounter-state mode if real-time extraction produced data
@@ -359,6 +368,18 @@ function NewVisitContent() {
     } else {
       // Fallback to legacy transcribe-then-generate flow
       await processAudio(blob);
+    }
+  };
+
+  // Process a completed recording that was waiting for patient/framework
+  const handleGenerateFromRecording = async () => {
+    if (!lastBlobRef.current || !canGenerate) return;
+    setRecordingReady(false);
+    const enc = pendingEncounterRef.current;
+    if (enc && enc.chunk_count > 0) {
+      await processWithEncounterState(enc);
+    } else {
+      await processAudio(lastBlobRef.current);
     }
   };
 
@@ -566,9 +587,9 @@ function NewVisitContent() {
                   </div>
                 </div>
 
-                {!canRecord && (
+                {!canGenerate && (
                   <div className="text-center text-sm text-gray-400 mb-4">
-                    Enter patient name and select a framework to continue
+                    You can start recording now — fill in patient name and framework before or during recording
                   </div>
                 )}
 
@@ -578,7 +599,6 @@ function NewVisitContent() {
                       onRecordingComplete={handleRecordingComplete}
                       onPartialTranscript={handlePartialTranscript}
                       frameworkId={frameworkId}
-                      disabled={!canRecord}
                     />
                     {/* Live transcript panel */}
                     {liveTranscript && (
@@ -596,6 +616,24 @@ function NewVisitContent() {
                         />
                       </div>
                     )}
+                    {/* Recording complete — waiting for patient/framework */}
+                    {recordingReady && (
+                      <div className="bg-[#0d9488]/5 border border-[#0d9488]/20 rounded-xl p-4 text-center">
+                        <p className="text-sm font-medium text-gray-900 mb-1">Recording complete!</p>
+                        {canGenerate ? (
+                          <button
+                            onClick={handleGenerateFromRecording}
+                            className="mt-2 px-6 py-2.5 bg-[#0d9488] text-white rounded-lg text-sm font-medium hover:bg-[#0f766e] transition-colors"
+                          >
+                            Generate Clinical Note
+                          </button>
+                        ) : (
+                          <p className="text-xs text-gray-500">
+                            Fill in {!patientName.trim() ? 'patient name' : ''}{!patientName.trim() && !frameworkId ? ' and ' : ''}{!frameworkId ? 'framework' : ''} above, then generate your note.
+                          </p>
+                        )}
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <div className="flex flex-col items-center gap-4">
@@ -610,7 +648,7 @@ function NewVisitContent() {
                     {!uploadedFile ? (
                       <button
                         onClick={() => fileInputRef.current?.click()}
-                        disabled={!canRecord}
+                        disabled={!canGenerate}
                         className="w-full max-w-md border-2 border-dashed border-gray-300 rounded-xl p-8 hover:border-[#0d9488] hover:bg-[#0d9488]/5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         <div className="flex flex-col items-center gap-3">
@@ -649,7 +687,7 @@ function NewVisitContent() {
 
                         <button
                           onClick={handleUploadSubmit}
-                          disabled={!canRecord || !uploadedFile}
+                          disabled={!canGenerate || !uploadedFile}
                           className="w-full mt-4 px-6 py-3 bg-[#0d9488] text-white rounded-xl text-sm font-medium hover:bg-[#0f766e] transition-colors shadow-md hover:shadow-lg"
                         >
                           Generate Clinical Note
