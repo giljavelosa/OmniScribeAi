@@ -24,15 +24,51 @@ function stripFences(raw: string): string {
 function parseJsonArray(raw: string): { title: string; content: string }[] {
   try {
     const trimmed = stripFences(raw);
+    let arr: unknown[];
     const jsonMatch = trimmed.match(/\[[\s\S]*\]/);
     if (jsonMatch) {
-      return JSON.parse(jsonMatch[0]);
+      arr = JSON.parse(jsonMatch[0]);
+    } else {
+      const parsed = JSON.parse(trimmed);
+      arr = Array.isArray(parsed) ? parsed : parsed.sections || parsed.note || [parsed];
     }
-    const parsed = JSON.parse(trimmed);
-    return Array.isArray(parsed) ? parsed : parsed.sections || parsed.note || [parsed];
+
+    if (!Array.isArray(arr) || arr.length === 0) {
+      appLog('warn', 'GenNote', 'parseJsonArray: empty or non-array result', { rawLength: raw.length });
+      return [{
+        title: "\u26a0 Formatting Error",
+        content: "The note returned no sections. Please regenerate.\n\n---\n\n" + raw.substring(0, 2000),
+      }];
+    }
+
+    // Validate each section has title + content; drop malformed entries with warning
+    const valid: { title: string; content: string }[] = [];
+    let dropped = 0;
+    for (const item of arr) {
+      if (item && typeof item === 'object' && 'title' in item && 'content' in item) {
+        const s = item as { title: string; content: string };
+        if (typeof s.title === 'string' && typeof s.content === 'string') {
+          valid.push(s);
+          continue;
+        }
+      }
+      dropped++;
+    }
+
+    if (dropped > 0) {
+      appLog('warn', 'GenNote', 'parseJsonArray: dropped malformed sections', { dropped, total: arr.length });
+      valid.push({
+        title: "\u26a0 Data Warning",
+        content: `${dropped} section(s) had missing or malformed data and were omitted. Please review and regenerate if needed.`,
+      });
+    }
+
+    return valid.length > 0 ? valid : [{
+      title: "\u26a0 Formatting Error",
+      content: "All sections were malformed. Please regenerate.\n\n---\n\n" + raw.substring(0, 2000),
+    }];
   } catch (e) {
     appLog('error', 'GenNote', 'JSON parse failed in parseJsonArray', { error: scrubError(e), rawLength: raw.length });
-    // Visible fallback — clinician sees a warning, not raw JSON
     return [{
       title: "\u26a0 Formatting Error",
       content: "The note could not be formatted correctly. The raw output is shown below \u2014 please regenerate.\n\n---\n\n" + raw.substring(0, 2000),

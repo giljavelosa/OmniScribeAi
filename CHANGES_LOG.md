@@ -210,3 +210,21 @@ Track every fix applied to the codebase. Read this before every change to avoid 
 
 **Build:** ✅ passes
 **Tests:** ✅ passes (43/43)
+
+## FIX-12: Surface JSON parsing data loss ✅
+**Date:** 2026-02-24
+**Files changed:**
+- `app/src/app/api/generate-note/route.ts` (MODIFIED) — `parseJsonArray()` now validates section structure
+
+**What it does:**
+- Validates each parsed section has `title` (string) and `content` (string)
+- Drops malformed sections and appends a visible warning section with count
+- Logs dropped sections count at warn level
+- Handles empty arrays and all-malformed cases with clear error messages
+- Original fallback for JSON parse failures preserved
+
+**What could break:**
+- If the AI returns sections with unexpected field names (e.g., `heading` instead of `title`), they'll be dropped with a warning. This makes data loss visible rather than silent.
+
+**Build:** ✅ passes
+**Tests:** ✅ passes (43/43)
