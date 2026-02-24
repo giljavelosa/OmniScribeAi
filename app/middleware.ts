@@ -1,6 +1,10 @@
-import { auth } from "@/lib/auth";
+import NextAuth from "next-auth";
+import { authConfig } from "@/lib/auth.config";
 import { NextResponse } from "next/server";
 import { checkRateLimit, getTierForPath } from "@/lib/rate-limiter";
+
+// Use Edge-compatible auth config (no DB adapter, no Node.js crypto)
+const { auth } = NextAuth(authConfig);
 
 export default auth((req) => {
   const { pathname } = req.nextUrl;

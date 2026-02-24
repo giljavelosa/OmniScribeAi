@@ -721,3 +721,35 @@ Each item follows the same workflow as FIX-1 through FIX-17:
 - Added FIX-20 to git history
 
 **What could break:** Nothing — documentation only
+
+## FIX-22: Audio chunking for large WAV files >25MB ✅ (ALREADY IMPLEMENTED)
+**Date:** 2026-02-24
+**Status:** Verified already complete — no changes needed
+**Files already in place:**
+- `app/src/lib/audio-chunker.ts` — WAV parser, splitter (20MB chunks), WAV header creation
+- `app/src/app/api/transcribe/route.ts` — size-based routing: WAV >24MB → chunked, non-WAV >24MB → 413 reject, ≤24MB → single request
+- `app/src/app/visit/new/page.tsx` — client-side early rejection of non-WAV >24MB, progress text for large files
+- `app/tests/unit/audio-chunker.test.ts` — 20 unit tests all passing
+
+## FIX-23: Turbopack build warning — phi-crypto in Edge middleware ✅
+**Date:** 2026-02-24
+**Files changed:**
+- `app/src/lib/auth.config.ts` (NEW) — Edge-compatible NextAuth config (no DB adapter, no Node.js crypto)
+- `app/src/lib/auth.ts` (MODIFIED) — now extends `authConfig` from `auth.config.ts`
+- `app/middleware.ts` (MODIFIED) — imports from `auth.config` instead of `auth`
+- `app/src/lib/db.ts` (UNCHANGED) — reverted lazy-import experiment, static import is fine now
+
+**What it does:**
+- Split NextAuth config into Edge-compatible (`auth.config.ts`) and full Node.js (`auth.ts`) following official NextAuth v5 pattern
+- `auth.config.ts` exports session/JWT/callback config — no DB, no crypto, no bcrypt
+- `auth.ts` extends the base config with `PrismaAdapter`, Credentials provider, authorize logic
+- Middleware now creates its own `auth` from the Edge config, breaking the import chain: `middleware → auth → db → phi-crypto → crypto`
+- Eliminates: "A Node.js module is loaded ('crypto' at line 14) which is not supported in the Edge Runtime"
+
+**What could break:**
+- Middleware auth session still works (JWT-only, same callbacks)
+- Server-side `auth()` calls in API routes still use the full config with DB adapter
+- If new callbacks are added, they must be added in `auth.config.ts` (shared) not just `auth.ts`
+
+**Build:** ✅ `npm run build` — zero Turbopack warnings
+**Tests:** ✅ `vitest run` passes (43/43)

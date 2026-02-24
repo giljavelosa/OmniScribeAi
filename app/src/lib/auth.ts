@@ -3,11 +3,11 @@ import Credentials from "next-auth/providers/credentials";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "./db";
 import bcrypt from "bcryptjs";
+import { authConfig } from "./auth.config";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
+  ...authConfig,
   adapter: PrismaAdapter(prisma),
-  session: { strategy: "jwt", maxAge: 4 * 60 * 60 }, // 4 hours absolute max
-  pages: { signIn: "/login" },
   providers: [
     Credentials({
       name: "credentials",
@@ -47,26 +47,4 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       },
     }),
   ],
-  callbacks: {
-    async jwt({ token, user }) {
-      if (user) {
-        token.id = user.id!;
-        token.role = user.role ?? "CLINICIAN";
-        token.clinicianType = user.clinicianType ?? null;
-        token.mustChangePassword = user.mustChangePassword ?? false;
-        token.extendedSessionAcknowledged = user.extendedSessionAcknowledged ?? false;
-      }
-      return token;
-    },
-    async session({ session, token }) {
-      if (session.user) {
-        session.user.id = token.id;
-        session.user.role = token.role;
-        session.user.clinicianType = token.clinicianType;
-        session.user.mustChangePassword = token.mustChangePassword;
-        session.user.extendedSessionAcknowledged = token.extendedSessionAcknowledged;
-      }
-      return session;
-    },
-  },
 });
