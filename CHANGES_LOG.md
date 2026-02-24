@@ -51,3 +51,20 @@ Track every fix applied to the codebase. Read this before every change to avoid 
 
 **Build:** ✅ passes
 **Tests:** ✅ passes (20/20)
+
+## FIX-3: Hallucination audit silently fails ✅
+**Date:** 2026-02-24
+**Files changed:**
+- `app/src/app/api/generate-note/route.ts` (MODIFIED) — audit catch blocks now log, set auditClean=false, send auditFailed flag
+
+**What it does:**
+- Outer catch (API call failure): logs error, sets auditClean=false, auditFailed=true, adds user-visible warning
+- Inner catch (JSON parse failure): logs warning, sets auditClean=false, auditFailed=true, adds user-visible warning
+- New `auditFailed` boolean included in SSE result so UI can show a warning banner
+
+**What could break:**
+- UI code that only checks `auditClean` may need to also check `auditFailed` for accurate messaging
+- Previously, audit failures were invisible; now they surface — this is intentional
+
+**Build:** ✅ passes
+**Tests:** ✅ passes (20/20)

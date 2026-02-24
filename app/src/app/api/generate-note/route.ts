@@ -337,6 +337,7 @@ Write the clinical note using ONLY facts present in the JSON. Omit any sections 
 
         let auditClean = true;
         let auditIssues: string[] = [];
+        let auditFailed = false;
         let summary = "Clinical note generated from encounter data.";
 
         try {
@@ -370,8 +371,18 @@ Return ONLY valid JSON:
             if (auditJson.summary) {
               summary = auditJson.summary;
             }
-          } catch { /* keep defaults */ }
-        } catch { /* non-critical */ }
+          } catch {
+            appLog('warn', 'GenNote', 'Audit JSON parse failed — marking audit as not completed');
+            auditClean = false;
+            auditFailed = true;
+            auditIssues = ['Hallucination audit could not parse results — please review the note manually'];
+          }
+        } catch (auditErr) {
+          appLog('error', 'GenNote', 'Audit call failed', { error: scrubError(auditErr) });
+          auditClean = false;
+          auditFailed = true;
+          auditIssues = ['Hallucination audit failed to run — please review the note manually'];
+        }
 
         appLog('info', 'GenNote', 'Pass 2 (audit+summary) complete', {
           auditClean,
@@ -411,6 +422,7 @@ Return ONLY valid JSON:
           compliance: validation.compliance,
           summary,
           auditClean,
+          auditFailed,
           auditIssues: auditIssues.length > 0 ? auditIssues : undefined,
           validation: {
             warnings: validation.warnings,
