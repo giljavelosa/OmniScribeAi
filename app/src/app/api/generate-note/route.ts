@@ -8,9 +8,8 @@ import { NextRequest } from "next/server";
 export const maxDuration = 300;
 import { frameworks } from "@/lib/frameworks";
 import { mockNotes } from "@/lib/mock-data";
-import { calculateCompliance } from "@/lib/cms-requirements";
 import { validateEncounterState } from "@/lib/encounter-validator";
-import { serializeFactsForPrompt, type EncounterState } from "@/lib/encounter-state";
+import { createInitialEncounterState, serializeFactsForPrompt, type EncounterState, type ClinicalFact } from "@/lib/encounter-state";
 
 // Validate API key tier on module load
 assertProductionApiKey();
@@ -34,8 +33,8 @@ function parseJsonArray(raw: string): { title: string; content: string }[] {
     appLog('error', 'GenNote', 'JSON parse failed in parseJsonArray', { error: scrubError(e), rawLength: raw.length });
     // Visible fallback — clinician sees a warning, not raw JSON
     return [{
-      title: "⚠ Formatting Error",
-      content: "The note could not be formatted correctly. The raw output is shown below — please regenerate.\n\n---\n\n" + raw.substring(0, 2000),
+      title: "\u26a0 Formatting Error",
+      content: "The note could not be formatted correctly. The raw output is shown below \u2014 please regenerate.\n\n---\n\n" + raw.substring(0, 2000),
     }];
   }
 }
@@ -75,456 +74,147 @@ export async function POST(request: NextRequest) {
   }
 
   // ═══════════════════════════════════════════════════════════════
-  // ENCOUNTER-STATE MODE — 2-pass pipeline (30-45 seconds)
+  // ENCOUNTER-STATE MODE — 2-pass pipeline
   // Used when real-time extraction built the EncounterState during recording
   // ═══════════════════════════════════════════════════════════════
   if (mode === 'encounter-state' && encounterState) {
     return handleEncounterStateMode(encounterState as EncounterState, framework, frameworkId, session);
   }
 
+  // ═══════════════════════════════════════════════════════════════
+  // TRANSCRIPT MODE — 3-pass pipeline
+  // Extract facts from transcript (1 call), then delegate to 2-pass
+  // Used for file uploads and legacy fallback
+  // ═══════════════════════════════════════════════════════════════
   const transcriptText = regenerateFrom || transcript;
   if (!transcriptText || transcriptText.trim().length === 0) {
     return new Response(JSON.stringify({ success: false, error: "No transcript provided" }), { status: 400, headers: { "Content-Type": "application/json" } });
   }
 
-  // Stream response to keep connection alive
-  const encoder = new TextEncoder();
-  const stream = new ReadableStream({
-    async start(controller) {
-      function send(event: string, data: Record<string, unknown>) {
-        controller.enqueue(encoder.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`));
-      }
+  appLog('info', 'GenNote', 'Transcript mode — building EncounterState from full transcript', {
+    frameworkId,
+    transcriptLength: transcriptText.length,
+  });
 
-      try {
-        const startTime = Date.now();
-        let totalTokens = 0;
-        appLog('info', 'GenNote', 'Starting generation', { frameworkId, transcriptLength: transcriptText.length });
+  const builtState = await buildEncounterStateFromTranscript(transcriptText, framework);
+  return handleEncounterStateMode(builtState, framework, frameworkId, session);
+}
 
-        // ═══════════════════════════════════════════════════════════════
-        // PASS 0: PHI DE-IDENTIFICATION (Claude — keeps PHI local to Anthropic)
-        // ═══════════════════════════════════════════════════════════════
-        send("progress", { pass: 0, total: 7, message: "Securing patient data..." });
+// ═══════════════════════════════════════════════════════════════
+// BUILD ENCOUNTERSTATE FROM FULL TRANSCRIPT (1 LLM call)
+// Converts a raw transcript into the same EncounterState format
+// that real-time extraction produces, so both paths share the
+// same 2-pass note generation pipeline.
+// ═══════════════════════════════════════════════════════════════
 
-        const deidentifySystem = `You are a HIPAA de-identification engine. Replace all Protected Health Information (PHI) in the transcript with consistent placeholder tokens.
+async function buildEncounterStateFromTranscript(
+  transcript: string,
+  framework: (typeof frameworks)[number],
+): Promise<EncounterState> {
+  const state = createInitialEncounterState(framework.sections);
 
-REPLACE these PHI categories:
-- Patient names → [PATIENT_NAME], [PATIENT_NAME_2], etc.
-- Provider/clinician names → [PROVIDER_NAME], [PROVIDER_NAME_2], etc.
-- Dates of birth → [DOB]
-- Social Security Numbers → [SSN]
-- Medical Record Numbers → [MRN]
-- Phone numbers → [PHONE]
-- Addresses (street, city, zip) → [ADDRESS]
-- Email addresses → [EMAIL]
-- Insurance/policy numbers → [INSURANCE_ID]
-- Facility names → [FACILITY_NAME]
-- Any other unique identifiers → [ID_1], [ID_2], etc.
+  const schemaFields = framework.sections.map((s) => {
+    const items = s.items.map((item) => {
+      return `"${item.toLowerCase().replace(/[^a-z0-9]/g, '_')}": { "value": "string or null", "source": "transcript | not_documented | patient_denies" }`;
+    });
+    return `"${s.title.toLowerCase().replace(/[^a-z0-9]/g, '_')}": {\n      ${items.join(",\n      ")}\n    }`;
+  });
 
-KEEP these (not PHI for clinical purposes):
-- Age (e.g., "45 years old") — KEEP
-- Gender — KEEP
-- Occupation (general, e.g., "construction worker") — KEEP
-- All clinical data (diagnoses, medications, vitals, symptoms) — KEEP
-- Dates of service (keep relative: "today", "3 weeks ago") — KEEP but replace absolute dates with [DATE_1], [DATE_2]
+  const extractSystem = `You are a clinical transcript fact extractor. Extract ONLY explicitly stated facts from a clinical encounter transcript into structured JSON.
 
 RULES:
-1. Use CONSISTENT tokens — same person = same token throughout
-2. Return TWO things: the scrubbed transcript AND a mapping table
-3. The mapping table maps each token to the original value
-4. Do NOT alter clinical content — only identifiers
-
-Return JSON:
-{
-  "scrubbed_transcript": "the full transcript with PHI replaced",
-  "phi_map": { "[PATIENT_NAME]": "original name", "[DOB]": "original DOB", ... }
-}`;
-
-        const deidentifyResult = await callAI(deidentifySystem, transcriptText, 16000);
-        totalTokens += (deidentifyResult.usage?.input_tokens || 0) + (deidentifyResult.usage?.output_tokens || 0);
-        
-        let scrubbedTranscript = transcriptText;
-        let phiMap: Record<string, string> = {};
-        try {
-          const deidentJson = JSON.parse(deidentifyResult.content.replace(/```json\n?/g, "").replace(/```/g, "").trim());
-          scrubbedTranscript = deidentJson.scrubbed_transcript || transcriptText;
-          phiMap = deidentJson.phi_map || {};
-          appLog('info', 'GenNote', 'Pass 0 (de-identification) complete', { phiTokens: Object.keys(phiMap).length });
-        } catch {
-          appLog('warn', 'GenNote', 'De-identification parse failed, using original transcript');
-        }
-
-        // Helper: re-identify text by replacing tokens with original values
-        function reidentify(text: string): string {
-          let result = text;
-          // Sort by token length descending to avoid partial replacements
-          const sortedTokens = Object.entries(phiMap).sort((a, b) => b[0].length - a[0].length);
-          for (const [token, original] of sortedTokens) {
-            result = result.split(token).join(original);
-          }
-          return result;
-        }
-
-        // Use scrubbed transcript for all subsequent passes
-        const safeTranscript = scrubbedTranscript;
-
-        // ═══════════════════════════════════════════════════════════════
-        // PASS 1: STRUCTURED FACT EXTRACTION (DeepSeek)
-        // ═══════════════════════════════════════════════════════════════
-        send("progress", { pass: 1, total: 7, message: "Extracting clinical facts..." });
-
-        const schemaFields = framework.sections.map((s) => {
-          const items = s.items.map((item) => {
-            return `"${item.toLowerCase().replace(/[^a-z0-9]/g, '_')}": { "value": "string or null", "source": "transcript | not_documented | patient_denies" }`;
-          });
-          return `"${s.title.toLowerCase().replace(/[^a-z0-9]/g, '_')}": {\n      ${items.join(",\n      ")}\n    }`;
-        });
-
-        const extractSystem = `You are a clinical transcript fact extractor. You extract ONLY explicitly stated facts from a clinical encounter transcript into a structured JSON format.
-
-ABSOLUTE RULES:
-1. If a data element is explicitly stated in the transcript, set "value" to the stated information and "source" to "transcript".
-2. If the patient or clinician explicitly denies or negates something, set "value" to the denial and "source" to "patient_denies".
-3. If a data element is NOT mentioned anywhere in the transcript, set "value" to null and "source" to "not_documented".
-4. NEVER fabricate, guess, infer, or assume ANY clinical data.
-5. NEVER use your medical knowledge to fill in expected findings.
-6. NEVER add information from medical training — only from the transcript.
-7. Use the EXACT words from the transcript for demographics, occupation, and all factual data.
-8. For measurements (ROM, vitals, scores): use ONLY exact numbers stated.
-9. For clinical findings: use ONLY findings explicitly described.
-10. If the clinician says "everything else is within normal limits" or "the rest is normal", mark those items as value: "WNL" with source: "transcript".
-11. If the transcript says "no substance use" or "denies substance use" globally, apply to ALL substance subcategories with source "patient_denies".
-12. If demographics are stated, ensure they appear in BOTH patient_demographics AND any relevant section fields.
-13. The transcript may contain [silence] markers indicating periods of no speech
-    (e.g., patient performing exercises, manual therapy). Ignore these markers
-    entirely — do not extract or fabricate data for silent periods.
-14. The transcript may have speaker labels (Clinician/Patient). Use these to distinguish:
-    - Patient-reported symptoms, history, and goals (source: "transcript", note who reported it)
-    - Clinician observations, measurements, and assessments (source: "transcript")
-    - If the Patient states something, prefer "Patient reports..." phrasing
-    - If the Clinician states findings, prefer clinical observation phrasing
+1. If stated in transcript: set "value" to the information, "source" to "transcript"
+2. If explicitly denied: set "value" to the denial, "source" to "patient_denies"
+3. If NOT mentioned: set "value" to null, "source" to "not_documented"
+4. NEVER fabricate, guess, or infer clinical data
+5. Use EXACT words from the transcript for demographics and factual data
+6. For measurements: use ONLY exact numbers stated
+7. Ignore [silence] markers — do not extract data for silent periods
+8. If speaker labels present (Clinician/Patient), note who stated each fact
+9. If the transcript says "no substance use" or "denies substance use" globally, apply to ALL substance subcategories with source "patient_denies"
+10. If demographics are stated, ensure they appear in BOTH patient_demographics AND any relevant section fields
 
 Return valid JSON matching the schema provided.`;
 
-        const extractUser = `Extract clinical facts from this transcript into the following JSON schema.
+  const extractUser = `Extract clinical facts from this transcript.
 
 JSON SCHEMA:
 {
-  "patient_demographics": {
-    "name": { "value": "string or null", "source": "transcript | not_documented" },
-    "age": { "value": "string or null", "source": "transcript | not_documented" },
-    "gender": { "value": "string or null", "source": "transcript | not_documented" },
-    "occupation": { "value": "string or null", "source": "transcript | not_documented" },
-    "handedness": { "value": "string or null", "source": "transcript | not_documented" }
-  },
   ${schemaFields.join(",\n  ")},
   "additional_facts": [
-    { "fact": "string", "quote": "approximate quote from transcript", "source": "transcript" }
+    { "fact": "string", "source": "transcript" }
   ]
 }
 
 TRANSCRIPT:
 ---
-${safeTranscript}
+${transcript}
 ---
 
-Remember: null and "not_documented" for ANYTHING not explicitly stated.`;
+Return null and "not_documented" for anything not explicitly stated.`;
 
-        const extractResult = await callAI(extractSystem, extractUser, 4000);
-        // Strip markdown code fences — LLMs frequently wrap JSON in ```json``` blocks
-        const structuredFacts = stripFences(extractResult.content);
-        totalTokens += extractResult.usage.input_tokens + extractResult.usage.output_tokens;
-        appLog('info', 'GenNote', 'Pass 1 complete', { factsLength: structuredFacts.length });
+  const result = await callAI(extractSystem, extractUser, 4000);
+  const raw = stripFences(result.content);
 
-        // COMPLIANCE SCORING
-        const compliance = calculateCompliance(frameworkId, structuredFacts);
-        appLog('info', 'GenNote', 'Compliance calculated', { score: compliance.score, grade: compliance.grade, missingCount: compliance.missing.length });
+  try {
+    const parsed = JSON.parse(raw);
 
-        // ═══════════════════════════════════════════════════════════════
-        // PASS 2: CLINICAL SYNTHESIS
-        // ═══════════════════════════════════════════════════════════════
-        send("progress", { pass: 2, total: 7, message: "Generating clinical reasoning..." });
+    for (const [sectionKey, fields] of Object.entries(parsed)) {
+      if (sectionKey === 'additional_facts') continue;
+      if (typeof fields !== 'object' || fields === null) continue;
 
-        const clinicianType = framework.domain === 'rehabilitation'
-          ? 'rehabilitation clinician (PT/OT/SLP)'
-          : framework.domain === 'behavioral_health'
-            ? 'behavioral health clinician'
-            : framework.type === 'ED Note'
-              ? 'emergency medicine physician'
-              : framework.type === 'Procedure Note'
-                ? 'proceduralist physician'
-                : framework.type === 'Discharge Summary'
-                  ? 'attending physician preparing a discharge summary'
-                  : 'physician';
+      if (!state.sections[sectionKey]) {
+        state.sections[sectionKey] = {};
+      }
 
-        const synthesisSystem = `You are an experienced ${clinicianType}. You are reviewing structured clinical facts extracted from a patient encounter.
-
-Your job is to SYNTHESIZE the documented findings into clinical reasoning. You may ONLY reason from facts present in the JSON (source: "transcript" or "patient_denies"). You must NOT introduce new clinical data.
-
-Generate:
-
-1. **Clinical Impression / Diagnosis**: Connect documented findings to the most likely clinical picture. Reference specific documented values.
-
-2. **Problem List**: Key clinical problems identified from documented findings. Each must trace to specific facts.
-
-3. **Severity/Functional Impact**: Based on documented limitations, pain levels, and measurements.
-
-4. **Rehabilitation/Treatment Potential**: Based on documented history, goals, and presentation.
-
-5. **Recommended Focus Areas**: What the plan of care should prioritize, linked to specific deficits.
-
-RULES:
-- Every statement MUST trace to a non-null JSON fact
-- If insufficient data for a category, write "[Insufficient documented data]"
-- You ARE allowed to: connect findings to diagnoses, assess severity, suggest focus areas, assess prognosis
-- You are NOT allowed to: invent findings, assume tests not performed, add undocumented data
-
-Return valid JSON:
-{
-  "clinical_impression": "string",
-  "problem_list": ["string"],
-  "severity_assessment": "string",
-  "rehab_potential": "string",
-  "recommended_focus": ["string"],
-  "reasoning_notes": "string"
-}`;
-
-        const synthesisUser = `Review these extracted clinical facts and provide your clinical synthesis:
-
-${structuredFacts}
-
-Framework: ${framework.name} (${framework.type} — ${framework.subtype})
-
-Synthesize ONLY from documented facts (source: "transcript").`;
-
-        const synthesisResult = await callAI(synthesisSystem, synthesisUser, 2000);
-        totalTokens += synthesisResult.usage.input_tokens + synthesisResult.usage.output_tokens;
-        let clinicalSynthesis;
-        try {
-          const raw = synthesisResult.content.replace(/```json\n?/g, "").replace(/```/g, "").trim();
-          clinicalSynthesis = JSON.parse(raw);
-        } catch {
-          clinicalSynthesis = { clinical_impression: synthesisResult.content, problem_list: [], severity_assessment: "", rehab_potential: "", recommended_focus: [], reasoning_notes: "" };
+      for (const [fieldKey, factData] of Object.entries(fields as Record<string, unknown>)) {
+        const fact = factData as { value?: string | null; source?: string };
+        if (fact?.value != null && fact?.source !== 'not_documented') {
+          state.sections[sectionKey][fieldKey] = {
+            value: String(fact.value),
+            source: (fact.source as ClinicalFact['source']) || 'transcript',
+            evidence: null,
+          };
         }
-        appLog('info', 'GenNote', 'Pass 2 complete');
-
-        // ═══════════════════════════════════════════════════════════════
-        // PASS 3: PARSED DATA
-        // ═══════════════════════════════════════════════════════════════
-        send("progress", { pass: 3, total: 7, message: "Building parsed data sections..." });
-
-        const sectionPrompt = framework.sections
-          .map((s) => {
-            const items = s.items.join(", ");
-            return `### ${s.title}\nItems: ${items}`;
-          })
-          .join("\n\n");
-
-        const parsedDataSystem = `You are a clinical data renderer. You convert structured JSON clinical facts into a formatted parsed data document.
-
-This is the RAW PARSED DATA layer — facts only, no interpretation.
-
-RULES:
-1. For fields with source "transcript" and non-null value: render the documented value
-2. For fields with source "not_documented" or null value: render as "___" (blank for clinician to fill)
-3. For fields with source "patient_denies": render as "Patient denies [item]"
-4. For fields with value "WNL": render as "WNL" or "Within normal limits"
-5. Do NOT add any clinical reasoning, assessment, or interpretation
-6. Do NOT connect findings or suggest diagnoses
-7. This is PURELY a structured data display
-8. Use clinical formatting (tables for ROM/MMT, bullet lists for findings)
-9. Include patient demographics at the top if available
-10. For Assessment/Plan sections: render ONLY documented facts. If the clinician stated a diagnosis, include it. If not, use "___".
-
-FRAMEWORK: ${framework.name}
-TYPE: ${framework.type} — ${framework.subtype}
-
-STRUCTURE:
-${sectionPrompt}
-
-OUTPUT: Return ONLY a JSON array: [{ "title": "section title", "content": "formatted section content with markdown" }]`;
-
-        const parsedDataUser = `Render these clinical facts as parsed data sections. Facts only — no interpretation.
-
-${structuredFacts}
-
-Every null/"not_documented" item → "___". Do not skip any items.`;
-
-        const parsedDataResult = await callAI(parsedDataSystem, parsedDataUser, 6000);
-        totalTokens += parsedDataResult.usage.input_tokens + parsedDataResult.usage.output_tokens;
-        const parsedData = parseJsonArray(parsedDataResult.content);
-        appLog('info', 'GenNote', 'Pass 3 complete', { sections: parsedData.length });
-
-        // ═══════════════════════════════════════════════════════════════
-        // PASS 4: FINAL CLINICAL NOTE
-        // ═══════════════════════════════════════════════════════════════
-        send("progress", { pass: 4, total: 7, message: "Writing clinical note..." });
-
-        const clinicalNoteSystem = `You are a senior ${clinicianType} writing the final clinical note for the medical record. You are combining two inputs:
-
-1. PARSED DATA: The documented facts from the encounter (with blanks for undocumented items)
-2. CLINICAL REASONING: AI-generated clinical synthesis based on documented findings
-
-Your job is to produce a POLISHED, COMPLETE clinical note that:
-
-RULES:
-1. Include ALL documented facts from the parsed data in proper clinical format
-2. For Assessment/Impression sections: weave in the clinical reasoning naturally. Write it as a clinician would — connecting findings to impressions, not just listing them.
-3. For Plan sections: incorporate recommended focus areas into concrete treatment plan items
-4. Keep blanks (___) for truly undocumented items — do NOT fill them in
-5. Write in professional third-person clinical voice
-6. The note should read as if written by an experienced clinician, not as separate "data" and "reasoning" blocks
-7. Do NOT use "⚡" markers or "AI" labels in the final note — this is the chart-ready version
-8. The clinical reasoning should flow naturally into the assessment and plan, not be called out separately
-9. Use proper medical terminology and standard clinical note formatting
-10. Include tables for objective measurements (ROM, MMT, vitals) where applicable
-11. For rehabilitation notes (PT, OT, SLP): include a BILLING SUMMARY at the end of the Objective section as a table with columns: CPT Code, Description, Minutes, Units. Use the 8-minute rule (8-22 min = 1 unit, 23-37 min = 2 units, 38-52 min = 3 units, 53-67 min = 4 units). Common codes:
-    - 97110 Therapeutic Exercise
-    - 97112 Neuromuscular Re-education  
-    - 97140 Manual Therapy Techniques
-    - 97530 Therapeutic Activities
-    - 97535 Self-Care/Home Management Training
-    - 97542 Wheelchair Management
-    - 97150 Group Therapy
-    - 97032 Electrical Stimulation (attended)
-    - 97035 Ultrasound
-    - 97010 Hot/Cold Packs (untimed, no units)
-    - 97161/97162/97163 PT Eval (Low/Mod/High complexity)
-    - 97165/97166/97167 OT Eval (Low/Mod/High complexity)
-    - 92521-92524 SLP Eval
-    - 97164 PT Re-evaluation
-    - 97168 OT Re-evaluation
-    Extract the interventions, time spent, and map to appropriate CPT codes. Calculate units using the 8-minute rule. Include total skilled time and total billable units.
-
-FRAMEWORK: ${framework.name}
-TYPE: ${framework.type} — ${framework.subtype}
-
-STRUCTURE:
-${sectionPrompt}
-
-OUTPUT: Return ONLY a JSON array: [{ "title": "section title", "content": "formatted section content with markdown" }]`;
-
-        const clinicalNoteUser = `PARSED DATA (documented facts):
-${JSON.stringify(parsedData, null, 2)}
-
-CLINICAL REASONING (synthesis from documented findings):
-${JSON.stringify(clinicalSynthesis, null, 2)}
-
-Write the final clinical note. Merge the parsed data and clinical reasoning into a cohesive, professional clinical document. Assessment and Plan sections should reflect the clinical reasoning integrated with documented findings. Keep ___ for undocumented items.`;
-
-        const clinicalNoteResult = await callAI(clinicalNoteSystem, clinicalNoteUser, 8000);
-        totalTokens += clinicalNoteResult.usage.input_tokens + clinicalNoteResult.usage.output_tokens;
-        const clinicalNote = parseJsonArray(clinicalNoteResult.content);
-        appLog('info', 'GenNote', 'Pass 4 complete', { sections: clinicalNote.length });
-
-        // Re-identify: restore PHI tokens to original values in the final note
-        for (const section of clinicalNote) {
-          section.content = reidentify(section.content);
-          section.title = reidentify(section.title);
-        }
-        // Also re-identify parsed data
-        for (const section of parsedData) {
-          section.content = reidentify(section.content);
-          section.title = reidentify(section.title);
-        }
-        appLog('info', 'GenNote', 'Re-identification complete');
-
-        // ═══════════════════════════════════════════════════════════════
-        // PASS 5: HALLUCINATION AUDIT
-        // ═══════════════════════════════════════════════════════════════
-        send("progress", { pass: 5, total: 7, message: "Running hallucination audit..." });
-
-        let auditClean = true;
-        let auditIssues: string[] = [];
-        try {
-          const auditResult = await callAI(
-            `You are a clinical note auditor. Compare the final clinical note against the structured facts AND clinical synthesis.
-
-RULES:
-- Documented facts from JSON appearing in the note: OK
-- Clinical reasoning that logically follows from documented facts: OK
-- Any clinical data NOT traceable to JSON facts or logical synthesis: FLAG as hallucination
-- Blanks (___) for undocumented items: OK
-- Standard clinical formatting: OK
-
-Return ONLY valid JSON: { "issues": ["description"], "clean": true/false }`,
-            `FACTS JSON:\n${structuredFacts}\n\nSYNTHESIS:\n${JSON.stringify(clinicalSynthesis)}\n\nFINAL NOTE:\n${JSON.stringify(clinicalNote)}`,
-            500
-          );
-          try {
-            const auditJson = JSON.parse(stripFences(auditResult.content));
-            auditClean = auditJson.clean !== false;
-            auditIssues = auditJson.issues || [];
-          } catch { /* ok */ }
-          totalTokens += auditResult.usage.input_tokens + auditResult.usage.output_tokens;
-        } catch { /* non-critical */ }
-        appLog('info', 'GenNote', 'Pass 5 complete', { auditClean: auditClean ?? true, issueCount: auditIssues?.length ?? 0 });
-
-        // ═══════════════════════════════════════════════════════════════
-        // PASS 6: SUMMARY
-        // ═══════════════════════════════════════════════════════════════
-        send("progress", { pass: 6, total: 7, message: "Generating summary..." });
-
-        let summary = "Clinical note generated from encounter transcript.";
-        try {
-          const summaryResult = await callAI(
-            "Write a 2-3 sentence visit summary including the clinical impression. Be concise and clinical.",
-            `SYNTHESIS: ${JSON.stringify(clinicalSynthesis)}\nNOTE: ${JSON.stringify(clinicalNote)}`,
-            300
-          );
-          summary = reidentify(summaryResult.content || summary);
-          totalTokens += summaryResult.usage.input_tokens + summaryResult.usage.output_tokens;
-        } catch { /* non-critical */ }
-
-        const generationTime = (Date.now() - startTime) / 1000;
-        appLog('info', 'GenNote', 'Complete', { generationTime, totalTokens, frameworkId });
-
-        // HIPAA audit log — note generation event
-        try {
-          await auditLog({
-            userId: session.user.id,
-            action: "GENERATE_NOTE",
-            resource: `framework:${frameworkId}`,
-            details: { frameworkId, transcriptLength: transcriptText.length, tokensUsed: totalTokens, generationTime },
-          });
-        } catch { /* non-critical — don't fail the note */ }
-
-        // Send final result
-        send("result", {
-          success: true,
-          parsedData,
-          clinicalSynthesis,
-          clinicalNote,
-          compliance,
-          summary,
-          extractedFacts: structuredFacts,
-          auditClean,
-          auditIssues: auditIssues.length > 0 ? auditIssues : undefined,
-          generationTime: Math.round(generationTime * 10) / 10,
-          source: getActiveProvider(),
-          tokensUsed: totalTokens,
-        });
-      } catch (error) {
-        const code = errorCode();
-        appLog('error', 'GenNote', 'Pipeline error', { code, error: scrubError(error) });
-        send("error", { success: false, error: "Note generation failed", code });
-      } finally {
-        controller.close();
       }
     }
-  });
 
-  return new Response(stream, {
-    headers: {
-      "Content-Type": "text/event-stream",
-      "Cache-Control": "no-store, no-cache, must-revalidate",
-      "Pragma": "no-cache",
-      "Connection": "keep-alive",
-    },
-  });
+    if (Array.isArray(parsed.additional_facts)) {
+      for (const af of parsed.additional_facts) {
+        if (af.fact) {
+          state.additional_facts.push({
+            label: String(af.fact).substring(0, 80),
+            fact: {
+              value: String(af.fact),
+              source: 'transcript',
+              evidence: null,
+            },
+          });
+        }
+      }
+    }
+
+    appLog('info', 'GenNote', 'Transcript fact extraction complete', {
+      sectionCount: Object.keys(state.sections).length,
+      factCount: Object.values(state.sections).reduce(
+        (sum, fields) => sum + Object.values(fields).filter(f => f.value !== null).length, 0,
+      ),
+    });
+  } catch {
+    appLog('warn', 'GenNote', 'Transcript fact extraction parse failed — EncounterState may be sparse');
+  }
+
+  state.chunk_count = 1;
+  state.last_updated = Date.now();
+
+  return state;
 }
 
 // ═══════════════════════════════════════════════════════════════
-// ENCOUNTER-STATE 2-PASS PIPELINE
+// 2-PASS NOTE GENERATION PIPELINE
+// Shared by both encounter-state mode and transcript mode.
+// Pass 1: Generate clinical note from EncounterState facts
+// Pass 2: Audit accuracy + generate summary
 // ═══════════════════════════════════════════════════════════════
 
 async function handleEncounterStateMode(
@@ -544,7 +234,7 @@ async function handleEncounterStateMode(
         const startTime = Date.now();
         let totalTokens = 0;
 
-        appLog('info', 'GenNote', 'Starting encounter-state 2-pass pipeline', {
+        appLog('info', 'GenNote', 'Starting 2-pass pipeline', {
           frameworkId,
           chunkCount: encounterState.chunk_count,
         });
@@ -631,7 +321,7 @@ Write the complete clinical note. Every fact in the JSON must appear in the note
         const noteResult = await callAI(noteSystem, noteUser, 8000);
         totalTokens += noteResult.usage.input_tokens + noteResult.usage.output_tokens;
         const clinicalNote = parseJsonArray(noteResult.content);
-        appLog('info', 'GenNote', 'Pass 1 (encounter-state) complete', { sections: clinicalNote.length });
+        appLog('info', 'GenNote', 'Pass 1 complete', { sections: clinicalNote.length });
 
         // ═══════════════════════════════════════════════════════
         // PASS 2: Audit + Summary (combined into one call)
@@ -682,7 +372,7 @@ Return ONLY valid JSON:
         });
 
         const generationTime = (Date.now() - startTime) / 1000;
-        appLog('info', 'GenNote', 'EncounterState pipeline complete', {
+        appLog('info', 'GenNote', '2-pass pipeline complete', {
           generationTime,
           totalTokens,
           frameworkId,
@@ -727,7 +417,7 @@ Return ONLY valid JSON:
         });
       } catch (error) {
         const code = errorCode();
-        appLog('error', 'GenNote', 'EncounterState pipeline error', { code, error: scrubError(error) });
+        appLog('error', 'GenNote', 'Pipeline error', { code, error: scrubError(error) });
         send("error", { success: false, error: "Note generation failed", code });
       } finally {
         controller.close();
