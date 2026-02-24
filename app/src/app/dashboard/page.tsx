@@ -4,14 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
-import { mockVisits } from '@/lib/mock-data';
-import { frameworks, getDomainLabel, getDomainColor } from '@/lib/frameworks';
-
-const domainColors: Record<string, string> = {
-  Medical: '#1e3a5f',
-  Rehabilitation: '#0d9488',
-  'Behavioral Health': '#7c3aed',
-};
+import { frameworks, getDomainColor, getDomainLabel } from '@/lib/frameworks';
 
 interface RecentFramework {
   frameworkId: string;
@@ -26,9 +19,24 @@ interface VisitDraft {
   savedAt: number;
 }
 
+interface ApiVisit {
+  id: string;
+  frameworkId: string;
+  domain: string;
+  date: string;
+  duration: number | null;
+  status: string;
+  patient: {
+    firstName: string;
+    lastName: string;
+  };
+}
+
 export default function DashboardPage() {
   const [recentFrameworks, setRecentFrameworks] = useState<RecentFramework[]>([]);
   const [draft, setDraft] = useState<VisitDraft | null>(null);
+  const [visits, setVisits] = useState<ApiVisit[]>([]);
+  const [visitsLoading, setVisitsLoading] = useState(true);
 
   useEffect(() => {
     try {
@@ -53,6 +61,13 @@ export default function DashboardPage() {
         }
       }
     } catch { /* ignore parse errors */ }
+
+    // Fetch real visits from API
+    fetch('/api/visits?limit=20')
+      .then(res => res.ok ? res.json() : Promise.reject(res.status))
+      .then(data => setVisits(data.visits || []))
+      .catch(() => { /* fail silently — empty state shown */ })
+      .finally(() => setVisitsLoading(false));
   }, []);
 
   // Resolve framework objects for display
@@ -153,12 +168,20 @@ export default function DashboardPage() {
 
           {/* Quick stats */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-            {[
-              { label: 'Total Notes', value: mockVisits.length.toString(), color: '#1e3a5f' },
-              { label: 'This Week', value: '3', color: '#0d9488' },
-              { label: 'Avg Duration', value: '50 min', color: '#7c3aed' },
-              { label: 'Frameworks Used', value: '4', color: '#f59e0b' },
-            ].map((s) => (
+            {(() => {
+              const now = new Date();
+              const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+              const thisWeek = visits.filter(v => new Date(v.date) >= weekAgo).length;
+              const durations = visits.map(v => v.duration).filter((d): d is number => d != null && d > 0);
+              const avgDur = durations.length > 0 ? Math.round(durations.reduce((a, b) => a + b, 0) / durations.length) : 0;
+              const uniqueFrameworks = new Set(visits.map(v => v.frameworkId)).size;
+              return [
+                { label: 'Total Notes', value: visits.length.toString(), color: '#1e3a5f' },
+                { label: 'This Week', value: thisWeek.toString(), color: '#0d9488' },
+                { label: 'Avg Duration', value: avgDur > 0 ? `${avgDur} min` : '—', color: '#7c3aed' },
+                { label: 'Frameworks Used', value: uniqueFrameworks.toString(), color: '#f59e0b' },
+              ];
+            })().map((s) => (
               <div key={s.label} className="bg-white rounded-xl border border-gray-200 p-4">
                 <div className="text-2xl font-bold mb-1" style={{ color: s.color }}>{s.value}</div>
                 <div className="text-xs text-gray-500">{s.label}</div>
@@ -175,36 +198,56 @@ export default function DashboardPage() {
               </Link>
             </div>
             <div className="divide-y divide-gray-100">
-              {mockVisits.map((visit) => (
-                <Link
-                  key={visit.id}
-                  href={`/visit/${visit.id}`}
-                  className="flex items-center gap-4 px-5 py-4 hover:bg-gray-50 transition-colors"
-                >
-                  <div
-                    className="w-10 h-10 rounded-lg flex items-center justify-center text-white text-xs font-bold shrink-0"
-                    style={{ backgroundColor: domainColors[visit.domain] || '#1e3a5f' }}
-                  >
-                    {visit.providerType}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium text-gray-900 truncate">{visit.patientName}</span>
-                      <span className="text-xs px-2 py-0.5 rounded-full bg-green-50 text-green-700 font-medium shrink-0">
-                        {visit.status === 'complete' ? 'Complete' : visit.status}
-                      </span>
-                    </div>
-                    <div className="text-sm text-gray-500 truncate mt-0.5">{visit.frameworkName}</div>
-                  </div>
-                  <div className="text-right shrink-0">
-                    <div className="text-sm text-gray-900">{visit.date}</div>
-                    <div className="text-xs text-gray-400">{visit.duration} min</div>
-                  </div>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
-                    <polyline points="9 18 15 12 9 6" />
-                  </svg>
-                </Link>
-              ))}
+              {visitsLoading ? (
+                <div className="px-5 py-8 text-center text-sm text-gray-400">Loading visits...</div>
+              ) : visits.length === 0 ? (
+                <div className="px-5 py-8 text-center">
+                  <div className="text-sm text-gray-500 mb-2">No notes yet</div>
+                  <Link href="/visit/new" className="text-sm text-[#0d9488] hover:text-[#0f766e] font-medium">
+                    Start your first visit
+                  </Link>
+                </div>
+              ) : (
+                visits.map((visit) => {
+                  const fw = frameworks.find(f => f.id === visit.frameworkId);
+                  const domainLabel = getDomainLabel(visit.domain);
+                  const domainColor = getDomainColor(visit.domain);
+                  const patientName = `${visit.patient.firstName} ${visit.patient.lastName}`;
+                  const dateStr = new Date(visit.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                  return (
+                    <Link
+                      key={visit.id}
+                      href={`/visit/${visit.id}`}
+                      className="flex items-center gap-4 px-5 py-4 hover:bg-gray-50 transition-colors"
+                    >
+                      <div
+                        className="w-10 h-10 rounded-lg flex items-center justify-center text-white text-xs font-bold shrink-0"
+                        style={{ backgroundColor: domainColor }}
+                      >
+                        {domainLabel.slice(0, 3)}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-gray-900 truncate">{patientName}</span>
+                          <span className={`text-xs px-2 py-0.5 rounded-full font-medium shrink-0 ${
+                            visit.status === 'complete' ? 'bg-green-50 text-green-700' : 'bg-amber-50 text-amber-700'
+                          }`}>
+                            {visit.status === 'complete' ? 'Complete' : visit.status}
+                          </span>
+                        </div>
+                        <div className="text-sm text-gray-500 truncate mt-0.5">{fw?.name || visit.frameworkId}</div>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <div className="text-sm text-gray-900">{dateStr}</div>
+                        {visit.duration != null && <div className="text-xs text-gray-400">{visit.duration} min</div>}
+                      </div>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
+                        <polyline points="9 18 15 12 9 6" />
+                      </svg>
+                    </Link>
+                  );
+                })
+              )}
             </div>
           </div>
         </div>

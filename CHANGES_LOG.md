@@ -685,3 +685,26 @@ Each item follows the same workflow as FIX-1 through FIX-17:
 
 **Build:** ✅ `tsc --noEmit` passes
 **Tests:** ✅ `vitest run` passes (43/43)
+
+## FIX-20: Dashboard uses mock data instead of real visits ✅
+**Date:** 2026-02-24
+**Files changed:**
+- `app/src/app/dashboard/page.tsx` (MODIFIED) — replaced mock data with real API calls
+
+**What it does:**
+- Removed `import { mockVisits } from '@/lib/mock-data'` — dashboard no longer uses mock data
+- Added `ApiVisit` interface and `visits`/`visitsLoading` state
+- Fetches real visits from `GET /api/visits?limit=20` on mount
+- Stats (Total Notes, This Week, Avg Duration, Frameworks Used) now computed from real visit data
+- Recent Notes list renders real visits with patient names from `patient.firstName + lastName`
+- Framework names resolved via `frameworks.find()` lookup
+- Domain colors use existing `getDomainColor()` utility instead of hardcoded `domainColors` map
+- Added loading state ("Loading visits...") and empty state ("No notes yet" with CTA)
+- Status badges: green for "complete", amber for other statuses
+
+**What could break:**
+- If `/api/visits` returns unexpected shape, dashboard shows empty state (fails silently)
+- `mock-data.ts` still imported by `visit/[id]/page.tsx` and `api/transcribe/route.ts` — NOT deleted yet
+
+**Build:** ✅ `npm run build` passes
+**Tests:** ✅ `vitest run` passes (43/43)
