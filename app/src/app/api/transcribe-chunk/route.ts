@@ -53,6 +53,15 @@ export async function POST(request: NextRequest) {
     }
 
     const audioBuffer = await audioFile.arrayBuffer();
+
+    // Reject empty or trivially small audio (< 1KB is likely just a WAV header)
+    if (audioBuffer.byteLength < 1024) {
+      return NextResponse.json(
+        { success: false, error: "Audio chunk is too small or empty" },
+        { status: 400 },
+      );
+    }
+
     const audioBlob = new Blob([audioBuffer], { type: "audio/wav" });
 
     appLog("info", "TranscribeChunk", "Starting Groq Whisper request", {

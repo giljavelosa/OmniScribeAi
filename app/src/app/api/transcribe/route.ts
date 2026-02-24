@@ -63,6 +63,14 @@ export async function POST(request: NextRequest) {
     const mimeType = (audioFile.type || 'audio/wav').split(';')[0];
     const fileSize = audioBuffer.byteLength;
 
+    // Reject empty or trivially small audio (< 1KB is likely just a header)
+    if (fileSize < 1024) {
+      return NextResponse.json(
+        { success: false, error: 'Audio file is too small or empty' },
+        { status: 400 }
+      );
+    }
+
     appLog('info', 'Transcribe', 'Starting transcription', { sizeBytes: fileSize, mimeType });
 
     // ── Size-based routing ──

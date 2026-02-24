@@ -193,3 +193,20 @@ Track every fix applied to the codebase. Read this before every change to avoid 
 
 **Build:** ✅ passes
 **Tests:** ✅ passes (43/43)
+
+## FIX-11: Empty audio rejection ✅
+**Date:** 2026-02-24
+**Files changed:**
+- `app/src/app/api/transcribe-chunk/route.ts` (MODIFIED) — reject audio chunks < 1KB
+- `app/src/app/api/transcribe/route.ts` (MODIFIED) — reject uploaded audio files < 1KB
+
+**What it does:**
+- Returns 400 with clear error message if audio is < 1KB (just a header, no actual audio data)
+- Applied to both chunk transcription (real-time) and batch transcription (upload) endpoints
+- Check runs before any Groq API call is made (saves money/time)
+
+**What could break:**
+- Nothing — legitimate audio is always > 1KB
+
+**Build:** ✅ passes
+**Tests:** ✅ passes (43/43)
