@@ -8,6 +8,7 @@ OmniScribeAI-Audit-Report.*
 
 # Test output
 test-results/
+test-audio/
 
 # OS
 .DS_Store
