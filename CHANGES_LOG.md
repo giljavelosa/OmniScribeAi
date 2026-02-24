@@ -627,3 +627,20 @@ Each item follows the same workflow as FIX-1 through FIX-17:
 
 **Build:** ✅ `tsc --noEmit` passes
 **Tests:** ✅ `vitest run` passes (43/43)
+
+---
+
+## DEPLOY: UX-1 through UX-10 to production ✅
+**Date:** 2026-02-24
+**What was deployed:**
+- All UX improvements (UX-1 through UX-10) + post-UX-6 regression fix
+- Commits `bb68a12..5193a03` (10 files changed, +1363/-135 lines)
+- New files on prod: `SearchModal.tsx`, `api/search/route.ts`
+
+**Deployment method:** `git pull && npm install && npm run build && pm2 restart omniscribe`
+**Build:** ✅ Compiled successfully in 14.4s (Turbopack)
+**PM2:** ✅ Process online, ready in 1021ms
+**Health check:** ✅ All pages responding (landing 200, login 200, authenticated routes 307 redirect)
+**Known warnings:**
+- `ANTHROPIC_API_KEY is not set` — intentional, Anthropic is backup only (Grok/xAI is primary)
+- Stale "Server Action" errors in PM2 error log — from cached clients hitting old deployment, clears on its own
