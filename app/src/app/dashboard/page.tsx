@@ -1,9 +1,11 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
 import { mockVisits } from '@/lib/mock-data';
+import { frameworks, getDomainLabel, getDomainColor } from '@/lib/frameworks';
 
 const domainColors: Record<string, string> = {
   Medical: '#1e3a5f',
@@ -11,7 +13,31 @@ const domainColors: Record<string, string> = {
   'Behavioral Health': '#7c3aed',
 };
 
+interface RecentFramework {
+  frameworkId: string;
+  usedAt: number;
+}
+
 export default function DashboardPage() {
+  const [recentFrameworks, setRecentFrameworks] = useState<RecentFramework[]>([]);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('omniscribe-recent-frameworks');
+      if (raw) {
+        const parsed = JSON.parse(raw) as RecentFramework[];
+        // Only keep entries that match a valid framework
+        const valid = parsed.filter(r => frameworks.some(f => f.id === r.frameworkId));
+        setRecentFrameworks(valid.slice(0, 5));
+      }
+    } catch { /* ignore parse errors */ }
+  }, []);
+
+  // Resolve framework objects for display
+  const recentFwObjects = recentFrameworks
+    .map(r => frameworks.find(f => f.id === r.frameworkId))
+    .filter(Boolean) as typeof frameworks;
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
@@ -22,6 +48,48 @@ export default function DashboardPage() {
           <div className="mb-8">
             <h1 className="text-2xl font-bold text-gray-900 mb-1">Welcome back</h1>
             <p className="text-gray-500">Here are your recent clinical notes.</p>
+          </div>
+
+          {/* Quick Start — recent frameworks */}
+          <div className="mb-8">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="font-semibold text-gray-900">Quick Start</h2>
+              <Link href="/visit/new" className="text-sm text-[#0d9488] hover:text-[#0f766e] font-medium">
+                Browse all frameworks
+              </Link>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {recentFwObjects.length > 0 ? (
+                recentFwObjects.map((fw) => (
+                  <Link
+                    key={fw.id}
+                    href={`/visit/new?frameworkId=${fw.id}`}
+                    className="bg-white rounded-xl border border-gray-200 p-4 hover:border-gray-400 hover:shadow-sm transition-all group"
+                  >
+                    <div className="flex items-center gap-2 mb-2">
+                      <span
+                        className="text-[10px] font-medium px-2 py-0.5 rounded-full text-white"
+                        style={{ backgroundColor: getDomainColor(fw.domain) }}
+                      >
+                        {getDomainLabel(fw.domain)}
+                      </span>
+                    </div>
+                    <div className="font-medium text-gray-900 text-sm group-hover:text-[#0d9488] transition-colors">
+                      {fw.name}
+                    </div>
+                    <div className="text-xs text-gray-500 mt-1 line-clamp-2">{fw.description}</div>
+                  </Link>
+                ))
+              ) : (
+                <Link
+                  href="/visit/new"
+                  className="bg-white rounded-xl border-2 border-dashed border-gray-300 p-6 hover:border-[#0d9488] hover:bg-[#0d9488]/5 transition-all text-center col-span-full sm:col-span-2 lg:col-span-3"
+                >
+                  <div className="text-sm font-medium text-gray-700">Start your first visit</div>
+                  <div className="text-xs text-gray-400 mt-1">Select a framework and begin recording</div>
+                </Link>
+              )}
+            </div>
           </div>
 
           {/* Quick stats */}

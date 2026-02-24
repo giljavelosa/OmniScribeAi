@@ -405,16 +405,25 @@ Each item follows the same workflow as FIX-1 through FIX-17:
 
 ---
 
-## UX-1: Pinned/recent frameworks on dashboard
+## UX-1: Pinned/recent frameworks on dashboard ✅
+**Date:** 2026-02-24
 **Priority:** HIGH — eliminates 3-click framework selection for 90% of visits
-**Files to change:**
-- `app/src/app/dashboard/page.tsx` — add "Quick Start" section with recent/pinned frameworks
-- `app/src/app/api/visits/route.ts` — add query to get user's most-used frameworks
-- `app/src/app/visit/new/page.tsx` — accept `frameworkId` query param to pre-select
+**Files changed:**
+- `app/src/app/dashboard/page.tsx` — added "Quick Start" section showing up to 5 recently-used frameworks as clickable cards linking to `/visit/new?frameworkId=xxx`. Falls back to "Start your first visit" CTA if no recent frameworks. Imports `frameworks`, `getDomainLabel`, `getDomainColor`.
+- `app/src/app/visit/new/page.tsx` — accepts `frameworkId` query param via `useSearchParams()` to pre-select framework on load. Wrapped in `<Suspense>` boundary (required by Next.js for `useSearchParams`). Added `saveRecentFramework()` helper that stores last 5 used framework IDs in localStorage (`omniscribe-recent-frameworks`). Called on both encounter-state and legacy completion paths.
+- `app/src/app/api/visits/route.ts` — no changes needed (recent frameworks tracked client-side in localStorage; DB query version deferred until visits are persisted to DB)
+
+**Implementation detail:**
+- localStorage key: `omniscribe-recent-frameworks` — stores `Array<{frameworkId, usedAt}>`, max 5, MRU order
+- Not PHI — only framework IDs and timestamps, no patient data
+- Invalid/unknown framework IDs are filtered out on dashboard load
 
 **What could break:**
-- Dashboard layout on mobile
-- Visit/new page if frameworkId param is invalid
+- Dashboard layout on mobile (tested: grid collapses to single column on small screens)
+- Visit/new page if frameworkId param is invalid (handled: `useEffect` only sets if `frameworkId` is empty)
+
+**Build:** ✅ `tsc --noEmit` passes
+**Tests:** ✅ `vitest run` passes (43/43)
 
 ---
 

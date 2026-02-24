@@ -2,8 +2,8 @@
 import { fetchNoteSSE } from '@/lib/sse-fetch';
 import { setPhiItem } from '@/lib/phi-storage';
 
-import { useState, useRef, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import { Suspense, useState, useRef, useCallback, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
 import AudioRecorder, { SilenceStats } from '@/components/AudioRecorder';
@@ -19,8 +19,44 @@ const providerTypes: ProviderType[] = ['MD', 'DO', 'PA-C', 'NP', 'PT', 'OT', 'SL
 
 const ACCEPTED_AUDIO = '.mp3,.mp4,.m4a,.wav,.webm,.ogg,.aac,.flac,.wma';
 
+// Save a framework ID to the recent-frameworks list in localStorage (non-PHI, no TTL)
+function saveRecentFramework(fwId: string): void {
+  if (typeof window === 'undefined' || !fwId) return;
+  try {
+    const key = 'omniscribe-recent-frameworks';
+    const raw = localStorage.getItem(key);
+    let recent: { frameworkId: string; usedAt: number }[] = raw ? JSON.parse(raw) : [];
+    // Remove existing entry for this framework
+    recent = recent.filter(r => r.frameworkId !== fwId);
+    // Add to front
+    recent.unshift({ frameworkId: fwId, usedAt: Date.now() });
+    // Keep max 5
+    recent = recent.slice(0, 5);
+    localStorage.setItem(key, JSON.stringify(recent));
+  } catch { /* storage error — non-critical */ }
+}
+
 export default function NewVisitPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-50">
+        <Header />
+        <Sidebar />
+        <main className="lg:ml-64 pt-16">
+          <div className="p-6 md:p-8 max-w-3xl mx-auto">
+            <div className="text-center text-gray-400">Loading...</div>
+          </div>
+        </main>
+      </div>
+    }>
+      <NewVisitContent />
+    </Suspense>
+  );
+}
+
+function NewVisitContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const lastBlobRef      = useRef<Blob | null>(null);   // retained for retry after failure
   const lastSessionIdRef = useRef<string>('');
@@ -36,6 +72,14 @@ export default function NewVisitPage() {
   const [liveTranscript, setLiveTranscript] = useState('');
   const [transcriptWordCount, setTranscriptWordCount] = useState(0);
   const encounterStateRef = useRef<EncounterState | null>(null);
+
+  // Pre-select framework from URL query param (e.g., /visit/new?frameworkId=rehab-pt-eval)
+  useEffect(() => {
+    const fwParam = searchParams.get('frameworkId');
+    if (fwParam && !frameworkId) {
+      setFrameworkId(fwParam);
+    }
+  }, [searchParams, frameworkId]);
 
   const canRecord = patientName.trim() !== '' && frameworkId !== '';
 
@@ -125,6 +169,7 @@ export default function NewVisitPage() {
 
       setProgress(100);
       setProgressText('Done!');
+      saveRecentFramework(frameworkId);
 
       await new Promise(r => setTimeout(r, 500));
       router.push(`/visit/${visitId}`);
@@ -219,6 +264,7 @@ export default function NewVisitPage() {
 
       setProgress(100);
       setProgressText('Done!');
+      saveRecentFramework(frameworkId);
 
       await new Promise(r => setTimeout(r, 500));
       router.push(`/visit/${visitId}`);
