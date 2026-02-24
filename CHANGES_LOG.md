@@ -549,15 +549,24 @@ Each item follows the same workflow as FIX-1 through FIX-17:
 
 ---
 
-## UX-7: Mobile hamburger menu
-**Priority:** MEDIUM — clinicians use tablets in exam rooms
-**Files to change:**
-- `app/src/components/Sidebar.tsx` — add mobile toggle (hamburger icon)
-- `app/src/components/Header.tsx` — add hamburger button on small screens
+## UX-7: Mobile hamburger menu ✅
+**Date:** 2026-02-24
+**Files changed:**
+- `app/src/components/Sidebar.tsx` (MODIFIED) — extracted NavLinks helper, added mobile drawer overlay with backdrop
+- `app/src/components/Header.tsx` (MODIFIED) — added hamburger button (lg:hidden), responsive touch targets, mobile-friendly layout
 
-**What could break:**
-- Sidebar z-index conflicts with modals/overlays
-- Touch targets must be 44px+ for mobile accessibility
+**What it does:**
+- Hamburger button in header visible on screens < 1024px (lg breakpoint), 44px touch target
+- Mobile sidebar slides in as overlay drawer (w-72) with semi-transparent backdrop
+- Closes on: backdrop click, ESC key, route change, nav link click
+- Uses custom DOM event `toggle-mobile-sidebar` (same pattern as SearchModal)
+- Desktop sidebar unchanged (`hidden lg:flex`)
+- Header right side: "New Visit" text hidden on mobile (icon only), user name/email hidden on mobile (avatar only)
+- All interactive elements have min 44px touch targets for mobile accessibility
+- z-index: mobile backdrop z-40, mobile drawer z-50 (matches header), no conflict with SearchModal (z-50 portal)
+
+**Build:** ✅ `tsc --noEmit` passes
+**Tests:** ✅ `vitest run` passes (43/43)
 
 ---
 

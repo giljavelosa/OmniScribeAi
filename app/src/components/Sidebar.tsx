@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useSession } from 'next-auth/react';
@@ -15,45 +16,93 @@ const adminNav = [
   { href: '/admin/users', label: 'Users', icon: 'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z' },
 ];
 
+function NavLinks({ isAdmin, pathname, onNavigate }: { isAdmin: boolean; pathname: string; onNavigate?: () => void }) {
+  return (
+    <>
+      {nav.map((item) => {
+        const active = pathname === item.href || pathname.startsWith(item.href + '/');
+        return (
+          <Link key={item.href} href={item.href} onClick={onNavigate}
+            className={`flex items-center gap-3 px-3 py-3 min-h-[44px] rounded-lg text-sm font-medium transition-colors ${active ? 'bg-[#1e3a5f]/5 text-[#1e3a5f]' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}`}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d={item.icon} />
+            </svg>
+            {item.label}
+          </Link>
+        );
+      })}
+
+      {isAdmin && (
+        <>
+          <div className="pt-4 pb-2"><div className="text-xs font-semibold text-gray-400 uppercase px-3">Admin</div></div>
+          {adminNav.map((item) => {
+            const active = pathname === item.href;
+            return (
+              <Link key={item.href} href={item.href} onClick={onNavigate}
+                className={`flex items-center gap-3 px-3 py-3 min-h-[44px] rounded-lg text-sm font-medium transition-colors ${active ? 'bg-[#1e3a5f]/5 text-[#1e3a5f]' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}`}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d={item.icon} />
+                </svg>
+                {item.label}
+              </Link>
+            );
+          })}
+        </>
+      )}
+    </>
+  );
+}
+
 export default function Sidebar() {
   const pathname = usePathname();
   const { data: session } = useSession();
   const isAdmin = session?.user?.role === 'ADMIN';
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  const closeMobile = useCallback(() => setMobileOpen(false), []);
+
+  // Listen for toggle event from Header hamburger button
+  useEffect(() => {
+    const handleToggle = () => setMobileOpen((prev) => !prev);
+    document.addEventListener('toggle-mobile-sidebar', handleToggle);
+    return () => document.removeEventListener('toggle-mobile-sidebar', handleToggle);
+  }, []);
+
+  // Close on ESC
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const handleKey = (e: KeyboardEvent) => { if (e.key === 'Escape') closeMobile(); };
+    document.addEventListener('keydown', handleKey);
+    return () => document.removeEventListener('keydown', handleKey);
+  }, [mobileOpen, closeMobile]);
+
+  // Close when route changes
+  useEffect(() => {
+    closeMobile();
+  }, [pathname, closeMobile]);
 
   return (
-    <aside className="hidden lg:flex flex-col w-64 border-r border-gray-200 bg-white fixed top-16 bottom-0 left-0 z-40">
-      <nav className="flex-1 px-3 py-4 space-y-1">
-        {nav.map((item) => {
-          const active = pathname === item.href || pathname.startsWith(item.href + '/');
-          return (
-            <Link key={item.href} href={item.href}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${active ? 'bg-[#1e3a5f]/5 text-[#1e3a5f]' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}`}>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d={item.icon} />
-              </svg>
-              {item.label}
-            </Link>
-          );
-        })}
+    <>
+      {/* Desktop sidebar */}
+      <aside className="hidden lg:flex flex-col w-64 border-r border-gray-200 bg-white fixed top-16 bottom-0 left-0 z-40">
+        <nav className="flex-1 px-3 py-4 space-y-1">
+          <NavLinks isAdmin={isAdmin} pathname={pathname} />
+        </nav>
+      </aside>
 
-        {isAdmin && (
-          <>
-            <div className="pt-4 pb-2"><div className="text-xs font-semibold text-gray-400 uppercase px-3">Admin</div></div>
-            {adminNav.map((item) => {
-              const active = pathname === item.href;
-              return (
-                <Link key={item.href} href={item.href}
-                  className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${active ? 'bg-[#1e3a5f]/5 text-[#1e3a5f]' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}`}>
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                    <path d={item.icon} />
-                  </svg>
-                  {item.label}
-                </Link>
-              );
-            })}
-          </>
-        )}
-      </nav>
-    </aside>
+      {/* Mobile sidebar overlay */}
+      {mobileOpen && (
+        <div className="lg:hidden fixed inset-0 z-40">
+          {/* Backdrop */}
+          <div className="fixed inset-0 bg-black/30" onClick={closeMobile} aria-hidden="true" />
+          {/* Drawer */}
+          <aside className="fixed top-16 bottom-0 left-0 w-72 bg-white border-r border-gray-200 z-50 overflow-y-auto shadow-xl">
+            <nav className="px-3 py-4 space-y-1">
+              <NavLinks isAdmin={isAdmin} pathname={pathname} onNavigate={closeMobile} />
+            </nav>
+          </aside>
+        </div>
+      )}
+    </>
   );
 }

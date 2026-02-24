@@ -20,7 +20,19 @@ export default function Header() {
 
   return (
     <header className="h-16 border-b border-gray-200 bg-white flex items-center justify-between px-6 fixed top-0 left-0 right-0 z-50">
-      <div className="flex items-center gap-8">
+      <div className="flex items-center gap-4 lg:gap-8">
+        {/* Mobile hamburger — 44px touch target */}
+        <button
+          onClick={() => document.dispatchEvent(new Event('toggle-mobile-sidebar'))}
+          className="lg:hidden flex items-center justify-center w-11 h-11 -ml-2 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors"
+          aria-label="Toggle navigation menu"
+        >
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="3" y1="6" x2="21" y2="6" />
+            <line x1="3" y1="12" x2="21" y2="12" />
+            <line x1="3" y1="18" x2="21" y2="18" />
+          </svg>
+        </button>
         <Link href="/dashboard" className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-lg bg-[#1e3a5f] flex items-center justify-center">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -34,7 +46,7 @@ export default function Header() {
         </Link>
       </div>
 
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-2 sm:gap-4">
         <button
           onClick={() => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', metaKey: true }))}
           className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm text-gray-500 transition-colors"
@@ -47,18 +59,18 @@ export default function Header() {
         </button>
         <Link
           href="/visit/new"
-          className="bg-[#0d9488] hover:bg-[#0f766e] text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
+          className="bg-[#0d9488] hover:bg-[#0f766e] text-white px-3 sm:px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 min-h-[44px]"
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <circle cx="12" cy="12" r="10" />
             <line x1="12" y1="8" x2="12" y2="16" />
             <line x1="8" y1="12" x2="16" y2="12" />
           </svg>
-          New Visit
+          <span className="hidden sm:inline">New Visit</span>
         </Link>
-        <div className="w-px h-8 bg-gray-200" />
-        <div className="flex items-center gap-3">
-          <div className="text-right">
+        <div className="w-px h-8 bg-gray-200 hidden sm:block" />
+        <div className="flex items-center gap-2 sm:gap-3">
+          <div className="text-right hidden sm:block">
             <div className="text-sm font-medium text-gray-900">{userName}</div>
             <div className="text-xs text-gray-500">{session?.user?.email || ''}</div>
           </div>
@@ -67,7 +79,7 @@ export default function Header() {
           </div>
           <button
             onClick={() => { clearAllPhiItems(); signOut({ callbackUrl: '/login' }); }}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
+            className="text-gray-400 hover:text-gray-600 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
             title="Sign out"
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
