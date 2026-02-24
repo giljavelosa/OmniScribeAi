@@ -427,15 +427,25 @@ Each item follows the same workflow as FIX-1 through FIX-17:
 
 ---
 
-## UX-2: Patient autocomplete on visit/new
+## UX-2: Patient autocomplete on visit/new ✅
+**Date:** 2026-02-24
 **Priority:** HIGH — prevents duplicates, links to history, saves typing
-**Files to change:**
-- `app/src/app/visit/new/page.tsx` — replace free-text patient name with search/select dropdown
-- `app/src/app/api/patients/route.ts` — already has search via `q` param (reuse)
+**Files changed:**
+- `app/src/app/visit/new/page.tsx` — replaced free-text patient name input with debounced autocomplete (300ms) that searches `/api/patients?q=`. Shows dropdown with patient name, identifier, and visit count. Selecting links the patient (`patientId` state). Typing after selection clears the link. Shows "Linked" badge when patient is selected. Falls back to "no matching patients" message with hint that name will create new record.
+- `app/src/app/api/patients/route.ts` — no changes (reuses existing `?q=` search with ownership scoping)
+
+**Implementation detail:**
+- New state: `patientId`, `patientSearch`, `patientResults`, `showPatientDropdown`, `searchingPatients`
+- Debounce: 300ms via `setTimeout` ref, minimum 2 chars to trigger search
+- Click-outside: `mousedown` listener closes dropdown
+- `patientId` is tracked but not yet passed to visit creation (visits currently go to localStorage only)
 
 **What could break:**
-- Existing "type patient name" flow — must support both new + existing patients
-- PHI in autocomplete dropdown (client-side data, covered by phi-storage TTL)
+- Existing "type patient name" flow still works — user can type any name without selecting from dropdown
+- PHI in dropdown (patient names, IDs) — client-side only, no localStorage persistence
+
+**Build:** ✅ `tsc --noEmit` passes
+**Tests:** ✅ `vitest run` passes (43/43)
 
 ---
 

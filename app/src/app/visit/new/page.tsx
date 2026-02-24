@@ -54,6 +54,14 @@ export default function NewVisitPage() {
   );
 }
 
+interface PatientResult {
+  id: string;
+  identifier: string;
+  firstName: string | null;
+  lastName: string | null;
+  _count?: { visits: number };
+}
+
 function NewVisitContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -61,6 +69,13 @@ function NewVisitContent() {
   const lastBlobRef      = useRef<Blob | null>(null);   // retained for retry after failure
   const lastSessionIdRef = useRef<string>('');
   const [patientName, setPatientName] = useState('');
+  const [patientId, setPatientId] = useState('');
+  const [patientSearch, setPatientSearch] = useState('');
+  const [patientResults, setPatientResults] = useState<PatientResult[]>([]);
+  const [showPatientDropdown, setShowPatientDropdown] = useState(false);
+  const [searchingPatients, setSearchingPatients] = useState(false);
+  const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
   const [providerType, setProviderType] = useState<ProviderType>('PT');
   const [frameworkId, setFrameworkId] = useState('');
   const [inputMode, setInputMode] = useState<'record' | 'upload'>('record');
@@ -80,6 +95,56 @@ function NewVisitContent() {
       setFrameworkId(fwParam);
     }
   }, [searchParams, frameworkId]);
+
+  // Debounced patient search
+  const searchPatients = useCallback((query: string) => {
+    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+    if (query.trim().length < 2) {
+      setPatientResults([]);
+      setShowPatientDropdown(false);
+      return;
+    }
+    setSearchingPatients(true);
+    searchTimeoutRef.current = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/patients?q=${encodeURIComponent(query.trim())}&limit=8`);
+        if (res.ok) {
+          const data = await res.json();
+          setPatientResults(data.patients || []);
+          setShowPatientDropdown(true);
+        }
+      } catch { /* network error — fail silently */ }
+      setSearchingPatients(false);
+    }, 300);
+  }, []);
+
+  // Close dropdown on click outside
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setShowPatientDropdown(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handlePatientInputChange = (value: string) => {
+    setPatientSearch(value);
+    setPatientName(value);
+    // Clear linked patient if user edits after selecting
+    if (patientId) setPatientId('');
+    searchPatients(value);
+  };
+
+  const selectPatient = (patient: PatientResult) => {
+    const name = [patient.firstName, patient.lastName].filter(Boolean).join(' ') || patient.identifier;
+    setPatientName(name);
+    setPatientSearch(name);
+    setPatientId(patient.id);
+    setShowPatientDropdown(false);
+    setPatientResults([]);
+  };
 
   const canRecord = patientName.trim() !== '' && frameworkId !== '';
 
@@ -400,15 +465,57 @@ function NewVisitContent() {
               <div className="bg-white rounded-2xl border border-gray-200 p-6">
                 <h2 className="font-semibold text-gray-900 mb-4">Patient & Provider</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
+                  <div ref={dropdownRef} className="relative">
                     <label className="block text-sm font-medium text-gray-700 mb-1.5">Patient Name</label>
-                    <input
-                      type="text"
-                      value={patientName}
-                      onChange={(e) => setPatientName(e.target.value)}
-                      placeholder="e.g., Robert Johnson"
-                      className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#0d9488]/30 focus:border-[#0d9488] transition-colors"
-                    />
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={patientSearch}
+                        onChange={(e) => handlePatientInputChange(e.target.value)}
+                        onFocus={() => { if (patientResults.length > 0 && !patientId) setShowPatientDropdown(true); }}
+                        placeholder="Search existing or type new name..."
+                        className={`w-full px-3 py-2.5 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#0d9488]/30 focus:border-[#0d9488] transition-colors ${
+                          patientId ? 'border-[#0d9488] bg-[#0d9488]/5' : 'border-gray-300'
+                        }`}
+                      />
+                      {patientId && (
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] px-1.5 py-0.5 rounded bg-[#0d9488]/10 text-[#0d9488] font-medium">
+                          Linked
+                        </span>
+                      )}
+                      {searchingPatients && !patientId && (
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">...</span>
+                      )}
+                    </div>
+                    {/* Autocomplete dropdown */}
+                    {showPatientDropdown && patientResults.length > 0 && (
+                      <div className="absolute z-20 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                        {patientResults.map((p) => (
+                          <button
+                            key={p.id}
+                            onClick={() => selectPatient(p)}
+                            className="w-full px-3 py-2.5 text-left hover:bg-gray-50 transition-colors flex items-center justify-between"
+                          >
+                            <div>
+                              <div className="text-sm font-medium text-gray-900">
+                                {[p.firstName, p.lastName].filter(Boolean).join(' ') || p.identifier}
+                              </div>
+                              <div className="text-xs text-gray-400">ID: {p.identifier}</div>
+                            </div>
+                            {p._count?.visits !== undefined && (
+                              <span className="text-[10px] text-gray-400 shrink-0 ml-2">
+                                {p._count.visits} visit{p._count.visits !== 1 ? 's' : ''}
+                              </span>
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    {showPatientDropdown && patientResults.length === 0 && patientSearch.trim().length >= 2 && !searchingPatients && (
+                      <div className="absolute z-20 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg px-3 py-2.5">
+                        <div className="text-xs text-gray-500">No matching patients. Name will be used for a new record.</div>
+                      </div>
+                    )}
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1.5">Provider Type</label>
