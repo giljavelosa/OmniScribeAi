@@ -805,8 +805,29 @@ Each item follows the same workflow as FIX-1 through FIX-17:
 
 ---
 
+## FIX-26: Nginx rate limiting + hardening ✅
+**Date:** 2026-02-24
+**Server:** 143.198.131.243 (omniscribe-prod)
+**Files changed on server:**
+- `/etc/nginx/nginx.conf` — added rate limit zones, `server_tokens off`, dropped TLS 1.0/1.1
+- `/etc/nginx/sites-enabled/omniscribe` — added `/api/auth/` (login zone: 10r/m, burst=5) and `/api/` (api zone: 30r/s, burst=50) rate limit blocks
+- `/etc/nginx/sites-enabled/omniscribeai` — same rate limit blocks for domain-based config
+
+**What it does:**
+- **Rate limiting (defense in depth)**: Nginx now rate-limits before requests reach the app — login at 10 req/min per IP, API at 30 req/s per IP. App-level rate limiting (per user) still active as inner layer.
+- **server_tokens off**: Nginx `Server:` header now shows `nginx` without version number
+- **TLS hardened**: Dropped TLS 1.0 and 1.1, only TLSv1.2 and TLSv1.3 accepted
+- Both site configs (`omniscribe` for IP, `omniscribeai` for domain) updated identically
+
+**What could break:**
+- Legitimate high-frequency API callers could hit nginx rate limit before app rate limit — burst=50 should prevent this for normal use
+- Login rate limit (10/min) is aggressive — appropriate for a single-tenant medical app
+
+**Verified:** `nginx -t` passes, `systemctl reload nginx` successful, `/login` returns 200, `Server: nginx` (no version)
+
+---
+
 ## Remaining Items (not yet implemented)
 - **Infrastructure**: Configure staging/dev droplets
-- **Nginx hardening**: Add `limit_req` rate limiting at nginx layer
 - **Test coverage**: Unit tests for middleware, security headers, SSE pipeline
 - **Gold transcripts**: Expand from 3 to 15 test transcripts for pipeline validation
