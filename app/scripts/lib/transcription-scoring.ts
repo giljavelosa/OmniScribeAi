@@ -50,6 +50,32 @@ export const MEDICAL_TERMS: Record<string, string[]> = {
   ],
 };
 
+/**
+ * Medical terms for long audio tests (full dialogue transcripts from mockTranscripts).
+ */
+export const LONG_MEDICAL_TERMS: Record<string, string[]> = {
+  'long-bh-crisis': [
+    'suicidal ideation', 'Adderall', 'C-SSRS', 'Columbia', 'safety plan',
+    'self-harm', 'psychiatric observation', 'crisis', '988',
+  ],
+  'long-bh-intake': [
+    'panic attacks', 'anxiety', 'depression', 'PHQ-9', 'GAD-7',
+    'CBT', 'antidepressants', 'bipolar disorder', 'panic disorder',
+  ],
+  'long-med-ed': [
+    'GCS', 'tachycardic', 'Morrison', 'FAST', 'tibia', 'fibula',
+    'comminuted fracture', 'liver laceration', 'morphine', 'orthopedics',
+  ],
+  'long-concat-medical': [
+    'troponin', 'STEMI', 'heparin', 'nitroglycerin', 'atorvastatin',
+    'tibia', 'fibula', 'FAST', 'topiramate', 'sumatriptan', 'migraine',
+  ],
+  'long-concat-bh': [
+    'Adderall', 'C-SSRS', 'panic attacks', 'PHQ-9', 'GAD-7',
+    'sertraline', 'escitalopram', 'ADHD', 'MOCA', 'suicidal ideation',
+  ],
+};
+
 export interface TranscriptionScore {
   wordOverlap: number;         // 0-100: % of source content words found
   medicalTermAccuracy: number; // 0-100: % of medical terms found
