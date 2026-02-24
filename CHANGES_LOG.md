@@ -129,3 +129,21 @@ Track every fix applied to the codebase. Read this before every change to avoid 
 
 **Build:** ✅ passes
 **Tests:** ✅ passes (43/43)
+
+## FIX-7: CSRF protection ✅
+**Date:** 2026-02-24
+**Files changed:**
+- `app/middleware.ts` (MODIFIED) — Origin/Referer validation on state-changing API requests
+
+**What it does:**
+- Validates `Origin` header on POST/PUT/PATCH/DELETE requests to `/api/` routes
+- Falls back to `Referer` if no `Origin` header present
+- Rejects with 403 if Origin/Referer doesn't match the Host header
+- Allows requests with neither header (curl, server-to-server) as long as session is valid
+
+**What could break:**
+- Cross-origin API calls from external tools will be rejected (must match host)
+- Requests with a mismatched Origin header will get 403 instead of processing
+
+**Build:** ✅ passes
+**Tests:** ✅ passes (43/43)

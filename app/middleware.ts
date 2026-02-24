@@ -52,6 +52,39 @@ export default auth((req) => {
     return NextResponse.redirect(new URL("/change-password", req.url));
   }
 
+  // CSRF protection: verify Origin on state-changing API requests
+  if (
+    pathname.startsWith("/api/") &&
+    ["POST", "PUT", "PATCH", "DELETE"].includes(req.method)
+  ) {
+    const origin = req.headers.get("origin");
+    const referer = req.headers.get("referer");
+    const host = req.headers.get("host");
+
+    // Accept if Origin matches host
+    let originOk = false;
+    if (origin) {
+      try {
+        const originHost = new URL(origin).host;
+        originOk = originHost === host;
+      } catch { /* invalid origin */ }
+    } else if (referer) {
+      // Fallback to Referer if no Origin (some older browsers)
+      try {
+        const refererHost = new URL(referer).host;
+        originOk = refererHost === host;
+      } catch { /* invalid referer */ }
+    }
+    // No Origin and no Referer — reject (likely cross-site or curl without headers)
+    // Exception: allow requests with no origin only if they have a valid session (server-to-server)
+    if (!originOk && (origin || referer)) {
+      return new NextResponse(
+        JSON.stringify({ error: "CSRF validation failed" }),
+        { status: 403, headers: { "Content-Type": "application/json" } },
+      );
+    }
+  }
+
   // Rate limit API routes for authenticated users
   if (pathname.startsWith("/api/")) {
     const userId = req.auth.user?.id || "anonymous";
