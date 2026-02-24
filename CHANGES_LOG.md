@@ -708,3 +708,16 @@ Each item follows the same workflow as FIX-1 through FIX-17:
 
 **Build:** ✅ `npm run build` passes
 **Tests:** ✅ `vitest run` passes (43/43)
+
+## FIX-21: MEMORY.md pipeline description stale ✅
+**Date:** 2026-02-24
+**Files changed:**
+- `.claude/projects/-Users-giljrjavelosa/memory/MEMORY.md` (MODIFIED) — corrected pipeline description
+
+**What it does:**
+- Updated "Note Generation Pipeline" section: removed stale "7-pass" description
+- Now correctly documents: 2-pass encounter-state mode + 3-pass transcript mode (both share same 2-pass core)
+- Updated key source files reference from "7-pass + 2-pass" to "2-pass + 3-pass transcript mode"
+- Added FIX-20 to git history
+
+**What could break:** Nothing — documentation only
