@@ -147,3 +147,30 @@ Track every fix applied to the codebase. Read this before every change to avoid 
 
 **Build:** ✅ passes
 **Tests:** ✅ passes (43/43)
+
+## FIX-8: XSS via dangerouslySetInnerHTML — VERIFIED SAFE ✅
+**Date:** 2026-02-24
+**Files reviewed:**
+- `app/src/app/visit/new/page.tsx` — `escapeHtml()` called before regex replacements
+- `app/src/app/visit/[id]/page.tsx` — `escapeHtml()` called before regex replacements
+- `app/src/components/NoteEditor.tsx` — `renderMarkdown()` calls `escapeHtml()` first
+
+**Finding:** All three dangerouslySetInnerHTML usages are already properly sanitized. escapeHtml encodes `& < > "` before any HTML is injected. Regex $1 captures from already-escaped text. No changes needed.
+
+## FIX-9: PDF export unescaped section titles ✅
+**Date:** 2026-02-24
+**Files changed:**
+- `app/src/app/visit/[id]/page.tsx` (MODIFIED) — escapeHtml applied to all dynamic values in PDF export
+
+**What it does:**
+- Section titles: `s.title` → `escapeHtml(s.title)`
+- Section content: now passed through `escapeHtml()` before markdown-to-HTML conversion
+- Patient name, date, provider type, framework name: all escaped in PDF HTML template
+- Compliance grade/score: escaped via `escapeHtml(String(...))`
+
+**What could break:**
+- Section titles with intentional HTML (none expected) will render as escaped text
+- No functional change for normal data
+
+**Build:** ✅ passes
+**Tests:** ✅ passes (43/43)

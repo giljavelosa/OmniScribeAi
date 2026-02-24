@@ -311,18 +311,18 @@ export default function VisitDetailPage() {
     const dt = formatDate(createdAt);
     const dur = Math.round(duration / 60);
     const fw = framework?.name || frameworkId;
-    const compLine = compliance ? `<div class="footer">CMS Compliance: ${compliance.grade} (${compliance.score}%) - ${compliance.documented}/${compliance.totalRequired} items documented</div>` : '';
+    const compLine = compliance ? `<div class="footer">CMS Compliance: ${escapeHtml(String(compliance.grade))} (${escapeHtml(String(compliance.score))}%) - ${compliance.documented}/${compliance.totalRequired} items documented</div>` : '';
     
     let body = '';
     for (const s of sections) {
-      const c = s.content
+      const c = escapeHtml(s.content)
         .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
         .replace(/\n\n/g, '</p><p>')
         .replace(/\n/g, '<br>');
-      body += `<h2>${s.title}</h2><div>${c}</div>`;
+      body += `<h2>${escapeHtml(s.title)}</h2><div>${c}</div>`;
     }
 
-    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Clinical Note - ${pt}</title>
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Clinical Note - ${escapeHtml(pt)}</title>
 <style>body{font-family:Georgia,serif;max-width:700px;margin:40px auto;padding:20px;color:#1a1a1a;font-size:11pt;line-height:1.6}
 h1{font-size:16pt;border-bottom:2px solid #1e3a5f;padding-bottom:8px;color:#1e3a5f}
 h2{font-size:13pt;color:#1e3a5f;margin-top:20px;border-bottom:1px solid #ddd;padding-bottom:4px}
@@ -335,8 +335,8 @@ th{background:#f5f5f5;font-weight:bold}
 .signature{margin-top:50px;border-top:1px solid #333;width:250px;padding-top:5px;font-size:10pt}
 @media print{body{margin:0;padding:15px}}</style></head>
 <body><div class="header"><h1>Clinical Documentation</h1>
-<div class="meta">Patient: ${pt} | Date: ${dt} | Provider: ${providerType}</div>
-<div class="meta">Framework: ${fw} | Duration: ${dur} min</div></div>
+<div class="meta">Patient: ${escapeHtml(pt)} | Date: ${escapeHtml(dt)} | Provider: ${escapeHtml(providerType)}</div>
+<div class="meta">Framework: ${escapeHtml(fw)} | Duration: ${dur} min</div></div>
 ${body}
 ${compLine}
 <div class="signature">Clinician Signature / Date</div></body></html>`;
