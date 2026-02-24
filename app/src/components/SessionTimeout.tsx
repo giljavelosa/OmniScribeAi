@@ -4,8 +4,8 @@ import { useEffect, useState } from "react";
 import { signOut, useSession } from "next-auth/react";
 import { clearAllPhiItems } from "@/lib/phi-storage";
 
-const TIMEOUT_MS = 8 * 60 * 60 * 1000;  // 8 hours (was 15 min)
-const WARNING_MS = 5 * 60 * 1000;        // warn 5 min before expiry
+const TIMEOUT_MS = 15 * 60 * 1000;  // 15 min idle timeout (HIPAA)
+const WARNING_MS = 2 * 60 * 1000;   // warn 2 min before expiry
 
 export default function SessionTimeout() {
   const { data: session } = useSession();

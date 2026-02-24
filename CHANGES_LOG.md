@@ -110,3 +110,22 @@ Track every fix applied to the codebase. Read this before every change to avoid 
 
 **Build:** ✅ passes
 **Tests:** ✅ passes (20/20)
+
+## FIX-6: Reduce session timeout ✅
+**Date:** 2026-02-24
+**Files changed:**
+- `app/src/lib/auth.ts` (MODIFIED) — JWT maxAge reduced from 8h to 4h
+- `app/src/components/SessionTimeout.tsx` (MODIFIED) — idle timeout reduced from 8h to 15min, warning from 5min to 2min
+
+**What it does:**
+- JWT absolute max session: 4 hours (down from 8)
+- Client-side idle timeout: 15 minutes (HIPAA standard for workstation timeout)
+- Warning shown 2 minutes before idle logout
+- Recording heartbeat still keeps session alive during active recording
+
+**What could break:**
+- Users who leave the app idle for >15 min will be logged out (intended for HIPAA compliance)
+- Long sessions without interaction will now require re-login more frequently
+
+**Build:** ✅ passes
+**Tests:** ✅ passes (43/43)
