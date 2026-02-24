@@ -31,3 +31,23 @@ Track every fix applied to the codebase. Read this before every change to avoid 
 
 **Build:** ✅ `tsc --noEmit` passes
 **Tests:** ✅ `vitest run` passes (20/20)
+
+## FIX-2: Prompt injection via framework data ✅
+**Date:** 2026-02-24
+**Files changed:**
+- `app/src/lib/prompt-sanitizer.ts` (NEW) — sanitizeForPrompt, sanitizeSectionTitle, sanitizeItemName, safeJsonKey
+- `app/src/app/api/generate-note/route.ts` (MODIFIED) — uses sanitizers for schema fields, section prompt, framework name/type
+- `app/src/app/api/extract-chunk/route.ts` (MODIFIED) — uses safeJsonKey for schema fields
+
+**What it does:**
+- Strips injection patterns (IGNORE ABOVE, system:, HTML tags, template syntax, code fences)
+- Restricts framework text to safe chars (alphanumeric, spaces, hyphens, common punctuation)
+- Caps input at 200 chars, collapses whitespace
+- Applied to all framework section titles, item names, framework name/type before prompt interpolation
+
+**What could break:**
+- Framework names with unusual characters (e.g., unicode) will have those chars stripped
+- JSON keys are already lowercase+underscore normalized, so safeJsonKey matches existing behavior
+
+**Build:** ✅ passes
+**Tests:** ✅ passes (20/20)

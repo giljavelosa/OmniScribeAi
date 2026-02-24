@@ -16,6 +16,7 @@ import { callAI } from "@/lib/ai-provider";
 import { appLog, scrubError, errorCode } from "@/lib/logger";
 import { NextRequest, NextResponse } from "next/server";
 import { frameworks } from "@/lib/frameworks";
+import { safeJsonKey } from "@/lib/prompt-sanitizer";
 import type { ExtractionResult, DiarizedStatement, ClinicalFact } from "@/lib/encounter-state";
 
 export const maxDuration = 60;
@@ -69,11 +70,11 @@ export async function POST(request: NextRequest) {
       globalStartSec: Math.round(globalStartSec),
     });
 
-    // Build the framework schema for extraction
+    // Build the framework schema for extraction (sanitized to prevent prompt injection)
     const schemaFields = framework.sections.map((s) => {
-      const sectionKey = s.title.toLowerCase().replace(/[^a-z0-9]/g, "_");
+      const sectionKey = safeJsonKey(s.title);
       const items = s.items.map((item) => {
-        const itemKey = item.toLowerCase().replace(/[^a-z0-9]/g, "_");
+        const itemKey = safeJsonKey(item);
         return `"${itemKey}": { "value": "string or null", "source": "transcript | not_documented | patient_denies", "evidence": { "speaker": "CLINICIAN | PATIENT", "text": "exact quote", "t0": 0, "t1": 0 } | null }`;
       });
       return `"${sectionKey}": {\n        ${items.join(",\n        ")}\n      }`;

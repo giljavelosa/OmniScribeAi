@@ -3,6 +3,7 @@ import { auditLog } from "@/lib/audit";
 import { assertProductionApiKey } from "@/lib/phi-boundaries";
 import { callAI, getActiveProvider } from "@/lib/ai-provider";
 import { appLog, scrubError, errorCode } from "@/lib/logger";
+import { sanitizeForPrompt, sanitizeSectionTitle, sanitizeItemName, safeJsonKey } from "@/lib/prompt-sanitizer";
 import { NextRequest } from "next/server";
 
 export const maxDuration = 300;
@@ -114,10 +115,12 @@ async function buildEncounterStateFromTranscript(
   const state = createInitialEncounterState(framework.sections);
 
   const schemaFields = framework.sections.map((s) => {
+    const sectionKey = safeJsonKey(s.title);
     const items = s.items.map((item) => {
-      return `"${item.toLowerCase().replace(/[^a-z0-9]/g, '_')}": { "value": "string or null", "source": "transcript | not_documented | patient_denies" }`;
+      const itemKey = safeJsonKey(item);
+      return `"${itemKey}": { "value": "string or null", "source": "transcript | not_documented | patient_denies" }`;
     });
-    return `"${s.title.toLowerCase().replace(/[^a-z0-9]/g, '_')}": {\n      ${items.join(",\n      ")}\n    }`;
+    return `"${sectionKey}": {\n      ${items.join(",\n      ")}\n    }`;
   });
 
   const extractSystem = `You are a clinical transcript fact extractor. Extract ONLY explicitly stated facts from a clinical encounter transcript into structured JSON.
@@ -277,8 +280,9 @@ async function handleEncounterStateMode(
 
         const sectionPrompt = framework.sections
           .map((s) => {
-            const items = s.items.join(", ");
-            return `### ${s.title}\nItems: ${items}`;
+            const title = sanitizeSectionTitle(s.title);
+            const items = s.items.map(sanitizeItemName).join(", ");
+            return `### ${title}\nItems: ${items}`;
           })
           .join("\n\n");
 
@@ -308,8 +312,8 @@ WRITE THE NOTE:
 11. NEVER mention or list items that were not assessed, not documented, or not in the JSON
 12. The compliance score is ${validation.compliance.score}% (grade: ${validation.compliance.grade})${validation.requiredMissing.length > 0 ? ` — missing: ${validation.requiredMissing.join(', ')}` : ''}
 
-FRAMEWORK: ${framework.name}
-TYPE: ${framework.type} — ${framework.subtype}
+FRAMEWORK: ${sanitizeForPrompt(framework.name)}
+TYPE: ${sanitizeForPrompt(framework.type)} — ${sanitizeForPrompt(framework.subtype)}
 
 STRUCTURE:
 ${sectionPrompt}
