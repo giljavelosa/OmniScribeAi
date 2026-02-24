@@ -665,3 +665,23 @@ Each item follows the same workflow as FIX-1 through FIX-17:
 
 **Build:** ✅ `tsc --noEmit` passes
 **Tests:** ✅ `vitest run` passes (43/43)
+
+---
+
+## FIX-19: BH note demographics missing from note body ✅
+**Date:** 2026-02-24
+**Files changed:**
+- `app/src/app/api/generate-note/route.ts` (MODIFIED) — extraction schema + note prompt
+
+**What it does:**
+- Added explicit `patient_demographics` block (name, age, gender, occupation) to the fact extraction JSON schema — ensures demographics are always captured regardless of framework
+- Previously demographics only appeared if a framework section happened to contain them (rehab/medical had them, BH did not)
+- Strengthened note generation prompt rule #2: "The FIRST section MUST begin with a patient identification line" with concrete example format
+- Demographics from `patient_demographics` are stored in EncounterState sections and serialized into the note generation prompt via `serializeFactsForPrompt`
+
+**What could break:**
+- All frameworks now extract demographics into a separate `patient_demographics` section — this is additive, won't affect existing sections
+- Notes may now have a slightly different opening style (identification line first) — this is the desired behavior
+
+**Build:** ✅ `tsc --noEmit` passes
+**Tests:** ✅ `vitest run` passes (43/43)

@@ -179,6 +179,12 @@ Return valid JSON matching the schema provided.`;
 
 JSON SCHEMA:
 {
+  "patient_demographics": {
+    "name": { "value": "string or null", "source": "transcript | not_documented" },
+    "age": { "value": "string or null", "source": "transcript | not_documented" },
+    "gender": { "value": "string or null", "source": "transcript | not_documented" },
+    "occupation": { "value": "string or null", "source": "transcript | not_documented" }
+  },
   ${schemaFields.join(",\n  ")},
   "additional_facts": [
     { "fact": "string", "source": "transcript" }
@@ -336,7 +342,7 @@ INPUT: A validated EncounterState JSON containing:
 
 WRITE THE NOTE:
 1. Include ALL facts present in the JSON — use professional clinical language
-2. ALWAYS start with a patient identification line (name, age, gender, occupation) when present in the JSON
+2. The FIRST section MUST begin with a patient identification line stating the patient's name, age, gender, and occupation (from "patient_demographics" in the JSON). Example: "Robert Johnson is a 45-year-old male electrician..." — this line is REQUIRED if any demographics are present
 3. For items with source "patient_denies": write the denial naturally (e.g., if value is "no substance use", write "No substance use" — do NOT add "Patient denies" prefix to values that already contain a negation)
 4. OMIT items and entire sections that have NO documented facts in the JSON — do NOT render blanks, placeholders, or "___" for undocumented items
 5. Only include a section if it has at least one documented fact
