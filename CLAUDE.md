@@ -30,3 +30,13 @@
 - Before ANY code change: read `CHANGES_LOG.md`, check for conflicts, list dependent files
 - After ANY code change: run `npm run build` + `npm run test`, update `CHANGES_LOG.md`, git commit
 - Keep fixes minimal — don't refactor unrelated code
+
+### Compaction Recovery Rule
+- If you feel like you've lost context, if you're unsure what has already been done, or if the conversation just compacted: **STOP IMMEDIATELY**
+- Read `CHANGES_LOG.md` from top to bottom
+- Find the last entry marked ✅ (RESOLVED). The next FIX number after that is where you resume
+- Do NOT re-do any fix that is already logged as RESOLVED
+- Do NOT modify any file without first checking the log for previous changes to that file
+- This rule overrides everything else
+- When compacting, always preserve: the current FIX number being worked on, the full list of files modified this session, and any test failures encountered
+- `CHANGES_LOG.md` is the SOURCE OF TRUTH — NOT your memory. If memory disagrees with this file, **THIS FILE WINS**
