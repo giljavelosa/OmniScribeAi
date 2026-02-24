@@ -292,3 +292,57 @@ Track every fix applied to the codebase. Read this before every change to avoid 
 - Add to `.env`: `AUTH_SECRET=<generated-value>`
 - Ensure AUTH_SECRET is at least 64 characters
 - Set on all environments (dev, staging, prod)
+
+---
+
+## POST-FIX: Environment keys generated and applied ✅
+**Date:** 2026-02-24
+**Files changed:**
+- `app/.env` (MODIFIED) — NOT tracked in git
+
+**What was done:**
+- Generated strong `AUTH_SECRET` (88-char base64, from 64 random bytes) — replaces weak placeholder `"test-secret-at-least-32-chars-long-for-jwt-signing"`
+- Generated `PHI_ENCRYPTION_KEY` (64-char hex, from 32 random bytes) — enables FIX-1 field-level encryption
+- Both added to `app/.env`
+
+**Side effects:**
+- All existing user sessions invalidated (AUTH_SECRET changed) — users must re-login
+- New data written to DB will be encrypted; existing plaintext data still reads correctly (graceful migration)
+
+## POST-FIX: App verification ✅
+**Date:** 2026-02-24
+
+**Verified:**
+- `npm run dev` starts successfully on port 3000
+- Login page returns HTTP 200
+- Login with credentials returns HTTP 302 (redirect to dashboard)
+- All 6 security headers confirmed present in response:
+  - `X-Frame-Options: DENY`
+  - `X-Content-Type-Options: nosniff`
+  - `Referrer-Policy: strict-origin-when-cross-origin`
+  - `Permissions-Policy: camera=(), microphone=(self), geolocation=()`
+  - `Content-Security-Policy` (full policy with allowed API domains)
+  - `Strict-Transport-Security: max-age=31536000; includeSubDomains`
+- Browser login tested successfully
+
+## Summary of all changes
+
+| Fix | Category | Description | Type |
+|-----|----------|-------------|------|
+| FIX-1 | Security/HIPAA | AES-256-GCM encryption at rest for PII fields | Code |
+| FIX-2 | Security | Prompt injection sanitization for framework data | Code |
+| FIX-3 | Reliability | Hallucination audit failure surfacing | Code |
+| FIX-4 | Security | Rate limiting on all API routes (3 tiers) | Code |
+| FIX-5 | Security/HIPAA | Patient search ownership scoping | Code |
+| FIX-6 | Security/HIPAA | Session timeout: 4h JWT + 15min idle | Code |
+| FIX-7 | Security | CSRF protection via Origin/Referer validation | Code |
+| FIX-8 | Security | XSS via dangerouslySetInnerHTML | Verified safe |
+| FIX-9 | Security | PDF export HTML escaping | Code |
+| FIX-10 | Reliability | Transcription retry logic (2 retries, backoff) | Code |
+| FIX-11 | Validation | Empty audio rejection (< 1KB) | Code |
+| FIX-12 | Reliability | JSON parse data loss surfacing | Code |
+| FIX-13 | Security/HIPAA | PHI TTL 24h→4h + global startup sweep | Code |
+| FIX-14 | Security | Pagination bounds (max 100) | Code (with FIX-5) |
+| FIX-15 | Security | Security headers (CSP, HSTS, X-Frame, etc.) | Code |
+| FIX-16 | Security | .env gitignored, no secrets tracked | Verified safe |
+| FIX-17 | Security | AUTH_SECRET strength requirement | Config |
