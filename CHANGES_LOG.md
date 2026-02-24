@@ -228,3 +228,21 @@ Track every fix applied to the codebase. Read this before every change to avoid 
 
 **Build:** ✅ passes
 **Tests:** ✅ passes (43/43)
+
+## FIX-13: Client-side PHI cleanup improvements ✅
+**Date:** 2026-02-24
+**Files changed:**
+- `app/src/lib/phi-storage.ts` (MODIFIED) — PHI TTL reduced from 24h to 4h
+- `app/src/components/Providers.tsx` (MODIFIED) — global expired PHI sweep on app startup
+
+**What it does:**
+- PHI_TTL_MS: 24h → 4h (matches JWT maxAge from FIX-6)
+- Global sweep of expired PHI items on every app startup via Providers component
+- Existing protections already in place: clearAllPhiItems on logout (Header), idle timeout (SessionTimeout), password change
+
+**What could break:**
+- PHI data stored > 4h ago will be auto-swept (intended)
+- Users returning after 4h will need to re-fetch visit data (acceptable)
+
+**Build:** ✅ passes
+**Tests:** ✅ passes (43/43)

@@ -10,7 +10,7 @@
  * See HIPAA-PHI-BOUNDARY.md §6.2 for the full browser storage policy.
  */
 
-const PHI_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours maximum retention
+const PHI_TTL_MS = 4 * 60 * 60 * 1000; // 4 hours — matches JWT maxAge
 const PHI_KEY_PREFIX = 'omniscribe-';
 
 interface PhiEntry<T> {
