@@ -246,3 +246,24 @@ Track every fix applied to the codebase. Read this before every change to avoid 
 
 **Build:** ✅ passes
 **Tests:** ✅ passes (43/43)
+
+## FIX-15: Security headers ✅
+**Date:** 2026-02-24
+**Files changed:**
+- `app/next.config.ts` (MODIFIED) — added security headers via `async headers()`
+
+**What it does:**
+- `X-Frame-Options: DENY` — prevents clickjacking
+- `X-Content-Type-Options: nosniff` — prevents MIME sniffing
+- `Referrer-Policy: strict-origin-when-cross-origin` — limits referer leakage
+- `Permissions-Policy` — blocks camera/geolocation, allows microphone (self only for recording)
+- `Content-Security-Policy` — restricts script/style/connect sources; allows Groq/xAI/Anthropic/DeepSeek APIs
+- `Strict-Transport-Security` — enforces HTTPS for 1 year
+- `frame-ancestors 'none'` — CSP equivalent of X-Frame-Options
+
+**What could break:**
+- If new external APIs are added, their domains must be added to `connect-src`
+- `unsafe-inline` and `unsafe-eval` in script-src is necessary for Next.js dev mode; can be tightened in production with nonces
+
+**Build:** ✅ passes
+**Tests:** ✅ passes (43/43)
