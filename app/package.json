@@ -18,7 +18,10 @@
     "test:integration:wait": "tsx scripts/wait-for-db.ts",
     "test:integration:teardown": "docker compose -f ../docker-compose.yml down",
     "test:notes": "tsx scripts/run-note-tests.ts",
-    "test:notes:mock": "tsx scripts/run-note-tests.ts --mock"
+    "test:notes:mock": "tsx scripts/run-note-tests.ts --mock",
+    "test:audio:generate": "tsx scripts/generate-test-audio.ts",
+    "test:notes:audio": "tsx scripts/run-audio-tests.ts",
+    "test:notes:audio:transcribe": "tsx scripts/run-audio-tests.ts --transcribe-only"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.1",
