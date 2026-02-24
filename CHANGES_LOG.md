@@ -386,3 +386,146 @@ Track every fix applied to the codebase. Read this before every change to avoid 
 
 **Prod .env keys present:**
 DATABASE_URL, AUTH_SECRET, NEXTAUTH_URL, AI_PROVIDER, XAI_API_KEY, DEEPGRAM_API_KEY, GROQ_API_KEY, NEXT_PUBLIC_TRANSCRIPTION_PROVIDER, NODE_ENV, AUTH_TRUST_HOST, PHI_ENCRYPTION_KEY
+
+---
+
+# UX IMPROVEMENT PLAN — Navigation & Workflow
+
+**Date:** 2026-02-24
+**Status:** PLANNED — not yet implemented
+**Goal:** Reduce clicks-to-recording, improve daily-use ergonomics for clinicians
+
+Each item follows the same workflow as FIX-1 through FIX-17:
+1. Read CHANGES_LOG.md for conflicts
+2. List files, make minimal change
+3. `tsc --noEmit` + `vitest run`
+4. Update CHANGES_LOG.md
+5. Git commit
+6. Move to next
+
+---
+
+## UX-1: Pinned/recent frameworks on dashboard
+**Priority:** HIGH — eliminates 3-click framework selection for 90% of visits
+**Files to change:**
+- `app/src/app/dashboard/page.tsx` — add "Quick Start" section with recent/pinned frameworks
+- `app/src/app/api/visits/route.ts` — add query to get user's most-used frameworks
+- `app/src/app/visit/new/page.tsx` — accept `frameworkId` query param to pre-select
+
+**What could break:**
+- Dashboard layout on mobile
+- Visit/new page if frameworkId param is invalid
+
+---
+
+## UX-2: Patient autocomplete on visit/new
+**Priority:** HIGH — prevents duplicates, links to history, saves typing
+**Files to change:**
+- `app/src/app/visit/new/page.tsx` — replace free-text patient name with search/select dropdown
+- `app/src/app/api/patients/route.ts` — already has search via `q` param (reuse)
+
+**What could break:**
+- Existing "type patient name" flow — must support both new + existing patients
+- PHI in autocomplete dropdown (client-side data, covered by phi-storage TTL)
+
+---
+
+## UX-3: Record-first workflow
+**Priority:** HIGH — biggest differentiator; captures full encounter from first word
+**Files to change:**
+- `app/src/app/visit/new/page.tsx` — remove gating (allow record before patient/framework filled)
+- `app/src/components/AudioRecorder.tsx` — enable without framework selected
+- `app/src/app/api/extract-chunk/route.ts` — handle missing frameworkId gracefully
+
+**What could break:**
+- Extract-chunk requires frameworkId for schema — need fallback/generic extraction
+- Note generation requires frameworkId — must be set before "Generate" not before "Record"
+- Flow logic: recording state must persist while user fills in metadata
+
+**Design decision needed:**
+- Gate "Generate Note" button on patient+framework, NOT the "Record" button
+- Allow framework selection during/after recording
+
+---
+
+## UX-4: Universal search (Cmd+K)
+**Priority:** MEDIUM — find any patient/note/visit instantly
+**Files to change:**
+- `app/src/components/SearchModal.tsx` (NEW) — modal with keyboard shortcut
+- `app/src/components/Header.tsx` — add search icon + Cmd+K listener
+- `app/src/app/api/search/route.ts` (NEW) — unified search across patients + visits
+
+**What could break:**
+- Search on encrypted fields (phone, email, mrn) won't work — only name/identifier
+- Must respect patient ownership scoping (FIX-5)
+
+---
+
+## UX-5: Processing progress steps
+**Priority:** MEDIUM — shows Uploading → Transcribing → Generating instead of generic spinner
+**Files to change:**
+- `app/src/app/visit/new/page.tsx` — replace generic spinner with step indicator
+- `app/src/app/api/generate-note/route.ts` — already sends SSE progress events (reuse)
+
+**What could break:**
+- SSE event names/format must match what the UI expects
+- Upload mode vs record mode have different step sequences
+
+---
+
+## UX-6: Cancel button during generation + draft save
+**Priority:** MEDIUM — don't trap user in a spinner
+**Files to change:**
+- `app/src/app/visit/new/page.tsx` — add cancel button, save transcript as draft visit
+- `app/src/app/api/visits/route.ts` — support `status: 'DRAFT'` for partial saves
+
+**What could break:**
+- Cancelling mid-SSE stream — must abort cleanly
+- Draft visits showing in dashboard/visit list — need filtering
+
+---
+
+## UX-7: Mobile hamburger menu
+**Priority:** MEDIUM — clinicians use tablets in exam rooms
+**Files to change:**
+- `app/src/components/Sidebar.tsx` — add mobile toggle (hamburger icon)
+- `app/src/components/Header.tsx` — add hamburger button on small screens
+
+**What could break:**
+- Sidebar z-index conflicts with modals/overlays
+- Touch targets must be 44px+ for mobile accessibility
+
+---
+
+## UX-8: Smart framework suggestion from provider type
+**Priority:** LOW — show rehab frameworks first for PT, medical for MD, etc.
+**Files to change:**
+- `app/src/app/visit/new/page.tsx` — auto-filter domain based on selected provider type
+- `app/src/lib/frameworks.ts` — add provider-type-to-domain mapping
+
+**What could break:**
+- Clinicians who work across domains (e.g., NP doing both medical and BH)
+- Must be a suggestion, not a restriction
+
+---
+
+## UX-9: Framework search field
+**Priority:** LOW — search all 19 frameworks by keyword
+**Files to change:**
+- `app/src/app/visit/new/page.tsx` — add search input above framework list
+
+**What could break:**
+- Minor — purely additive UI change
+
+---
+
+## UX-10: Auto-save drafts to database
+**Priority:** LOW — prevents data loss on session expiry
+**Files to change:**
+- `app/src/app/visit/new/page.tsx` — periodic auto-save to API
+- `app/src/app/api/visits/route.ts` — support upsert for draft visits
+- `app/src/app/dashboard/page.tsx` — show "Resume Draft" section
+
+**What could break:**
+- PHI in draft visits — must be encrypted (already handled by FIX-1)
+- Multiple drafts per user — need cleanup/expiry logic
