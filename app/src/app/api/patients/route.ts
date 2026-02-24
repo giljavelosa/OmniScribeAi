@@ -2,6 +2,7 @@ import { auth } from "@/lib/auth";
 import { auditLog } from "@/lib/audit";
 import { prisma } from "@/lib/db";
 import { NextRequest, NextResponse } from "next/server";
+import { appLog, scrubError } from "@/lib/logger";
 
 // GET /api/patients — list/search patients
 export async function GET(req: NextRequest) {
@@ -35,7 +36,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({ patients });
   } catch (error) {
-    console.error("[GET /api/patients]", error);
+    appLog('error', 'GET /api/patients', scrubError(error));
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
@@ -90,7 +91,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ patient }, { status: 201 });
   } catch (error) {
-    console.error("[POST /api/patients]", error);
+    appLog('error', 'POST /api/patients', scrubError(error));
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

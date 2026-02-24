@@ -148,9 +148,9 @@ Return JSON:
           const deidentJson = JSON.parse(deidentifyResult.content.replace(/```json\n?/g, "").replace(/```/g, "").trim());
           scrubbedTranscript = deidentJson.scrubbed_transcript || transcriptText;
           phiMap = deidentJson.phi_map || {};
-          console.log("[GenNote] Pass 0 (de-identification) complete. PHI tokens:", Object.keys(phiMap).length);
-        } catch (e) {
-          console.warn("[GenNote] De-identification parse failed, using original transcript:", String(e));
+          appLog('info', 'GenNote', 'Pass 0 (de-identification) complete', { phiTokens: Object.keys(phiMap).length });
+        } catch {
+          appLog('warn', 'GenNote', 'De-identification parse failed, using original transcript');
         }
 
         // Helper: re-identify text by replacing tokens with original values
@@ -426,7 +426,7 @@ Write the final clinical note. Merge the parsed data and clinical reasoning into
           section.content = reidentify(section.content);
           section.title = reidentify(section.title);
         }
-        console.log("[GenNote] Re-identification complete.");
+        appLog('info', 'GenNote', 'Re-identification complete');
 
         // ═══════════════════════════════════════════════════════════════
         // PASS 5: HALLUCINATION AUDIT

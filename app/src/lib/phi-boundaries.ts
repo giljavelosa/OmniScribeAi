@@ -1,3 +1,5 @@
+import { appLog } from "./logger";
+
 /**
  * PHI Boundary Enforcement
  *
@@ -46,17 +48,13 @@ export function assertPhiApprovedEndpoint(url: string): void {
 export function assertProductionApiKey(): void {
   const key = process.env.ANTHROPIC_API_KEY || '';
   if (!key) {
-    console.warn('[phi-boundaries] WARNING: ANTHROPIC_API_KEY is not set.');
+    appLog('warn', 'PHI', 'ANTHROPIC_API_KEY is not set');
     return;
   }
   // ANTHROPIC_CONSOLE_KEY=true must be set explicitly in production .env
   // to confirm the operator has switched to a Console (pay-per-token) key.
   const confirmed = process.env.ANTHROPIC_CONSOLE_KEY === 'true';
   if (!confirmed) {
-    console.warn(
-      '[phi-boundaries] WARNING: ANTHROPIC_CONSOLE_KEY is not set to "true". ' +
-      'Ensure you are using a Console API key (not a Max plan / personal key) before ' +
-      'processing real patient data. Set ANTHROPIC_CONSOLE_KEY=true in .env to confirm.'
-    );
+    appLog('warn', 'PHI', 'ANTHROPIC_CONSOLE_KEY is not set to "true". Ensure Console API key before processing real patient data.');
   }
 }

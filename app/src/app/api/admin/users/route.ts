@@ -2,6 +2,7 @@ import { auth } from "@/lib/auth";
 import { auditLog } from "@/lib/audit";
 import { prisma } from "@/lib/db";
 import { NextRequest, NextResponse } from "next/server";
+import { appLog, scrubError } from "@/lib/logger";
 import bcrypt from "bcryptjs";
 
 // GET /api/admin/users — list all users (admin only)
@@ -24,7 +25,7 @@ export async function GET() {
 
     return NextResponse.json({ users });
   } catch (error) {
-    console.error("[GET /api/admin/users]", error);
+    appLog('error', 'GET /api/admin/users', scrubError(error));
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
@@ -67,7 +68,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ user: { id: user.id, email: user.email, name: user.name, role: user.role } }, { status: 201 });
   } catch (error) {
-    console.error("[POST /api/admin/users]", error);
+    appLog('error', 'POST /api/admin/users', scrubError(error));
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

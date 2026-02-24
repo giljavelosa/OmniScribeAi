@@ -2,6 +2,7 @@ import { auth } from "@/lib/auth";
 import { auditLog } from "@/lib/audit";
 import { prisma } from "@/lib/db";
 import { NextRequest, NextResponse } from "next/server";
+import { appLog, scrubError } from "@/lib/logger";
 
 // PATCH /api/admin/users/:id — update user (admin only)
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -33,7 +34,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
     return NextResponse.json({ user: { id: user.id, email: user.email, name: user.name, role: user.role, isActive: user.isActive } });
   } catch (error) {
-    console.error("[PATCH /api/admin/users/:id]", error);
+    appLog('error', 'PATCH /api/admin/users/:id', scrubError(error));
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

@@ -2,6 +2,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { auditLog } from "@/lib/audit";
 import { NextResponse } from "next/server";
+import { appLog, scrubError } from "@/lib/logger";
 
 const CURRENT_VERSION = "1.0";
 
@@ -32,7 +33,7 @@ export async function POST() {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("[POST /api/auth/acknowledge-disclaimer]", error);
+    appLog('error', 'POST /api/auth/acknowledge-disclaimer', scrubError(error));
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

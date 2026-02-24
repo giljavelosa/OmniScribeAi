@@ -2,6 +2,7 @@ import { auth } from "@/lib/auth";
 import { auditLog } from "@/lib/audit";
 import { prisma } from "@/lib/db";
 import { NextRequest, NextResponse } from "next/server";
+import { appLog, scrubError } from "@/lib/logger";
 
 // POST /api/patients/:id/medical — add allergy, medication, condition, or coverage
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -38,7 +39,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
     return NextResponse.json({ result }, { status: 201 });
   } catch (error) {
-    console.error("[POST /api/patients/:id/medical]", error);
+    appLog('error', 'POST /api/patients/:id/medical', scrubError(error));
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
@@ -68,7 +69,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("[DELETE /api/patients/:id/medical]", error);
+    appLog('error', 'DELETE /api/patients/:id/medical', scrubError(error));
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

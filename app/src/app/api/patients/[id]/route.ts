@@ -2,6 +2,7 @@ import { auth } from "@/lib/auth";
 import { auditLog } from "@/lib/audit";
 import { prisma } from "@/lib/db";
 import { NextRequest, NextResponse } from "next/server";
+import { appLog, scrubError } from "@/lib/logger";
 
 // GET /api/patients/:id
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -32,7 +33,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 
     return NextResponse.json({ patient });
   } catch (error) {
-    console.error("[GET /api/patients/:id]", error);
+    appLog('error', 'GET /api/patients/:id', scrubError(error));
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
@@ -67,7 +68,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
     return NextResponse.json({ patient });
   } catch (error) {
-    console.error("[PATCH /api/patients/:id]", error);
+    appLog('error', 'PATCH /api/patients/:id', scrubError(error));
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

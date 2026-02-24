@@ -2,6 +2,7 @@ import { auth } from "@/lib/auth";
 import { auditLog } from "@/lib/audit";
 import { prisma } from "@/lib/db";
 import { NextRequest, NextResponse } from "next/server";
+import { appLog, scrubError } from "@/lib/logger";
 import { Prisma } from "@prisma/client";
 
 interface NoteDataSection {
@@ -85,7 +86,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
     return NextResponse.json({ success: true, amendment, visit: updatedVisit });
   } catch (error) {
-    console.error("[POST /api/visits/:id/amend]", error);
+    appLog('error', 'POST /api/visits/:id/amend', scrubError(error));
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
