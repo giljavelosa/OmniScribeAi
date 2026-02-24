@@ -1,0 +1,22 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: omniscribe-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: omniscribe_test
+      POSTGRES_USER: omniscribe
+      POSTGRES_PASSWORD: omniscribe_local_pass
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U omniscribe -d omniscribe_test"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres-data:
+    driver: local
