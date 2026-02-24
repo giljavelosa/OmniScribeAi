@@ -8,34 +8,39 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { id } = await params;
-  const { type, ...data } = await req.json();
+  try {
+    const { id } = await params;
+    const { type, ...data } = await req.json();
 
-  let result;
-  switch (type) {
-    case "allergy":
-      result = await prisma.allergy.create({ data: { patientId: id, substance: data.substance, reaction: data.reaction, severity: data.severity } });
-      break;
-    case "medication":
-      result = await prisma.medication.create({ data: { patientId: id, name: data.name, dose: data.dose, frequency: data.frequency, route: data.route, prescriber: data.prescriber } });
-      break;
-    case "condition":
-      result = await prisma.condition.create({ data: { patientId: id, description: data.description, icdCode: data.icdCode } });
-      break;
-    case "coverage":
-      result = await prisma.coverage.create({ data: { patientId: id, payerName: data.payerName, memberId: data.memberId, groupNumber: data.groupNumber, planName: data.planName, planType: data.planType, rank: data.rank || 1 } });
-      break;
-    default:
-      return NextResponse.json({ error: "Invalid type" }, { status: 400 });
+    let result;
+    switch (type) {
+      case "allergy":
+        result = await prisma.allergy.create({ data: { patientId: id, substance: data.substance, reaction: data.reaction, severity: data.severity } });
+        break;
+      case "medication":
+        result = await prisma.medication.create({ data: { patientId: id, name: data.name, dose: data.dose, frequency: data.frequency, route: data.route, prescriber: data.prescriber } });
+        break;
+      case "condition":
+        result = await prisma.condition.create({ data: { patientId: id, description: data.description, icdCode: data.icdCode } });
+        break;
+      case "coverage":
+        result = await prisma.coverage.create({ data: { patientId: id, payerName: data.payerName, memberId: data.memberId, groupNumber: data.groupNumber, planName: data.planName, planType: data.planType, rank: data.rank || 1 } });
+        break;
+      default:
+        return NextResponse.json({ error: "Invalid type" }, { status: 400 });
+    }
+
+    await auditLog({
+      userId: session.user.id,
+      action: `ADD_${type.toUpperCase()}`,
+      resource: `patient:${id}`,
+    });
+
+    return NextResponse.json({ result }, { status: 201 });
+  } catch (error) {
+    console.error("[POST /api/patients/:id/medical]", error);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
-
-  await auditLog({
-    userId: session.user.id,
-    action: `ADD_${type.toUpperCase()}`,
-    resource: `patient:${id}`,
-  });
-
-  return NextResponse.json({ result }, { status: 201 });
 }
 
 // DELETE /api/patients/:id/medical — remove by itemId and type
@@ -43,22 +48,27 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { id } = await params;
-  const { type, itemId } = await req.json();
+  try {
+    const { id } = await params;
+    const { type, itemId } = await req.json();
 
-  switch (type) {
-    case "allergy": await prisma.allergy.delete({ where: { id: itemId } }); break;
-    case "medication": await prisma.medication.delete({ where: { id: itemId } }); break;
-    case "condition": await prisma.condition.delete({ where: { id: itemId } }); break;
-    case "coverage": await prisma.coverage.delete({ where: { id: itemId } }); break;
-    default: return NextResponse.json({ error: "Invalid type" }, { status: 400 });
+    switch (type) {
+      case "allergy": await prisma.allergy.delete({ where: { id: itemId } }); break;
+      case "medication": await prisma.medication.delete({ where: { id: itemId } }); break;
+      case "condition": await prisma.condition.delete({ where: { id: itemId } }); break;
+      case "coverage": await prisma.coverage.delete({ where: { id: itemId } }); break;
+      default: return NextResponse.json({ error: "Invalid type" }, { status: 400 });
+    }
+
+    await auditLog({
+      userId: session.user.id,
+      action: `REMOVE_${type.toUpperCase()}`,
+      resource: `patient:${id}`,
+    });
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("[DELETE /api/patients/:id/medical]", error);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
-
-  await auditLog({
-    userId: session.user.id,
-    action: `REMOVE_${type.toUpperCase()}`,
-    resource: `patient:${id}`,
-  });
-
-  return NextResponse.json({ success: true });
 }

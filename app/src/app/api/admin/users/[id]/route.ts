@@ -10,25 +10,30 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const { id } = await params;
-  const data = await req.json();
+  try {
+    const { id } = await params;
+    const data = await req.json();
 
-  // Only allow specific fields
-  const allowed: Record<string, string | boolean> = {};
-  if (data.name !== undefined) allowed.name = data.name;
-  if (data.role !== undefined) allowed.role = data.role;
-  if (data.clinicianType !== undefined) allowed.clinicianType = data.clinicianType;
-  if (data.credentials !== undefined) allowed.credentials = data.credentials;
-  if (data.isActive !== undefined) allowed.isActive = data.isActive;
+    // Only allow specific fields
+    const allowed: Record<string, string | boolean> = {};
+    if (data.name !== undefined) allowed.name = data.name;
+    if (data.role !== undefined) allowed.role = data.role;
+    if (data.clinicianType !== undefined) allowed.clinicianType = data.clinicianType;
+    if (data.credentials !== undefined) allowed.credentials = data.credentials;
+    if (data.isActive !== undefined) allowed.isActive = data.isActive;
 
-  const user = await prisma.user.update({ where: { id }, data: allowed });
+    const user = await prisma.user.update({ where: { id }, data: allowed });
 
-  await auditLog({
-    userId: session.user.id,
-    action: "UPDATE_USER",
-    resource: `user:${id}`,
-    details: { fields: Object.keys(allowed) },
-  });
+    await auditLog({
+      userId: session.user.id,
+      action: "UPDATE_USER",
+      resource: `user:${id}`,
+      details: { fields: Object.keys(allowed) },
+    });
 
-  return NextResponse.json({ user: { id: user.id, email: user.email, name: user.name, role: user.role, isActive: user.isActive } });
+    return NextResponse.json({ user: { id: user.id, email: user.email, name: user.name, role: user.role, isActive: user.isActive } });
+  } catch (error) {
+    console.error("[PATCH /api/admin/users/:id]", error);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
 }
