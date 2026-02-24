@@ -6,5 +6,8 @@ infrastructure.md
 # Audit reports
 OmniScribeAI-Audit-Report.*
 
+# Test output
+test-results/
+
 # OS
 .DS_Store
