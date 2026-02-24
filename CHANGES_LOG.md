@@ -509,15 +509,24 @@ Each item follows the same workflow as FIX-1 through FIX-17:
 
 ---
 
-## UX-6: Cancel button during generation + draft save
+## UX-6: Cancel button during generation + draft save ✅
+**Date:** 2026-02-24
 **Priority:** MEDIUM — don't trap user in a spinner
-**Files to change:**
-- `app/src/app/visit/new/page.tsx` — add cancel button, save transcript as draft visit
-- `app/src/app/api/visits/route.ts` — support `status: 'DRAFT'` for partial saves
+**Files changed:**
+- `app/src/app/visit/new/page.tsx` — Added cancel button below progress bar during processing. Uses shared `AbortController` ref (`abortRef`) across both transcription and note generation. On cancel:
+  - If transcript was already obtained (legacy flow): saves draft to localStorage via `setPhiItem()` with `status: 'draft'`, then returns to setup
+  - If cancelled before transcript: returns to setup with recording preserved (blob retained in `lastBlobRef`)
+  - Encounter-state cancel: returns to setup with `recordingReady=true` so user can retry
+  - Abort errors are handled separately from real errors — no error screen shown
+  - Cancel button shows contextual hint: "Transcript will be saved as draft" or "Recording is preserved for retry"
+- `app/src/app/api/visits/route.ts` — no changes needed (visits API already accepts any `status` string; draft save uses localStorage like the main flow)
 
 **What could break:**
-- Cancelling mid-SSE stream — must abort cleanly
-- Draft visits showing in dashboard/visit list — need filtering
+- Cancelling mid-SSE aborts the fetch — server-side generation continues to completion (no server-side abort, but response is discarded)
+- Draft visits in localStorage use `visit-draft-` prefix — not shown in dashboard yet (future UX-10)
+
+**Build:** ✅ `tsc --noEmit` passes
+**Tests:** ✅ `vitest run` passes (43/43)
 
 ---
 

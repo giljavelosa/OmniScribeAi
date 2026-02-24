@@ -68,6 +68,8 @@ function NewVisitContent() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const lastBlobRef      = useRef<Blob | null>(null);   // retained for retry after failure
   const lastSessionIdRef = useRef<string>('');
+  const abortRef         = useRef<AbortController | null>(null);
+  const partialTranscriptRef = useRef<string>(''); // saved transcript if cancel mid-generation
   const [patientName, setPatientName] = useState('');
   const [patientId, setPatientId] = useState('');
   const [patientSearch, setPatientSearch] = useState('');
@@ -187,8 +189,9 @@ function NewVisitContent() {
       setProgress(20);
       setProgressText('Generating clinical note from encounter data...');
 
-      const noteController = new AbortController();
-      const noteTimeout = setTimeout(() => noteController.abort(), 300000);
+      const controller = new AbortController();
+      abortRef.current = controller;
+      const noteTimeout = setTimeout(() => controller.abort(), 300000);
       const noteData = await fetchNoteSSE(
         {
           frameworkId,
@@ -203,7 +206,7 @@ function NewVisitContent() {
           // Map SSE pass to step indicator
           if (pass >= 2) advanceStep(2, steps);
         },
-        noteController.signal,
+        controller.signal,
       );
       clearTimeout(noteTimeout);
 
@@ -264,8 +267,16 @@ function NewVisitContent() {
       router.push(`/visit/${visitId}`);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unknown error';
+      if (message === 'Aborted') {
+        // User cancelled — go back to setup
+        setStep('setup');
+        setRecordingReady(true);
+        return;
+      }
       setErrorMsg(message);
       setStep('error');
+    } finally {
+      abortRef.current = null;
     }
   };
 
@@ -296,12 +307,13 @@ function NewVisitContent() {
       formData.append('audio', audioBlob);
       formData.append('frameworkId', frameworkId);
 
-      const transcribeController = new AbortController();
-      const transcribeTimeout = setTimeout(() => transcribeController.abort(), 600000); // 10 min (allows for large file upload + Deepgram processing)
+      const controller = new AbortController();
+      abortRef.current = controller;
+      const transcribeTimeout = setTimeout(() => controller.abort(), 600000); // 10 min (allows for large file upload + Deepgram processing)
       const transcribeRes = await fetch('/api/transcribe', {
         method: 'POST',
         body: formData,
-        signal: transcribeController.signal,
+        signal: controller.signal,
       });
       clearTimeout(transcribeTimeout);
 
@@ -314,9 +326,11 @@ function NewVisitContent() {
       setProgress(40);
       setProgressText('Generating clinical note...');
 
+      // Save transcript in case user cancels during note generation
+      partialTranscriptRef.current = transcribeData.transcript;
+
       // Step 2: Generate note (SSE streaming to keep connection alive)
-      const noteController = new AbortController();
-      const noteTimeout = setTimeout(() => noteController.abort(), 600000); // 10 min — complex frameworks need time
+      const noteTimeout = setTimeout(() => controller.abort(), 600000); // 10 min — complex frameworks need time
       const noteData = await fetchNoteSSE(
         { transcript: transcribeData.transcript, frameworkId, useMock: false },
         (pass, total, message) => {
@@ -325,7 +339,7 @@ function NewVisitContent() {
           setProgressText(message);
           if (pass >= 2) advanceStep(2, steps);
         },
-        noteController.signal
+        controller.signal
       );
       clearTimeout(noteTimeout);
       if (!noteData.success) {
@@ -369,8 +383,30 @@ function NewVisitContent() {
       router.push(`/visit/${visitId}`);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unknown error';
+      if (message === 'Aborted') {
+        // User cancelled — save draft if we have a transcript
+        if (partialTranscriptRef.current) {
+          const draftId = `visit-draft-${Date.now()}`;
+          setPhiItem(`omniscribe-visit-${draftId}`, {
+            id: draftId,
+            patientName,
+            providerType,
+            frameworkId,
+            transcript: partialTranscriptRef.current,
+            transcriptSource: 'groq-whisper',
+            status: 'draft',
+            createdAt: new Date().toISOString(),
+          });
+          partialTranscriptRef.current = '';
+        }
+        setStep('setup');
+        setRecordingReady(!!lastBlobRef.current);
+        return;
+      }
       setErrorMsg(message);
       setStep('error');
+    } finally {
+      abortRef.current = null;
     }
   };
 
@@ -504,6 +540,19 @@ function NewVisitContent() {
                   <div className="h-full bg-[#0d9488] rounded-full transition-all duration-500" style={{ width: `${progress}%` }} />
                 </div>
                 <div className="text-xs text-gray-400 mt-1.5">{progress}%</div>
+              </div>
+
+              {/* Cancel button */}
+              <div className="text-center mt-6">
+                <button
+                  onClick={() => abortRef.current?.abort()}
+                  className="px-4 py-2 text-sm text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  Cancel
+                </button>
+                <p className="text-[10px] text-gray-400 mt-1">
+                  {partialTranscriptRef.current ? 'Transcript will be saved as draft' : 'Recording is preserved for retry'}
+                </p>
               </div>
             </div>
           ) : step === 'error' ? (
