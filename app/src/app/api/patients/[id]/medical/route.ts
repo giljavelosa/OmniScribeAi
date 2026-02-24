@@ -54,10 +54,10 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     const { type, itemId } = await req.json();
 
     switch (type) {
-      case "allergy": await prisma.allergy.delete({ where: { id: itemId } }); break;
-      case "medication": await prisma.medication.delete({ where: { id: itemId } }); break;
-      case "condition": await prisma.condition.delete({ where: { id: itemId } }); break;
-      case "coverage": await prisma.coverage.delete({ where: { id: itemId } }); break;
+      case "allergy": await prisma.allergy.delete({ where: { id: itemId, patientId: id } }); break;
+      case "medication": await prisma.medication.delete({ where: { id: itemId, patientId: id } }); break;
+      case "condition": await prisma.condition.delete({ where: { id: itemId, patientId: id } }); break;
+      case "coverage": await prisma.coverage.delete({ where: { id: itemId, patientId: id } }); break;
       default: return NextResponse.json({ error: "Invalid type" }, { status: 400 });
     }
 

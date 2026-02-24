@@ -28,6 +28,10 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 
     if (!visit) return NextResponse.json({ error: "Visit not found" }, { status: 404 });
 
+    if (visit.userId !== session.user.id && session.user.role !== "ADMIN") {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
     await auditLog({
       userId: session.user.id,
       action: "VIEW_VISIT",
@@ -48,20 +52,36 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
   try {
     const { id } = await params;
+
+    const existing = await prisma.visit.findUnique({ where: { id }, select: { userId: true } });
+    if (!existing) return NextResponse.json({ error: "Visit not found" }, { status: 404 });
+
+    if (existing.userId !== session.user.id && session.user.role !== "ADMIN") {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
     const data = await req.json();
 
-    delete data.id;
-    delete data.createdAt;
-    delete data.userId;
-    delete data.patientId;
+    // Allowlist: only permit clinical update fields
+    const ALLOWED_FIELDS = [
+      'status', 'transcript', 'transcriptSource', 'transcriptConfidence',
+      'extractedFacts', 'clinicalSynthesis', 'parsedData', 'noteData', 'auditResult',
+      'cmsScore', 'summary', 'generationTime', 'duration',
+      'finalizedAt', 'finalizedBy',
+    ] as const;
 
-    const visit = await prisma.visit.update({ where: { id }, data });
+    const allowed: Record<string, unknown> = {};
+    for (const field of ALLOWED_FIELDS) {
+      if (data[field] !== undefined) allowed[field] = data[field];
+    }
+
+    const visit = await prisma.visit.update({ where: { id }, data: allowed });
 
     await auditLog({
       userId: session.user.id,
       action: "UPDATE_VISIT",
       resource: `visit:${visit.id}`,
-      details: { fields: Object.keys(data) },
+      details: { fields: Object.keys(allowed) },
     });
 
     return NextResponse.json({ visit });

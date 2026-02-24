@@ -47,23 +47,32 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     const { id } = await params;
     const data = await req.json();
 
-    // Remove fields that shouldn't be directly updated
-    delete data.id;
-    delete data.createdAt;
-    delete data.updatedAt;
+    // Allowlist: only permit demographic fields
+    const ALLOWED_FIELDS = [
+      'identifier', 'mrn', 'firstName', 'lastName', 'middleName', 'prefix', 'suffix',
+      'dateOfBirth', 'gender', 'phone', 'phoneSecondary', 'email',
+      'addressLine1', 'addressLine2', 'city', 'state', 'zip', 'country',
+      'preferredLanguage', 'maritalStatus',
+      'emergencyContactName', 'emergencyContactPhone', 'emergencyContactRelation',
+      'pcpName', 'pcpPhone', 'pcpFax', 'referringProvider', 'referringProviderNpi',
+    ] as const;
 
-    if (data.dateOfBirth) data.dateOfBirth = new Date(data.dateOfBirth);
+    const allowed: Record<string, unknown> = {};
+    for (const field of ALLOWED_FIELDS) {
+      if (data[field] !== undefined) allowed[field] = data[field];
+    }
+    if (allowed.dateOfBirth) allowed.dateOfBirth = new Date(allowed.dateOfBirth as string);
 
     const patient = await prisma.patient.update({
       where: { id },
-      data,
+      data: allowed,
     });
 
     await auditLog({
       userId: session.user.id,
       action: "UPDATE_PATIENT",
       resource: `patient:${patient.id}`,
-      details: { fields: Object.keys(data) },
+      details: { fields: Object.keys(allowed) },
     });
 
     return NextResponse.json({ patient });

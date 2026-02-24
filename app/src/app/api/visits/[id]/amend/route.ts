@@ -35,6 +35,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     // Fetch current visit
     const visit = await prisma.visit.findUnique({ where: { id } });
     if (!visit) return NextResponse.json({ error: "Visit not found" }, { status: 404 });
+
+    if (visit.userId !== session.user.id && session.user.role !== "ADMIN") {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
     if (!visit.finalizedAt) {
       return NextResponse.json({ error: "Only finalized notes can be amended" }, { status: 400 });
     }
