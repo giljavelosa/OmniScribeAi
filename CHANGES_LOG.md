@@ -570,15 +570,22 @@ Each item follows the same workflow as FIX-1 through FIX-17:
 
 ---
 
-## UX-8: Smart framework suggestion from provider type
-**Priority:** LOW — show rehab frameworks first for PT, medical for MD, etc.
-**Files to change:**
-- `app/src/app/visit/new/page.tsx` — auto-filter domain based on selected provider type
-- `app/src/lib/frameworks.ts` — add provider-type-to-domain mapping
+## UX-8: Smart framework suggestion from provider type ✅
+**Date:** 2026-02-24
+**Files changed:**
+- `app/src/lib/frameworks.ts` (MODIFIED) — added `getSuggestedDomain(providerType)` with provider-to-domain mapping
+- `app/src/components/FrameworkSelector.tsx` (MODIFIED) — added `suggestedDomain` prop, auto-selects domain on provider change
+- `app/src/app/visit/new/page.tsx` (MODIFIED) — passes `getSuggestedDomain(providerType)` to FrameworkSelector
 
-**What could break:**
-- Clinicians who work across domains (e.g., NP doing both medical and BH)
-- Must be a suggestion, not a restriction
+**What it does:**
+- Mapping: MD/DO/PA-C/NP → medical, PT/OT/SLP → rehabilitation, LCSW/PhD/PsyD → behavioral_health
+- When user selects a provider type, FrameworkSelector auto-skips to Step 2 (framework list) for the suggested domain
+- User can always click "Back to domains" to choose a different domain — suggestion, not restriction
+- Uses ref tracking (`appliedSuggestionRef`) to only auto-apply once per suggestion change, preventing loops
+- No effect if a framework is already selected
+
+**Build:** ✅ `tsc --noEmit` passes
+**Tests:** ✅ `vitest run` passes (43/43)
 
 ---
 

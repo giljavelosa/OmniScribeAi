@@ -9,6 +9,7 @@ import Sidebar from '@/components/Sidebar';
 import AudioRecorder, { SilenceStats } from '@/components/AudioRecorder';
 import FrameworkSelector from '@/components/FrameworkSelector';
 import { ProviderType } from '@/lib/types';
+import { getSuggestedDomain } from '@/lib/frameworks';
 import { appLog } from '@/lib/logger';
 import type { EncounterState } from '@/lib/encounter-state';
 
@@ -673,7 +674,7 @@ function NewVisitContent() {
               {/* Framework */}
               <div className="bg-white rounded-2xl border border-gray-200 p-6">
                 <h2 className="font-semibold text-gray-900 mb-4">Documentation Framework</h2>
-                <FrameworkSelector onSelect={setFrameworkId} selectedId={frameworkId} />
+                <FrameworkSelector onSelect={setFrameworkId} selectedId={frameworkId} suggestedDomain={getSuggestedDomain(providerType)} />
               </div>
 
               {/* Input Mode Toggle */}

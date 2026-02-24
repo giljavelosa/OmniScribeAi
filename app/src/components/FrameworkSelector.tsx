@@ -1,12 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { frameworks, getDomainLabel, getDomainColor } from '@/lib/frameworks';
 import { Domain } from '@/lib/types';
 
 interface FrameworkSelectorProps {
   onSelect: (frameworkId: string) => void;
   selectedId?: string;
+  suggestedDomain?: Domain;
 }
 
 const domains: { id: Domain; label: string; description: string; icon: React.ReactNode }[] = [
@@ -42,8 +43,17 @@ const domains: { id: Domain; label: string; description: string; icon: React.Rea
   },
 ];
 
-export default function FrameworkSelector({ onSelect, selectedId }: FrameworkSelectorProps) {
+export default function FrameworkSelector({ onSelect, selectedId, suggestedDomain }: FrameworkSelectorProps) {
   const [selectedDomain, setSelectedDomain] = useState<Domain | null>(null);
+  const appliedSuggestionRef = useRef<string | null>(null);
+
+  // Auto-select domain when provider type changes (suggestion, not restriction)
+  useEffect(() => {
+    if (suggestedDomain && !selectedId && appliedSuggestionRef.current !== suggestedDomain) {
+      setSelectedDomain(suggestedDomain);
+      appliedSuggestionRef.current = suggestedDomain;
+    }
+  }, [suggestedDomain, selectedId]);
 
   const domainFrameworks = selectedDomain ? frameworks.filter(f => f.domain === selectedDomain) : [];
   const selectedFramework = selectedId ? frameworks.find(f => f.id === selectedId) : null;

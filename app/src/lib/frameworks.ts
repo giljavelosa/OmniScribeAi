@@ -1,4 +1,4 @@
-import { Framework } from './types';
+import { Domain, Framework, ProviderType } from './types';
 
 export const frameworks: Framework[] = [
   // ═══════════════════════════════════════
@@ -373,4 +373,21 @@ export function getDomainColor(domain: string): string {
     behavioral_health: '#7c3aed',
   };
   return colors[domain] || '#1e3a5f';
+}
+
+const providerDomainMap: Record<ProviderType, Domain> = {
+  MD: 'medical',
+  DO: 'medical',
+  'PA-C': 'medical',
+  NP: 'medical',
+  PT: 'rehabilitation',
+  OT: 'rehabilitation',
+  SLP: 'rehabilitation',
+  LCSW: 'behavioral_health',
+  PhD: 'behavioral_health',
+  PsyD: 'behavioral_health',
+};
+
+export function getSuggestedDomain(providerType: ProviderType): Domain {
+  return providerDomainMap[providerType];
 }
