@@ -68,3 +68,23 @@ Track every fix applied to the codebase. Read this before every change to avoid 
 
 **Build:** ✅ passes
 **Tests:** ✅ passes (20/20)
+
+## FIX-4: Rate limiting on all API routes ✅
+**Date:** 2026-02-24
+**Files changed:**
+- `app/src/lib/rate-limiter.ts` (NEW) — in-memory sliding window rate limiter with tiers
+- `app/middleware.ts` (MODIFIED) — integrates rate limiting into request pipeline
+
+**What it does:**
+- 3 tiers: login (10/15min per IP), ai (30/min per user), api (120/min per user)
+- Login rate limiting by IP (even for unauthenticated requests)
+- AI endpoints (generate-note, transcribe, extract-chunk, ocr) get stricter limits
+- Returns 429 with Retry-After header when exceeded
+- Auto-cleanup of stale entries every 5 minutes
+
+**What could break:**
+- Heavy automated testing may hit rate limits (30/min on AI endpoints)
+- In-memory store resets on server restart (acceptable for dev, use Redis for prod)
+
+**Build:** ✅ passes
+**Tests:** ✅ passes (20/20)
