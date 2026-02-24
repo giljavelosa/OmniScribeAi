@@ -267,3 +267,28 @@ Track every fix applied to the codebase. Read this before every change to avoid 
 
 **Build:** ✅ passes
 **Tests:** ✅ passes (43/43)
+
+## FIX-16: API keys — VERIFIED SAFE ✅
+**Date:** 2026-02-24
+**Files reviewed:**
+- `.gitignore` — contains `*.env` and `*.env.*`
+- `git ls-files` — no .env files tracked
+
+**Finding:** .env files are properly gitignored and no secrets are tracked in git. No code changes needed.
+
+**User action required:**
+- Rotate all API keys if they were ever exposed (GROQ_API_KEY, XAI_API_KEY, etc.)
+- Ensure `.env` is present on all deployment targets with correct values
+
+## FIX-17: AUTH_SECRET strength — USER ACTION REQUIRED ✅
+**Date:** 2026-02-24
+**Files reviewed:**
+- No code changes needed — this is a deployment configuration issue
+
+**Finding:** NextAuth v5 requires a strong `AUTH_SECRET` env var for JWT signing. A weak or missing secret compromises all session tokens.
+
+**User action required:**
+- Generate a strong AUTH_SECRET: `node -e "console.log(require('crypto').randomBytes(64).toString('base64'))"`
+- Add to `.env`: `AUTH_SECRET=<generated-value>`
+- Ensure AUTH_SECRET is at least 64 characters
+- Set on all environments (dev, staging, prod)
