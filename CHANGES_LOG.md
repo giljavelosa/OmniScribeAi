@@ -346,3 +346,43 @@ Track every fix applied to the codebase. Read this before every change to avoid 
 | FIX-15 | Security | Security headers (CSP, HSTS, X-Frame, etc.) | Code |
 | FIX-16 | Security | .env gitignored, no secrets tracked | Verified safe |
 | FIX-17 | Security | AUTH_SECRET strength requirement | Config |
+
+---
+
+## DEPLOY-1: Production deployment of FIX-1 through FIX-17 ✅
+**Date:** 2026-02-24
+**Target:** omniscribe-prod (143.198.131.243)
+
+**SSH access setup:**
+- Added local SSH key (`~/.ssh/id_ed25519`) to all 4 droplets via DigitalOcean console
+- Verified SSH access: prod ✅, dev ✅, staging ✅, data ✅
+
+**DigitalOcean infrastructure:**
+| Droplet | IP | Role |
+|---------|-----|------|
+| omniscribe-prod | 143.198.131.243 | Production (PM2 + Nginx + SSL) |
+| omniscribe-staging | 147.182.243.166 | Staging (not yet deployed) |
+| omniscribe-dev | 134.199.221.192 | Development (not yet deployed) |
+| omniscribe-data | 164.92.77.116 | PostgreSQL database server |
+
+**Deployment steps performed:**
+1. `git pull` — fast-forward from `47b380e` to `bb68a12` (14 commits, 47 files changed)
+2. `npm install` — clean, 0 vulnerabilities
+3. Generated unique `PHI_ENCRYPTION_KEY` for prod (separate from local dev key)
+4. Added `PHI_ENCRYPTION_KEY` to `/home/omniscribe/omniscribeai/app/.env`
+5. `npm run build` — successful, all routes compiled
+6. `pm2 restart omniscribe` — online, PID 186184, 182MB
+
+**Verification:**
+- Login page: HTTP 200 ✅
+- All 6 security headers present ✅ (X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy, CSP, HSTS)
+- PM2 status: online ✅
+
+**Side effects:**
+- Existing user sessions invalidated (auth config changed) — users must re-login
+- New PHI data will be encrypted at rest; existing plaintext reads correctly (graceful migration)
+- Rate limiting now active on all API routes
+- Idle timeout now 15 minutes (was 8 hours)
+
+**Prod .env keys present:**
+DATABASE_URL, AUTH_SECRET, NEXTAUTH_URL, AI_PROVIDER, XAI_API_KEY, DEEPGRAM_API_KEY, GROQ_API_KEY, NEXT_PUBLIC_TRANSCRIPTION_PROVIDER, NODE_ENV, AUTH_TRUST_HOST, PHI_ENCRYPTION_KEY
