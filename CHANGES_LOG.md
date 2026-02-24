@@ -792,8 +792,20 @@ Each item follows the same workflow as FIX-1 through FIX-17:
 
 ---
 
+## FIX-25: Remove stale OmniScribe directory on prod ✅
+**Date:** 2026-02-24
+**Server:** 143.198.131.243 (omniscribe-prod)
+
+**What it does:**
+- Removed `/home/omniscribe/OmniScribe/` (1.1GB) — old app copy not used by PM2
+- PM2 confirmed running from `/home/omniscribe/omniscribeai/app`
+- Freed 1.1GB disk space (4.7GB → 72GB free on 77GB disk)
+
+**What could break:** Nothing — directory was unused
+
+---
+
 ## Remaining Items (not yet implemented)
-- **Server cleanup**: Remove stale `/home/omniscribe/OmniScribe/` directory on prod
 - **Infrastructure**: Configure staging/dev droplets
 - **Nginx hardening**: Add `limit_req` rate limiting at nginx layer
 - **Test coverage**: Unit tests for middleware, security headers, SSE pipeline
