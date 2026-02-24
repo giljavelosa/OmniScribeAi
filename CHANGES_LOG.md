@@ -768,3 +768,33 @@ Each item follows the same workflow as FIX-1 through FIX-17:
 
 **Build:** ✅ `npm run build` passes
 **Tests:** ✅ `vitest run` passes (43/43)
+
+---
+
+## Production E2E Verification (Feb 24 2026) ✅
+**Target:** https://143.198.131.243 (DigitalOcean prod droplet)
+**Commit deployed:** `879148e` (FIX-24)
+**Result:** 30/31 tests passed
+
+| Category | Result | Notes |
+|----------|--------|-------|
+| Page Loading | 5/6 | `/` returns 200 landing page (intentional, not a redirect) |
+| Security Headers | 7/7 | All HIPAA headers present, X-Powered-By stripped |
+| Authentication | 4/4 | Login, dashboard, visits API, patients API |
+| Rate Limit Headers | 3/3 | Limit=120, Remaining correct, Reset=60s |
+| CSRF Protection | 2/2 | Evil origin → 403, same-origin → allowed |
+| API Endpoints | 4/4 | Visits, patients, search all correct |
+| Dashboard Content | 2/2 | No mock data references in HTML |
+| Admin Endpoints | 2/2 | 6 users with proper fields |
+| Pagination Bounds | 1/1 | limit=999 capped correctly |
+
+**Note:** `omniscribeai.com` domain points to a separate WordPress marketing site on Hostinger. The Next.js app runs on the DigitalOcean droplet at `143.198.131.243`.
+
+---
+
+## Remaining Items (not yet implemented)
+- **Server cleanup**: Remove stale `/home/omniscribe/OmniScribe/` directory on prod
+- **Infrastructure**: Configure staging/dev droplets
+- **Nginx hardening**: Add `limit_req` rate limiting at nginx layer
+- **Test coverage**: Unit tests for middleware, security headers, SSE pipeline
+- **Gold transcripts**: Expand from 3 to 15 test transcripts for pipeline validation
