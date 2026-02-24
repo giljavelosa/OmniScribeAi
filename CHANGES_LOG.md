@@ -1,0 +1,33 @@
+# OmniScribe AI — Changes Log
+
+Track every fix applied to the codebase. Read this before every change to avoid conflicts.
+
+---
+
+## FIX-1: Encryption at rest for PII ✅
+**Date:** 2026-02-24
+**Files changed:**
+- `app/src/lib/phi-crypto.ts` (NEW) — AES-256-GCM encrypt/decrypt utilities
+- `app/src/lib/db.ts` (MODIFIED) — Prisma client extensions for auto-encrypt/decrypt
+
+**What it does:**
+- Encrypts Patient fields on write: phone, phoneSecondary, email, addressLine1, addressLine2, emergencyContactName, emergencyContactPhone, mrn
+- Encrypts Visit fields on write: transcript
+- Decrypts on read transparently
+- Graceful: if PHI_ENCRYPTION_KEY is not set, encryption is disabled (dev mode)
+- Graceful: unencrypted values are returned as-is during migration
+
+**Fields left unencrypted (needed for search/indexes):**
+- firstName, lastName, identifier, dateOfBirth
+
+**What could break:**
+- Any code that reads raw DB values expecting plaintext (should be transparent via Prisma extension)
+- Search on encrypted fields (phone, email, mrn) won't work with LIKE/contains — only identifier and name search work
+- Test setup.ts imports prisma from db.ts — if PHI_ENCRYPTION_KEY is missing, encryption is just disabled
+
+**User action required:**
+- Add `PHI_ENCRYPTION_KEY` to `.env` (64-char hex): `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`
+- For full DB-level encryption: enable PostgreSQL TDE or use `sslmode=require` in DATABASE_URL
+
+**Build:** ✅ `tsc --noEmit` passes
+**Tests:** ✅ `vitest run` passes (20/20)
