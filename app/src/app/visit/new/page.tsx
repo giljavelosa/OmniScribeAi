@@ -139,7 +139,14 @@ export default function NewVisitPage() {
   const processAudio = async (audioBlob: Blob) => {
     setStep('processing');
     setProgress(0);
-    setProgressText('Transcribing audio with medical speech recognition...');
+
+    const SIZE_LIMIT_BYTES = 24 * 1024 * 1024;
+    if (audioBlob.size > SIZE_LIMIT_BYTES) {
+      const sizeMB = (audioBlob.size / (1024 * 1024)).toFixed(0);
+      setProgressText(`Transcribing large audio file (${sizeMB}MB) — splitting into chunks...`);
+    } else {
+      setProgressText('Transcribing audio with medical speech recognition...');
+    }
 
     try {
       // Step 1: Transcribe
@@ -253,6 +260,23 @@ export default function NewVisitPage() {
 
   const handleUploadSubmit = async () => {
     if (!uploadedFile) return;
+
+    // Early reject non-WAV files > 24MB client-side (avoids uploading 100MB+ just to get a 413)
+    const SIZE_LIMIT = 24 * 1024 * 1024;
+    if (uploadedFile.size > SIZE_LIMIT) {
+      const ext = uploadedFile.name.split('.').pop()?.toLowerCase();
+      if (ext !== 'wav') {
+        const sizeMB = (uploadedFile.size / (1024 * 1024)).toFixed(1);
+        setErrorMsg(
+          `This ${ext?.toUpperCase() || 'audio'} file is ${sizeMB}MB, which exceeds the 24MB limit. ` +
+          `Only WAV files can be automatically split into chunks for large recordings. ` +
+          `Please convert to WAV format, or use a shorter recording.`
+        );
+        setStep('error');
+        return;
+      }
+    }
+
     await processAudio(uploadedFile);
   };
 
