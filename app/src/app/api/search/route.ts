@@ -6,11 +6,11 @@ import { appLog, scrubError } from "@/lib/logger";
 // GET /api/search?q=<query> — unified search across patients + visits
 export async function GET(req: NextRequest) {
   const session = await auth();
-  if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!session?.user) return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
 
   const query = (req.nextUrl.searchParams.get("q") || "").trim();
   if (query.length < 2) {
-    return NextResponse.json({ patients: [], visits: [] });
+    return NextResponse.json({ success: true, patients: [], visits: [] });
   }
 
   try {
@@ -78,9 +78,9 @@ export async function GET(req: NextRequest) {
       },
     });
 
-    return NextResponse.json({ patients, visits });
+    return NextResponse.json({ success: true, patients, visits });
   } catch (error) {
     appLog("error", "GET /api/search", scrubError(error));
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json({ success: false, error: "Internal server error" }, { status: 500 });
   }
 }

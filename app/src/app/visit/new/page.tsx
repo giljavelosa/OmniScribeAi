@@ -9,6 +9,7 @@ import Sidebar from '@/components/Sidebar';
 import AudioRecorder, { SilenceStats } from '@/components/AudioRecorder';
 import FrameworkSelector from '@/components/FrameworkSelector';
 import { ProviderType } from '@/lib/types';
+import { appLog } from '@/lib/logger';
 import type { EncounterState } from '@/lib/encounter-state';
 
 function escapeHtml(s: string): string {
@@ -420,7 +421,7 @@ function NewVisitContent() {
     lastSessionIdRef.current = sessionId;
     pendingEncounterRef.current = encounterState ?? null;
     if (silenceStats) {
-      console.log(`[NewVisit] Silence stripped: ${silenceStats.silenceStrippedSec}s of ${silenceStats.originalDurationSec}s total`);
+      appLog('info', 'NewVisit', 'Silence stripped', { silenceStrippedSec: silenceStats.silenceStrippedSec, originalDurationSec: silenceStats.originalDurationSec });
     }
 
     // If patient name or framework not yet set, hold the recording and wait
@@ -431,7 +432,7 @@ function NewVisitContent() {
 
     // Use encounter-state mode if real-time extraction produced data
     if (encounterState && encounterState.chunk_count > 0) {
-      console.log(`[NewVisit] Using encounter-state mode (${encounterState.chunk_count} chunks, ${encounterState.diarized_transcript.length} statements)`);
+      appLog('info', 'NewVisit', 'Using encounter-state mode', { chunkCount: encounterState.chunk_count, statementCount: encounterState.diarized_transcript.length });
       await processWithEncounterState(encounterState);
     } else {
       // Fallback to legacy transcribe-then-generate flow

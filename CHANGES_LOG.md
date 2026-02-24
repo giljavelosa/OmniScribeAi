@@ -530,6 +530,25 @@ Each item follows the same workflow as FIX-1 through FIX-17:
 
 ---
 
+## POST-UX Regression Fix: Error response shape + PHI logging ✅
+**Date:** 2026-02-24
+**Files changed:**
+- `app/src/app/api/search/route.ts` — fixed error response shape to use `{ success: boolean, error?: string }` per CLAUDE.md rule. Applied to 401, 500, and success (200) responses.
+- `app/src/app/visit/new/page.tsx` — replaced 2 pre-existing `console.log()` calls with `appLog()` from `@/lib/logger.ts` per PHI safety rule. Imported `appLog`. No PHI was in the log messages (only metadata counts), but standardized for consistency.
+
+**Audit results for UX-1 through UX-6:**
+- Rate limiting: ✅ `/api/search` covered by middleware (api tier, 120 req/min)
+- Error response shape: ✅ fixed (was `{ error }`, now `{ success, error }`)
+- Pagination bounds: ✅ hardcoded `take: 5` on search, no user-controlled limits
+- PHI logging: ✅ fixed (was `console.log`, now `appLog`)
+- XSS: ✅ no `dangerouslySetInnerHTML` in SearchModal; transcript escaped in visit/new
+- CSRF: ✅ `/api/search` is GET-only, not applicable
+
+**Build:** ✅ `tsc --noEmit` passes
+**Tests:** ✅ `vitest run` passes (43/43)
+
+---
+
 ## UX-7: Mobile hamburger menu
 **Priority:** MEDIUM — clinicians use tablets in exam rooms
 **Files to change:**
