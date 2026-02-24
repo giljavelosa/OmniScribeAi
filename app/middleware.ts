@@ -25,6 +25,9 @@ export default auth((req) => {
             headers: {
               "Content-Type": "application/json",
               "Retry-After": String(Math.ceil(result.resetMs / 1000)),
+              "X-RateLimit-Limit": String(result.limit),
+              "X-RateLimit-Remaining": "0",
+              "X-RateLimit-Reset": String(Math.ceil(result.resetMs / 1000)),
             },
           },
         );
@@ -98,11 +101,20 @@ export default auth((req) => {
           headers: {
             "Content-Type": "application/json",
             "Retry-After": String(Math.ceil(result.resetMs / 1000)),
+            "X-RateLimit-Limit": String(result.limit),
             "X-RateLimit-Remaining": "0",
+            "X-RateLimit-Reset": String(Math.ceil(result.resetMs / 1000)),
           },
         },
       );
     }
+
+    // Attach rate limit headers to successful responses
+    const response = NextResponse.next();
+    response.headers.set("X-RateLimit-Limit", String(result.limit));
+    response.headers.set("X-RateLimit-Remaining", String(result.remaining));
+    response.headers.set("X-RateLimit-Reset", String(Math.ceil(result.resetMs / 1000)));
+    return response;
   }
 
   return NextResponse.next();

@@ -56,8 +56,9 @@ function ensureCleanup() {
 
 export interface RateLimitResult {
   allowed: boolean;
+  limit: number;     // max requests per window
   remaining: number;
-  resetMs: number; // ms until window resets
+  resetMs: number;   // ms until window resets
 }
 
 /**
@@ -87,6 +88,7 @@ export function checkRateLimit(tier: string, identifier: string): RateLimitResul
     const resetMs = config.windowMs - (now - oldestInWindow);
     return {
       allowed: false,
+      limit: config.maxRequests,
       remaining: 0,
       resetMs,
     };
@@ -97,6 +99,7 @@ export function checkRateLimit(tier: string, identifier: string): RateLimitResul
 
   return {
     allowed: true,
+    limit: config.maxRequests,
     remaining: config.maxRequests - entry.timestamps.length,
     resetMs: config.windowMs,
   };

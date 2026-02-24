@@ -644,3 +644,24 @@ Each item follows the same workflow as FIX-1 through FIX-17:
 **Known warnings:**
 - `ANTHROPIC_API_KEY is not set` — intentional, Anthropic is backup only (Grok/xAI is primary)
 - Stale "Server Action" errors in PM2 error log — from cached clients hitting old deployment, clears on its own
+
+---
+
+## FIX-18: Rate limit response headers + hide X-Powered-By ✅
+**Date:** 2026-02-24
+**Files changed:**
+- `app/src/lib/rate-limiter.ts` (MODIFIED) — added `limit` field to `RateLimitResult` interface
+- `app/middleware.ts` (MODIFIED) — attach `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset` to all API responses (both 200 and 429), added headers to login 429 for consistency
+- `app/next.config.ts` (MODIFIED) — added `poweredByHeader: false` to suppress `X-Powered-By: Next.js`
+
+**What it does:**
+- All API responses now include rate limit headers: `X-RateLimit-Limit` (max per window), `X-RateLimit-Remaining` (remaining), `X-RateLimit-Reset` (seconds until window resets)
+- Login 429 responses now also include rate limit headers (previously only had `Retry-After`)
+- `X-Powered-By: Next.js` header removed from all responses (reduces server fingerprinting)
+- Note: `/api/transcribe` and `/api/ocr` are excluded from middleware matcher — they don't get rate limit headers
+
+**What could break:**
+- Nothing — headers are additive, no existing tests assert on response headers
+
+**Build:** ✅ `tsc --noEmit` passes
+**Tests:** ✅ `vitest run` passes (43/43)
