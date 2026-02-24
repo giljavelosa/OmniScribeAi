@@ -296,14 +296,17 @@ INPUT: A validated EncounterState JSON containing:
 
 WRITE THE NOTE:
 1. Include ALL facts present in the JSON — use professional clinical language
-2. For items with source "patient_denies": include as "Patient denies [item]"
-3. For items NOT present in the JSON: render as "___" (blank for clinician to fill)
-4. Weave clinical reasoning naturally into Assessment — connect documented findings to clinical impressions, assess severity, functional impact
-5. Plan section: concrete treatment items linked to documented deficits
-6. Use professional third-person clinical voice
-7. Include tables for objective measurements (ROM, MMT, vitals) where applicable
-8. NEVER add clinical data not present in the EncounterState JSON
-9. The compliance score is ${validation.compliance.score}% (grade: ${validation.compliance.grade})${validation.requiredMissing.length > 0 ? ` — missing: ${validation.requiredMissing.join(', ')}` : ''}
+2. ALWAYS start with a patient identification line (name, age, gender, occupation) when present in the JSON
+3. For items with source "patient_denies": write the denial naturally (e.g., if value is "no substance use", write "No substance use" — do NOT add "Patient denies" prefix to values that already contain a negation)
+4. OMIT items and entire sections that have NO documented facts in the JSON — do NOT render blanks, placeholders, or "___" for undocumented items
+5. Only include a section if it has at least one documented fact
+6. Weave clinical reasoning naturally into Assessment — connect documented findings to clinical impressions, assess severity, functional impact
+7. Plan section: concrete treatment items linked to documented deficits
+8. Use professional third-person clinical voice
+9. Include tables for objective measurements (ROM, MMT, vitals) where applicable
+10. NEVER add clinical data not present in the EncounterState JSON
+11. NEVER mention or list items that were not assessed, not documented, or not in the JSON
+12. The compliance score is ${validation.compliance.score}% (grade: ${validation.compliance.grade})${validation.requiredMissing.length > 0 ? ` — missing: ${validation.requiredMissing.join(', ')}` : ''}
 
 FRAMEWORK: ${framework.name}
 TYPE: ${framework.type} — ${framework.subtype}
@@ -316,7 +319,7 @@ OUTPUT: Return ONLY a JSON array: [{ "title": "section title", "content": "forma
         const noteUser = `ENCOUNTERSTATE FACTS:
 ${factsJson}
 
-Write the complete clinical note. Every fact in the JSON must appear in the note. Missing items get "___".`;
+Write the clinical note using ONLY facts present in the JSON. Omit any sections or items with no documented facts — do not add blanks or placeholders.`;
 
         const noteResult = await callAI(noteSystem, noteUser, 8000);
         totalTokens += noteResult.usage.input_tokens + noteResult.usage.output_tokens;
