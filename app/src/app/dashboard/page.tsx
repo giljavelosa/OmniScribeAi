@@ -18,17 +18,39 @@ interface RecentFramework {
   usedAt: number;
 }
 
+interface VisitDraft {
+  patientName: string;
+  patientId: string;
+  providerType: string;
+  frameworkId: string;
+  savedAt: number;
+}
+
 export default function DashboardPage() {
   const [recentFrameworks, setRecentFrameworks] = useState<RecentFramework[]>([]);
+  const [draft, setDraft] = useState<VisitDraft | null>(null);
 
   useEffect(() => {
     try {
       const raw = localStorage.getItem('omniscribe-recent-frameworks');
       if (raw) {
         const parsed = JSON.parse(raw) as RecentFramework[];
-        // Only keep entries that match a valid framework
         const valid = parsed.filter(r => frameworks.some(f => f.id === r.frameworkId));
         setRecentFrameworks(valid.slice(0, 5));
+      }
+    } catch { /* ignore parse errors */ }
+
+    // Check for saved draft (expire after 24h)
+    try {
+      const draftRaw = localStorage.getItem('omniscribe-visit-draft');
+      if (draftRaw) {
+        const parsed = JSON.parse(draftRaw) as VisitDraft;
+        const ageMs = Date.now() - (parsed.savedAt || 0);
+        if (ageMs < 24 * 60 * 60 * 1000 && (parsed.patientName || parsed.frameworkId)) {
+          setDraft(parsed);
+        } else {
+          localStorage.removeItem('omniscribe-visit-draft');
+        }
       }
     } catch { /* ignore parse errors */ }
   }, []);
@@ -49,6 +71,43 @@ export default function DashboardPage() {
             <h1 className="text-2xl font-bold text-gray-900 mb-1">Welcome back</h1>
             <p className="text-gray-500">Here are your recent clinical notes.</p>
           </div>
+
+          {/* Resume Draft */}
+          {draft && (
+            <div className="mb-6 bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center shrink-0">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#d97706" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                    <polyline points="14 2 14 8 20 8" />
+                  </svg>
+                </div>
+                <div className="min-w-0">
+                  <div className="text-sm font-medium text-amber-900">Unsaved draft</div>
+                  <div className="text-xs text-amber-700 truncate">
+                    {[
+                      draft.patientName && `Patient: ${draft.patientName}`,
+                      draft.frameworkId && frameworks.find(f => f.id === draft.frameworkId)?.name,
+                    ].filter(Boolean).join(' — ') || 'In-progress visit'}
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  onClick={() => { localStorage.removeItem('omniscribe-visit-draft'); setDraft(null); }}
+                  className="text-xs text-amber-600 hover:text-amber-800 font-medium px-3 py-1.5 rounded-lg hover:bg-amber-100 transition-colors"
+                >
+                  Discard
+                </button>
+                <Link
+                  href="/visit/new"
+                  className="text-xs text-white bg-amber-600 hover:bg-amber-700 font-medium px-3 py-1.5 rounded-lg transition-colors"
+                >
+                  Resume
+                </Link>
+              </div>
+            </div>
+          )}
 
           {/* Quick Start — recent frameworks */}
           <div className="mb-8">

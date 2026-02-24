@@ -608,13 +608,22 @@ Each item follows the same workflow as FIX-1 through FIX-17:
 
 ---
 
-## UX-10: Auto-save drafts to database
-**Priority:** LOW — prevents data loss on session expiry
-**Files to change:**
-- `app/src/app/visit/new/page.tsx` — periodic auto-save to API
-- `app/src/app/api/visits/route.ts` — support upsert for draft visits
-- `app/src/app/dashboard/page.tsx` — show "Resume Draft" section
+## UX-10: Auto-save drafts to localStorage ✅
+**Date:** 2026-02-24
+**Files changed:**
+- `app/src/app/visit/new/page.tsx` (MODIFIED) — auto-save form state to localStorage, restore on mount
+- `app/src/app/dashboard/page.tsx` (MODIFIED) — "Resume Draft" banner with discard/resume options
 
-**What could break:**
-- PHI in draft visits — must be encrypted (already handled by FIX-1)
-- Multiple drafts per user — need cleanup/expiry logic
+**What it does:**
+- Auto-saves form state (patientName, patientId, providerType, frameworkId) to `omniscribe-visit-draft` in localStorage
+- Debounced at 5 seconds — saves only during "setup" step, removes key if form is empty
+- Restores draft on mount (unless URL `frameworkId` param is present, which takes priority)
+- Clears draft on successful visit save (both legacy and encounter-state paths)
+- Dashboard shows amber "Unsaved draft" banner with patient name and framework info
+- "Discard" button clears draft from localStorage, "Resume" links to /visit/new
+- Drafts auto-expire after 24 hours (checked on dashboard load)
+- Uses localStorage instead of database: avoids schema migration, patientId is required in Visit model
+- No PHI risk: patientName is already displayed client-side, no transcript/audio in draft
+
+**Build:** ✅ `tsc --noEmit` passes
+**Tests:** ✅ `vitest run` passes (43/43)

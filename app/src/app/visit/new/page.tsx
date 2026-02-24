@@ -103,6 +103,36 @@ function NewVisitContent() {
     }
   }, [searchParams, frameworkId]);
 
+  // Restore draft from localStorage on mount (only if no URL params override)
+  useEffect(() => {
+    if (searchParams.get('frameworkId')) return; // URL param takes priority
+    try {
+      const raw = localStorage.getItem('omniscribe-visit-draft');
+      if (raw) {
+        const draft = JSON.parse(raw);
+        if (draft.patientName) setPatientName(draft.patientName);
+        if (draft.patientId) { setPatientId(draft.patientId); setPatientSearch(draft.patientName || ''); }
+        if (draft.providerType) setProviderType(draft.providerType);
+        if (draft.frameworkId) setFrameworkId(draft.frameworkId);
+      }
+    } catch { /* ignore parse errors */ }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Auto-save draft to localStorage when form fields change (debounced 5s)
+  useEffect(() => {
+    if (step !== 'setup') return; // only save during setup phase
+    const timer = setTimeout(() => {
+      if (!patientName && !frameworkId) {
+        localStorage.removeItem('omniscribe-visit-draft');
+        return;
+      }
+      const draft = { patientName, patientId, providerType, frameworkId, savedAt: Date.now() };
+      localStorage.setItem('omniscribe-visit-draft', JSON.stringify(draft));
+    }, 5000);
+    return () => clearTimeout(timer);
+  }, [patientName, patientId, providerType, frameworkId, step]);
+
   // Debounced patient search
   const searchPatients = useCallback((query: string) => {
     if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
@@ -264,6 +294,7 @@ function NewVisitContent() {
       setProgress(100);
       setProgressText('Done!');
       saveRecentFramework(frameworkId);
+      localStorage.removeItem('omniscribe-visit-draft');
 
       await new Promise(r => setTimeout(r, 500));
       router.push(`/visit/${visitId}`);
@@ -380,6 +411,7 @@ function NewVisitContent() {
       setProgress(100);
       setProgressText('Done!');
       saveRecentFramework(frameworkId);
+      localStorage.removeItem('omniscribe-visit-draft');
 
       await new Promise(r => setTimeout(r, 500));
       router.push(`/visit/${visitId}`);
