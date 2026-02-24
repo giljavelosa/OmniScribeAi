@@ -44,6 +44,22 @@ export function parseSSE(raw: string): SSEEvent[] {
 }
 
 /**
+ * Detect Content-Type and route to SSE parsing or JSON wrapping.
+ * Mock mode returns plain JSON; real pipeline returns SSE. This normalises both
+ * so `extractResult()` works unchanged.
+ */
+export function parseResponse(raw: string, contentType: string): SSEEvent[] {
+  if (contentType.includes('application/json')) {
+    try {
+      return [{ event: 'result', data: JSON.parse(raw) }];
+    } catch {
+      return [];
+    }
+  }
+  return parseSSE(raw);
+}
+
+/**
  * Extract the "result" event from parsed SSE events.
  * Returns null if no result event was found (e.g. error or validation failure).
  */

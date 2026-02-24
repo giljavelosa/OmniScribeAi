@@ -17,7 +17,8 @@
     "test:integration:setup": "docker compose -f ../docker-compose.yml up -d --wait && npm run db:push && npm run db:seed",
     "test:integration:wait": "tsx scripts/wait-for-db.ts",
     "test:integration:teardown": "docker compose -f ../docker-compose.yml down",
-    "test:notes": "tsx scripts/run-note-tests.ts"
+    "test:notes": "tsx scripts/run-note-tests.ts",
+    "test:notes:mock": "tsx scripts/run-note-tests.ts --mock"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.1",

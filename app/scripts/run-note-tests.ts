@@ -6,8 +6,9 @@
  * scores fact recall + hallucinations, and prints a summary table.
  *
  * Usage:
- *   npm run test:notes          (from app/)
- *   npx tsx scripts/run-note-tests.ts
+ *   npm run test:notes          (from app/)  — real AI pipeline
+ *   npm run test:notes:mock     (from app/)  — mock mode, structural checks only
+ *   npx tsx scripts/run-note-tests.ts [--mock]
  *
  * Prerequisites:
  *   - Dev server running at localhost:3000
@@ -15,7 +16,7 @@
  */
 
 import { testTranscripts, type TestTranscript } from '../src/lib/test-transcripts';
-import { parseSSE, extractResult, extractError } from './lib/sse-parser';
+import { parseResponse, extractResult, extractError } from './lib/sse-parser';
 import {
   scoreFactRecall,
   scoreHallucinations,
@@ -34,6 +35,7 @@ const CREDENTIALS = {
   password: 'Demo2026!',
 };
 const REQUEST_TIMEOUT_MS = 120_000; // 2 min per request
+const MOCK_MODE = process.argv.includes('--mock');
 
 // ─── Colors (ANSI) ───────────────────────────────────────────
 
@@ -50,6 +52,11 @@ const C = {
 
 // ─── Types ───────────────────────────────────────────────────
 
+interface MockScoring {
+  structuralPass: boolean;
+  sectionCount: number;
+}
+
 interface TestResult {
   id: string;
   label: string;
@@ -57,6 +64,7 @@ interface TestResult {
   domain: string;
   status: 'pass' | 'fail' | 'error';
   scoring?: CompositeResult;
+  mockScoring?: MockScoring;
   error?: string;
 }
 
@@ -135,6 +143,29 @@ async function authenticate(): Promise<AuthSession> {
   return { cookies: cookieString };
 }
 
+// ─── Mock structural validation ──────────────────────────────
+
+function validateMockStructure(clinicalNote: unknown): MockScoring {
+  if (!Array.isArray(clinicalNote) || clinicalNote.length === 0) {
+    return { structuralPass: false, sectionCount: 0 };
+  }
+
+  for (const section of clinicalNote) {
+    if (typeof section !== 'object' || section === null) {
+      return { structuralPass: false, sectionCount: clinicalNote.length };
+    }
+    const s = section as Record<string, unknown>;
+    if (typeof s.title !== 'string' || s.title.trim().length === 0) {
+      return { structuralPass: false, sectionCount: clinicalNote.length };
+    }
+    if (typeof s.content !== 'string' || s.content.trim().length === 0) {
+      return { structuralPass: false, sectionCount: clinicalNote.length };
+    }
+  }
+
+  return { structuralPass: true, sectionCount: clinicalNote.length };
+}
+
 // ─── Run Single Test ─────────────────────────────────────────
 
 async function runTest(
@@ -152,16 +183,21 @@ async function runTest(
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
+    const requestBody: Record<string, unknown> = {
+      transcript: transcript.text,
+      frameworkId: transcript.frameworkId,
+    };
+    if (MOCK_MODE) {
+      requestBody.useMock = true;
+    }
+
     const res = await fetch(`${BASE_URL}/api/generate-note`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Cookie': auth.cookies,
       },
-      body: JSON.stringify({
-        transcript: transcript.text,
-        frameworkId: transcript.frameworkId,
-      }),
+      body: JSON.stringify(requestBody),
       signal: controller.signal,
     });
 
@@ -173,9 +209,10 @@ async function runTest(
       return { id: transcript.id, label: transcript.label, frameworkId: transcript.frameworkId, domain: transcript.domain, status: 'error', error: `HTTP ${res.status}: ${body.slice(0, 200)}` };
     }
 
-    // Read SSE stream
-    const sseText = await res.text();
-    const events = parseSSE(sseText);
+    // Parse response — handles both JSON (mock) and SSE (real) via Content-Type detection
+    const rawText = await res.text();
+    const contentType = res.headers.get('content-type') ?? '';
+    const events = parseResponse(rawText, contentType);
 
     // Check for errors
     const errorData = extractError(events);
@@ -191,11 +228,23 @@ async function runTest(
       return { id: transcript.id, label: transcript.label, frameworkId: transcript.frameworkId, domain: transcript.domain, status: 'error', error: 'No result event in SSE stream' };
     }
 
-    // Flatten clinical note to text
-    const clinicalNote = result.clinicalNote as Array<{ title: string; content: string }>;
-    const noteText = flattenNote(clinicalNote);
+    const clinicalNote = result.clinicalNote;
+    const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
 
-    // Score
+    // ─── Mock mode scoring: structural validation only ───
+    if (MOCK_MODE) {
+      const mockScoring = validateMockStructure(clinicalNote);
+      const status = mockScoring.structuralPass ? 'pass' : 'fail';
+      const statusIcon = status === 'pass' ? `${C.green}✓${C.reset}` : `${C.red}✗${C.reset}`;
+      console.log(`${statusIcon} ${C.green}MOCK${C.reset} sections:${mockScoring.sectionCount} source:${result.source ?? '?'} ${C.dim}${elapsed}s${C.reset}`);
+
+      return { id: transcript.id, label: transcript.label, frameworkId: transcript.frameworkId, domain: transcript.domain, status, mockScoring };
+    }
+
+    // ─── Real mode scoring: full fact recall + hallucination check ───
+    const noteArray = clinicalNote as Array<{ title: string; content: string }>;
+    const noteText = flattenNote(noteArray);
+
     const factRecall = scoreFactRecall(transcript.expectedFacts, noteText);
     const hallucinations = scoreHallucinations(transcript.shouldNotAppear, noteText);
     const auditClean = result.auditClean !== false;
@@ -232,10 +281,57 @@ async function runTest(
 
 function printSummary(results: TestResult[]): void {
   console.log(`\n${'═'.repeat(90)}`);
-  console.log(`${C.bold}${C.cyan}  TEST RESULTS SUMMARY${C.reset}`);
+  const modeLabel = MOCK_MODE ? ' (MOCK MODE — structural checks only)' : '';
+  console.log(`${C.bold}${C.cyan}  TEST RESULTS SUMMARY${modeLabel}${C.reset}`);
   console.log(`${'═'.repeat(90)}`);
 
-  // Header
+  if (MOCK_MODE) {
+    // Mock summary table
+    const header = [
+      '#'.padEnd(3),
+      'Test'.padEnd(35),
+      'Score'.padEnd(7),
+      'Sections'.padEnd(10),
+      'Status'.padEnd(6),
+    ].join(' ');
+    console.log(`  ${C.dim}${header}${C.reset}`);
+    console.log(`  ${'─'.repeat(62)}`);
+
+    results.forEach((r, i) => {
+      if (r.mockScoring) {
+        const statusIcon = r.status === 'pass' ? `${C.green}PASS${C.reset}` : `${C.red}FAIL${C.reset}`;
+        const row = [
+          String(i + 1).padEnd(3),
+          r.label.slice(0, 35).padEnd(35),
+          `${C.green}MOCK${C.reset}`.padEnd(7 + C.green.length + C.reset.length),
+          String(r.mockScoring.sectionCount).padEnd(10),
+          statusIcon,
+        ].join(' ');
+        console.log(`  ${row}`);
+      } else {
+        const row = [
+          String(i + 1).padEnd(3),
+          r.label.slice(0, 35).padEnd(35),
+          `${C.red} ERR${C.reset}`.padEnd(7 + C.red.length + C.reset.length),
+          '-'.padEnd(10),
+          `${C.red}ERR ${C.reset}`,
+        ].join(' ');
+        console.log(`  ${row}`);
+      }
+    });
+
+    console.log(`  ${'─'.repeat(62)}`);
+
+    const passed = results.filter(r => r.status === 'pass');
+    const failed = results.filter(r => r.status === 'fail');
+    const errored = results.filter(r => r.status === 'error');
+
+    console.log(`\n  ${C.bold}Totals:${C.reset} ${passed.length} pass, ${failed.length} fail, ${errored.length} error (${results.length} total)`);
+    console.log(`\n${'═'.repeat(90)}\n`);
+    return;
+  }
+
+  // Real mode summary table
   const header = [
     '#'.padEnd(3),
     'Test'.padEnd(35),
@@ -328,36 +424,45 @@ function saveResults(results: TestResult[]): string {
   }
 
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-  const filename = `note-test-${timestamp}.json`;
+  const modeTag = MOCK_MODE ? 'mock' : 'real';
+  const filename = `note-test-${modeTag}-${timestamp}.json`;
   const filepath = path.join(resultsDir, filename);
 
   const scored = results.filter(r => r.scoring);
   const output = {
     timestamp: new Date().toISOString(),
+    mode: modeTag as 'mock' | 'real',
     totalTests: results.length,
     passed: results.filter(r => r.status === 'pass').length,
     failed: results.filter(r => r.status === 'fail').length,
     errored: results.filter(r => r.status === 'error').length,
-    avgComposite: scored.length > 0
-      ? Math.round(scored.reduce((s, r) => s + (r.scoring?.compositeScore ?? 0), 0) / scored.length)
-      : 0,
-    avgRecall: scored.length > 0
-      ? Math.round(scored.reduce((s, r) => s + (r.scoring?.factRecall.score ?? 0), 0) / scored.length)
-      : 0,
-    totalHallucinations: scored.reduce((s, r) => s + (r.scoring?.hallucinations.count ?? 0), 0),
+    ...(MOCK_MODE ? {} : {
+      avgComposite: scored.length > 0
+        ? Math.round(scored.reduce((s, r) => s + (r.scoring?.compositeScore ?? 0), 0) / scored.length)
+        : 0,
+      avgRecall: scored.length > 0
+        ? Math.round(scored.reduce((s, r) => s + (r.scoring?.factRecall.score ?? 0), 0) / scored.length)
+        : 0,
+      totalHallucinations: scored.reduce((s, r) => s + (r.scoring?.hallucinations.count ?? 0), 0),
+    }),
     results: results.map(r => ({
       id: r.id,
       label: r.label,
       frameworkId: r.frameworkId,
       domain: r.domain,
       status: r.status,
-      compositeScore: r.scoring?.compositeScore,
-      factRecall: r.scoring?.factRecall,
-      hallucinations: r.scoring?.hallucinations,
-      auditClean: r.scoring?.auditClean,
-      complianceGrade: r.scoring?.complianceGrade,
-      generationTime: r.scoring?.generationTime,
-      tokensUsed: r.scoring?.tokensUsed,
+      ...(MOCK_MODE
+        ? { structuralPass: r.mockScoring?.structuralPass, sectionCount: r.mockScoring?.sectionCount }
+        : {
+            compositeScore: r.scoring?.compositeScore,
+            factRecall: r.scoring?.factRecall,
+            hallucinations: r.scoring?.hallucinations,
+            auditClean: r.scoring?.auditClean,
+            complianceGrade: r.scoring?.complianceGrade,
+            generationTime: r.scoring?.generationTime,
+            tokensUsed: r.scoring?.tokensUsed,
+          }
+      ),
       error: r.error,
     })),
   };
@@ -369,9 +474,13 @@ function saveResults(results: TestResult[]): string {
 // ─── Main ────────────────────────────────────────────────────
 
 async function main() {
+  const modeTag = MOCK_MODE ? ' (MOCK MODE — structural checks only)' : '';
   console.log(`\n${C.bold}${C.cyan}╔══════════════════════════════════════════════════╗${C.reset}`);
   console.log(`${C.bold}${C.cyan}║   OmniScribe AI — Note Generation Test Suite     ║${C.reset}`);
   console.log(`${C.bold}${C.cyan}╚══════════════════════════════════════════════════╝${C.reset}`);
+  if (modeTag) {
+    console.log(`${C.yellow}${modeTag}${C.reset}`);
+  }
 
   const transcriptList = Object.values(testTranscripts);
   console.log(`\n  ${transcriptList.length} transcripts across 3 domains\n`);
@@ -390,9 +499,9 @@ async function main() {
     const result = await runTest(transcriptList[i], auth, i, transcriptList.length);
     results.push(result);
 
-    // Small delay between requests to avoid rate limits
+    // Small delay between requests (shorter for mock)
     if (i < transcriptList.length - 1) {
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise(resolve => setTimeout(resolve, MOCK_MODE ? 100 : 1000));
     }
   }
 

@@ -50,20 +50,20 @@ export async function POST(request: NextRequest) {
 
   // Mock mode — return JSON directly (no streaming needed)
   if (useMock === true || (!process.env.ANTHROPIC_API_KEY && !process.env.XAI_API_KEY && !process.env.DEEPSEEK_API_KEY)) {
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-    let noteKey = "pt-eval";
-    if (frameworkId === "med-soap-followup" || frameworkId === "med-soap-new" || frameworkId === "med-awv") {
-      noteKey = "soap-followup";
-    } else if (frameworkId?.startsWith("bh-")) {
-      noteKey = "bh-intake";
-    }
-    const note = mockNotes[noteKey];
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    // Only 2 framework IDs differ from their mock key; the rest match directly
+    const FRAMEWORK_TO_MOCK: Record<string, string> = {
+      'rehab-pt-eval': 'pt-eval',
+      'med-soap-followup': 'soap-followup',
+    };
+    const noteKey = FRAMEWORK_TO_MOCK[frameworkId] ?? frameworkId;
+    const note = mockNotes[noteKey] ?? mockNotes['pt-eval'];
     return new Response(JSON.stringify({
       success: true,
-      parsedData: note || mockNotes["pt-eval"],
-      clinicalNote: note || mockNotes["pt-eval"],
+      parsedData: note,
+      clinicalNote: note,
       summary: "Mock-generated clinical note.",
-      generationTime: 2.0,
+      generationTime: 0.5,
       source: "mock",
     }), { headers: { "Content-Type": "application/json" } });
   }
