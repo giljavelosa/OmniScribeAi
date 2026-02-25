@@ -13,6 +13,8 @@ import {
   type SilenceStats,
 } from '@/lib/encounter-state';
 import { frameworks } from '@/lib/frameworks';
+import { fetchTemplateDetail } from '@/lib/template-client';
+import { TemplateStructureSchema, templateStructureToFrameworkSections } from '@/lib/template-schema';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 const SESSION_LIMIT_SEC  = 90 * 60;   // 1 h 30 m — VAD auto-stop threshold
@@ -40,6 +42,7 @@ interface AudioRecorderProps {
   ) => void;
   onPartialTranscript?: (transcript: string, wordCount: number, encounterState: EncounterState) => void;
   frameworkId?: string;
+  templateId?: string;
   disabled?: boolean;
 }
 
@@ -90,7 +93,7 @@ function makeSessionId(): string {
 }
 
 // ─── Component ───────────────────────────────────────────────────────────────
-export default function AudioRecorder({ onRecordingComplete, onPartialTranscript, frameworkId, disabled }: AudioRecorderProps) {
+export default function AudioRecorder({ onRecordingComplete, onPartialTranscript, frameworkId, templateId, disabled }: AudioRecorderProps) {
   const [recState, setRecState]     = useState<'idle' | 'recording' | 'paused'>('idle');
   const [elapsed, setElapsed]       = useState(0);
   const [levels, setLevels]         = useState<number[]>(new Array(40).fill(0));
@@ -165,7 +168,7 @@ export default function AudioRecorder({ onRecordingComplete, onPartialTranscript
 
   // Send a PCM chunk for transcription + extraction (non-blocking)
   const sendChunkForProcessing = useCallback((startSample: number, endSample: number) => {
-    if (!isRealtimeModeRef.current || !frameworkId) return;
+    if (!isRealtimeModeRef.current || (!frameworkId && !templateId)) return;
 
     const pcmSlice = extractPCMSlice(pcmBufferRef.current, startSample, endSample);
     if (pcmSlice.length === 0) return;
@@ -219,7 +222,8 @@ export default function AudioRecorder({ onRecordingComplete, onPartialTranscript
             text: transcribeResult.text,
             words: transcribeResult.words,
             globalStartSec: transcribeResult.globalStartSec,
-            frameworkId,
+            frameworkId: frameworkId || undefined,
+            templateId: templateId || undefined,
             previousContext: encounterStateRef.current?.last_context,
           }),
         }).then(r2 => {
@@ -264,7 +268,7 @@ export default function AudioRecorder({ onRecordingComplete, onPartialTranscript
         showToast('Audio processing error — some clinical data may be missing');
         setProcessingChunks(n => Math.max(0, n - 1));
       });
-  }, [frameworkId, onPartialTranscript]);
+  }, [frameworkId, templateId, onPartialTranscript]);
 
   // Cleanup
   const cleanup = useCallback(() => {
@@ -329,16 +333,47 @@ export default function AudioRecorder({ onRecordingComplete, onPartialTranscript
     totalExtractionRef.current = 0;
     setProcessingChunks(0);
 
-    // Initialize EncounterState if we have a framework and real-time mode is enabled
-    const isRealtime = (process.env.NEXT_PUBLIC_TRANSCRIPTION_PROVIDER || 'groq') === 'groq' && !!frameworkId;
+    // Initialize EncounterState if we have a framework or template and real-time mode is enabled
+    const hasSelection = !!frameworkId || !!templateId;
+    const isRealtime = (process.env.NEXT_PUBLIC_TRANSCRIPTION_PROVIDER || 'groq') === 'groq' && hasSelection;
     isRealtimeModeRef.current = isRealtime;
     setIsRealtimeMode(isRealtime);
     setTranscribedChunks(0);
 
-    if (isRealtime && frameworkId) {
-      const framework = frameworks.find(f => f.id === frameworkId);
-      if (framework) {
-        encounterStateRef.current = createInitialEncounterState(framework.sections);
+    if (isRealtime) {
+      // Constraint 1: Safe initialization for both system frameworks and user templates
+      if (frameworkId) {
+        const framework = frameworks.find(f => f.id === frameworkId);
+        if (framework) {
+          encounterStateRef.current = createInitialEncounterState(framework.sections);
+        } else {
+          // Unknown frameworkId — skip real-time extraction with warning
+          console.warn('[AudioRecorder] Unknown frameworkId, disabling real-time extraction:', frameworkId);
+          isRealtimeModeRef.current = false;
+          setIsRealtimeMode(false);
+        }
+      } else if (templateId) {
+        // Template-only flow: fetch sections from API, initialize EncounterState
+        // This is an async operation — EncounterState will be initialized before first chunk
+        fetchTemplateDetail(templateId)
+          .then(tmpl => {
+            const parsed = TemplateStructureSchema.safeParse(tmpl.structureJson);
+            if (parsed.success) {
+              const sections = templateStructureToFrameworkSections(parsed.data);
+              encounterStateRef.current = createInitialEncounterState(sections);
+            } else {
+              console.warn('[AudioRecorder] Template structure invalid, disabling real-time extraction');
+              isRealtimeModeRef.current = false;
+              setIsRealtimeMode(false);
+              showToast('Template structure could not be loaded — real-time extraction disabled');
+            }
+          })
+          .catch(err => {
+            console.warn('[AudioRecorder] Failed to fetch template for EncounterState:', err);
+            isRealtimeModeRef.current = false;
+            setIsRealtimeMode(false);
+            showToast('Template could not be loaded — real-time extraction disabled');
+          });
       }
     }
 

@@ -7,7 +7,8 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
 import AudioRecorder, { SilenceStats } from '@/components/AudioRecorder';
-import FrameworkSelector from '@/components/FrameworkSelector';
+import TemplatePicker from '@/components/TemplatePicker';
+import type { TemplateSelection } from '@/components/TemplatePicker';
 import { ProviderType } from '@/lib/types';
 import { getSuggestedDomain } from '@/lib/frameworks';
 import { appLog } from '@/lib/logger';
@@ -83,6 +84,7 @@ function NewVisitContent() {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [providerType, setProviderType] = useState<ProviderType>('PT');
   const [frameworkId, setFrameworkId] = useState('');
+  const [templateId, setTemplateId] = useState('');
   const [inputMode, setInputMode] = useState<'record' | 'upload'>('record');
   const [step, setStep] = useState<'setup' | 'recording' | 'processing' | 'error'>('setup');
   const [progress, setProgress] = useState(0);
@@ -96,6 +98,7 @@ function NewVisitContent() {
   const pendingEncounterRef = useRef<EncounterState | null>(null);
   const encounterStateRef = useRef<EncounterState | null>(null);
   const [extractionWarning, setExtractionWarning] = useState('');
+  const [snapshotWarning, setSnapshotWarning] = useState('');
   const [validationWarnings, setValidationWarnings] = useState<string[]>([]);
   const [complianceInfo, setComplianceInfo] = useState<{ score: number; grade: string } | null>(null);
 
@@ -105,6 +108,10 @@ function NewVisitContent() {
     const fwParam = searchParams.get('frameworkId');
     if (fwParam && !frameworkId) {
       setFrameworkId(fwParam);
+    }
+    const tmplParam = searchParams.get('templateId');
+    if (tmplParam && !templateId) {
+      setTemplateId(tmplParam);
     }
     const pidParam = searchParams.get('patientId');
     const pnameParam = searchParams.get('patientName');
@@ -119,7 +126,7 @@ function NewVisitContent() {
 
   // Restore draft from localStorage on mount (only if no URL params override)
   useEffect(() => {
-    if (searchParams.get('frameworkId') || searchParams.get('patientId')) return; // URL params take priority
+    if (searchParams.get('frameworkId') || searchParams.get('templateId') || searchParams.get('patientId')) return; // URL params take priority
     try {
       const raw = localStorage.getItem('omniscribe-visit-draft');
       if (raw) {
@@ -128,6 +135,7 @@ function NewVisitContent() {
         if (draft.patientId) { setPatientId(draft.patientId); setPatientSearch(draft.patientName || ''); }
         if (draft.providerType) setProviderType(draft.providerType);
         if (draft.frameworkId) setFrameworkId(draft.frameworkId);
+        if (draft.templateId) setTemplateId(draft.templateId);
       }
     } catch {
       // Corrupted draft — remove it so it doesn't block future loads
@@ -140,15 +148,15 @@ function NewVisitContent() {
   useEffect(() => {
     if (step !== 'setup') return; // only save during setup phase
     const timer = setTimeout(() => {
-      if (!patientName && !frameworkId) {
+      if (!patientName && !frameworkId && !templateId) {
         localStorage.removeItem('omniscribe-visit-draft');
         return;
       }
-      const draft = { patientName, patientId, providerType, frameworkId, savedAt: Date.now() };
+      const draft = { patientName, patientId, providerType, frameworkId, templateId, savedAt: Date.now() };
       localStorage.setItem('omniscribe-visit-draft', JSON.stringify(draft));
     }, 5000);
     return () => clearTimeout(timer);
-  }, [patientName, patientId, providerType, frameworkId, step]);
+  }, [patientName, patientId, providerType, frameworkId, templateId, step]);
 
   // Debounced patient search
   const searchPatients = useCallback((query: string) => {
@@ -242,8 +250,10 @@ function NewVisitContent() {
       }
 
       // Step 2: Look up the framework domain
-      const fw = getFrameworkById(frameworkId);
+      const fw = frameworkId ? getFrameworkById(frameworkId) : null;
       const domain = fw?.domain || 'medical';
+      // For template-only visits, frameworkId='custom' is the sentinel
+      const effectiveFwId = frameworkId || 'custom';
 
       // Step 3: Create the visit
       const visitRes = await fetch('/api/visits', {
@@ -251,7 +261,8 @@ function NewVisitContent() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           patientId: pid,
-          frameworkId,
+          frameworkId: effectiveFwId,
+          templateId: templateId || undefined,
           domain,
           status: 'COMPLETE',
           transcript: visitData.transcript,
@@ -282,7 +293,7 @@ function NewVisitContent() {
     }
   };
 
-  const canGenerate = patientName.trim() !== '' && frameworkId !== '';
+  const canGenerate = patientName.trim() !== '' && (frameworkId !== '' || templateId !== '');
 
   // Callback for live transcript updates during recording
   const handlePartialTranscript = useCallback((transcript: string, wordCount: number, state: EncounterState) => {
@@ -315,7 +326,8 @@ function NewVisitContent() {
       const noteTimeout = setTimeout(() => controller.abort(), 300000);
       const noteData = await fetchNoteSSE(
         {
-          frameworkId,
+          frameworkId: frameworkId || undefined,
+          templateId: templateId || undefined,
           useMock: false,
           mode: 'encounter-state',
           encounterState,
@@ -338,6 +350,13 @@ function NewVisitContent() {
 
       if (!noteData.success) {
         throw new Error(String(noteData.error || 'Note generation failed'));
+      }
+
+      // Check snapshot persistence (Constraint 2: separate state)
+      if (noteData.snapshotPersisted === false) {
+        setSnapshotWarning(
+          `Template snapshot could not be saved: ${noteData.snapshotError || 'unknown error'}. The note was generated successfully.`
+        );
       }
 
       advanceStep(3, steps);
@@ -367,7 +386,8 @@ function NewVisitContent() {
         id: visitId,
         patientName,
         providerType,
-        frameworkId,
+        frameworkId: frameworkId || 'custom',
+        templateId: templateId || undefined,
         transcript: formattedTranscript,
         transcriptSource: 'groq-realtime',
         transcriptDuration,
@@ -410,7 +430,7 @@ function NewVisitContent() {
 
       setProgress(100);
       setProgressText('Done!');
-      saveRecentFramework(frameworkId);
+      if (frameworkId) saveRecentFramework(frameworkId);
       localStorage.removeItem('omniscribe-visit-draft');
 
       await new Promise(r => setTimeout(r, 500));
@@ -483,7 +503,7 @@ function NewVisitContent() {
       // Step 2: Generate note (SSE streaming to keep connection alive)
       const noteTimeout = setTimeout(() => controller.abort(), 600000); // 10 min — complex frameworks need time
       const noteData = await fetchNoteSSE(
-        { transcript: transcribeData.transcript, frameworkId, useMock: false },
+        { transcript: transcribeData.transcript, frameworkId: frameworkId || undefined, templateId: templateId || undefined, useMock: false },
         (pass, total, message) => {
           const pct = 40 + Math.round((pass / total) * 40);
           setProgress(pct);
@@ -502,6 +522,13 @@ function NewVisitContent() {
         throw new Error(String(noteData.error || 'Note generation failed'));
       }
 
+      // Check snapshot persistence (Constraint 2: separate state)
+      if (noteData.snapshotPersisted === false) {
+        setSnapshotWarning(
+          `Template snapshot could not be saved: ${noteData.snapshotError || 'unknown error'}. The note was generated successfully.`
+        );
+      }
+
       advanceStep(3, steps);
       setProgress(80);
       setProgressText('Finalizing clinical note...');
@@ -512,7 +539,8 @@ function NewVisitContent() {
         id: visitId,
         patientName,
         providerType,
-        frameworkId,
+        frameworkId: frameworkId || 'custom',
+        templateId: templateId || undefined,
         transcript: transcribeData.transcript,
         transcriptSource: transcribeData.source,
         transcriptDuration: transcribeData.duration,
@@ -552,7 +580,7 @@ function NewVisitContent() {
 
       setProgress(100);
       setProgressText('Done!');
-      saveRecentFramework(frameworkId);
+      if (frameworkId) saveRecentFramework(frameworkId);
       localStorage.removeItem('omniscribe-visit-draft');
 
       await new Promise(r => setTimeout(r, 500));
@@ -567,7 +595,8 @@ function NewVisitContent() {
             id: draftId,
             patientName,
             providerType,
-            frameworkId,
+            frameworkId: frameworkId || 'custom',
+            templateId: templateId || undefined,
             transcript: partialTranscriptRef.current,
             transcriptSource: 'groq-whisper',
             status: 'draft',
@@ -600,8 +629,8 @@ function NewVisitContent() {
       appLog('info', 'NewVisit', 'Silence stripped', { silenceStrippedSec: silenceStats.silenceStrippedSec, originalDurationSec: silenceStats.originalDurationSec });
     }
 
-    // If patient name or framework not yet set, hold the recording and wait
-    if (!patientName.trim() || !frameworkId) {
+    // If patient name or framework/template not yet set, hold the recording and wait
+    if (!patientName.trim() || (!frameworkId && !templateId)) {
       setRecordingReady(true);
       return;
     }
@@ -701,6 +730,13 @@ function NewVisitContent() {
               {extractionWarning && (
                 <div className="mb-4 px-4 py-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-700">
                   {extractionWarning}
+                </div>
+              )}
+
+              {/* Snapshot warning banner (Constraint 2: separate from extraction warnings) */}
+              {snapshotWarning && (
+                <div className="mb-4 px-4 py-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-700">
+                  <span className="font-medium">Snapshot Warning:</span> {snapshotWarning}
                 </div>
               )}
 
@@ -882,10 +918,23 @@ function NewVisitContent() {
                 </div>
               </div>
 
-              {/* Framework */}
+              {/* Framework / Template Selection */}
               <div className="bg-white rounded-2xl border border-gray-200 p-6">
-                <h2 className="font-semibold text-gray-900 mb-4">Documentation Framework</h2>
-                <FrameworkSelector onSelect={setFrameworkId} selectedId={frameworkId} suggestedDomain={getSuggestedDomain(providerType)} />
+                <h2 className="font-semibold text-gray-900 mb-4">Documentation Template</h2>
+                <TemplatePicker
+                  onSelect={(sel: TemplateSelection) => {
+                    if (sel.type === 'system') {
+                      setFrameworkId(sel.frameworkId);
+                      setTemplateId('');
+                    } else {
+                      setTemplateId(sel.templateId);
+                      setFrameworkId('');
+                    }
+                  }}
+                  selectedFrameworkId={frameworkId}
+                  selectedTemplateId={templateId}
+                  suggestedDomain={getSuggestedDomain(providerType)}
+                />
               </div>
 
               {/* Input Mode Toggle */}
@@ -914,7 +963,7 @@ function NewVisitContent() {
 
                 {!canGenerate && (
                   <div className="text-center text-sm text-gray-400 mb-4">
-                    You can start recording now — fill in patient name and framework before or during recording
+                    You can start recording now — fill in patient name and template before or during recording
                   </div>
                 )}
 
@@ -924,6 +973,7 @@ function NewVisitContent() {
                       onRecordingComplete={handleRecordingComplete}
                       onPartialTranscript={handlePartialTranscript}
                       frameworkId={frameworkId}
+                      templateId={templateId}
                     />
                     {/* Live transcript panel */}
                     {liveTranscript && (
@@ -954,7 +1004,7 @@ function NewVisitContent() {
                           </button>
                         ) : (
                           <p className="text-xs text-gray-500">
-                            Fill in {!patientName.trim() ? 'patient name' : ''}{!patientName.trim() && !frameworkId ? ' and ' : ''}{!frameworkId ? 'framework' : ''} above, then generate your note.
+                            Fill in {!patientName.trim() ? 'patient name' : ''}{!patientName.trim() && !frameworkId && !templateId ? ' and ' : ''}{!frameworkId && !templateId ? 'template' : ''} above, then generate your note.
                           </p>
                         )}
                       </div>

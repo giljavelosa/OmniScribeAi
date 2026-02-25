@@ -77,6 +77,7 @@ interface VisitData {
   patientName: string;
   providerType: string;
   frameworkId: string;
+  templateId?: string;
   transcript: string;
   transcriptSource: string;
   transcriptDuration: number;
@@ -135,6 +136,7 @@ export default function VisitDetailPage() {
   const [scanResult, setScanResult] = useState<ScanResult | null>(null);
   const [regenerating, setRegenerating] = useState(false);
   const [lastRegenTime, setLastRegenTime] = useState<string | null>(null);
+  const [regenWarning, setRegenWarning] = useState('');
   const [amendModalOpen, setAmendModalOpen] = useState(false);
   const [amendReason, setAmendReason] = useState('');
   const [amendingSections, setAmendingSections] = useState<Record<string, string>>({});
@@ -157,6 +159,7 @@ export default function VisitDetailPage() {
             patientName: [visit.patient?.firstName, visit.patient?.lastName].filter(Boolean).join(' ') || visit.patient?.identifier || 'Unknown',
             providerType: visit.user?.clinicianType || '',
             frameworkId: visit.frameworkId,
+            templateId: visit.templateId || undefined,
             transcript: visit.transcript || '',
             transcriptSource: visit.transcriptSource || '',
             transcriptDuration: visit.duration || 0,
@@ -434,6 +437,8 @@ ${compLine}
           parsedData: updatedParsedData,
           clinicalSynthesis: visitData.clinicalSynthesis || {},
           frameworkId: visitData.frameworkId || '',
+          templateId: visitData.templateId || undefined,
+          visitId,
         }),
       });
 
@@ -443,6 +448,12 @@ ${compLine}
       }
 
       const data = await res.json();
+      // Snapshot warning (Constraint 2: separate regenWarning state)
+      if (data.snapshotPersisted === false) {
+        setRegenWarning(`Template snapshot could not be saved: ${data.snapshotError || 'unknown error'}. The note was regenerated successfully.`);
+      } else {
+        setRegenWarning('');
+      }
       if (data.success && data.clinicalNote) {
         const updatedVisit = {
           ...visitData,
@@ -944,6 +955,13 @@ ${compLine}
                       </div>
                     )}
 
+                    {/* Snapshot warning banner (Constraint 2: separate from other warnings) */}
+                    {regenWarning && (
+                      <div className="px-4 py-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-700">
+                        <span className="font-medium">Snapshot Warning:</span> {regenWarning}
+                      </div>
+                    )}
+
                     {/* Scan Result Card */}
                     {scanResult && (
                       <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mt-3">
@@ -1017,9 +1035,17 @@ ${compLine}
                             parsedData: visitData.parsedData || visitData.note,
                             clinicalSynthesis: synthesis,
                             frameworkId: visitData.frameworkId,
+                            templateId: visitData.templateId || undefined,
+                            visitId,
                           }),
                         });
                         const data = await res.json();
+                        // Snapshot warning (Constraint 2: separate regenWarning state)
+                        if (data.snapshotPersisted === false) {
+                          setRegenWarning(`Template snapshot could not be saved: ${data.snapshotError || 'unknown error'}. The note was regenerated successfully.`);
+                        } else {
+                          setRegenWarning('');
+                        }
                         if (data.success && data.clinicalNote) {
                           const updatedVisit = { ...visitData, clinicalNote: data.clinicalNote, clinicalSynthesis: synthesis };
                           setVisitData(updatedVisit);
