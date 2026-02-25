@@ -915,5 +915,33 @@ Each item follows the same workflow as FIX-1 through FIX-17:
 
 ---
 
+## FIX-32: Login page hangs after entering credentials ✅
+**Date:** 2026-02-25
+**Files changed:**
+- `app/src/app/login/page.tsx` (MODIFIED — first time ever; never modified by any previous FIX)
+
+**Root cause:**
+Two browser-side bugs in the login form:
+1. **No try-catch around `signIn()`** — if `signIn()` from `next-auth/react` throws (network error, JSON parse failure, CSRF mismatch), the exception is unhandled, `setLoading(false)` never runs, and the UI stays on "Signing in..." forever
+2. **`router.push(callbackUrl)` after login** — `router.push` does a soft client-side navigation. The `SessionProvider` still has the old (null) session cached from before login. The soft navigation can fail to pick up the new session cookie, causing the middleware to redirect back to `/login`. Meanwhile `setLoading(false)` was never called in the success path, so the spinner persists
+
+**Server-side was fine:** Confirmed via curl tests — `POST /api/auth/callback/credentials` with `X-Auth-Return-Redirect: 1` returns 200 JSON `{"url":"..."}` with valid session cookie. `GET /dashboard` with session cookie returns 200. Issue was purely client-side.
+
+**What it does:**
+- Wrapped `signIn()` call in try-catch — catch block shows "Login failed. Please try again." and stops the spinner
+- Replaced `router.push(callbackUrl)` with `window.location.href = callbackUrl` — full page reload ensures the browser sends the fresh session cookie and `SessionProvider` re-initializes with the authenticated session
+- Removed unused `useRouter` import (no longer needed)
+
+**Previous fixes in same files:** None — `login/page.tsx` was never modified by any previous fix (verified against all FIX-1 through FIX-31 and UX-1 through UX-10 entries)
+
+**What could break:**
+- `window.location.href` causes a full page reload instead of soft navigation — slightly slower transition but more reliable. Acceptable tradeoff for a login redirect.
+- If `signIn()` throws for a legitimate auth reason (e.g., wrong password), the generic "Login failed" message shows instead of "Invalid email or password". However, normal wrong-password returns `result.error`, not a throw — throws only happen for unexpected failures.
+
+**Build:** ✅ `npm run build` passes
+**Tests:** ✅ 71/71 pass
+
+---
+
 ## Remaining Items (not yet implemented)
 - **Infrastructure**: Configure staging/dev droplets

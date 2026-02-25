@@ -2,10 +2,9 @@
 
 import { Suspense, useState } from "react";
 import { signIn } from "next-auth/react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 
 function LoginForm() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   // Validate callbackUrl — only allow relative paths (prevent open redirect)
   const rawCallback = searchParams.get("callbackUrl") || "/dashboard";
@@ -21,17 +20,25 @@ function LoginForm() {
     setError("");
     setLoading(true);
 
-    const result = await signIn("credentials", {
-      email,
-      password,
-      redirect: false,
-    });
+    try {
+      const result = await signIn("credentials", {
+        email,
+        password,
+        redirect: false,
+      });
 
-    if (result?.error) {
-      setError("Invalid email or password");
+      if (result?.error) {
+        setError("Invalid email or password");
+        setLoading(false);
+      } else {
+        // Full page reload ensures the browser sends the fresh session cookie
+        // and SessionProvider re-initializes with the authenticated session.
+        // router.push() does soft navigation which can miss the new cookie.
+        window.location.href = callbackUrl;
+      }
+    } catch {
+      setError("Login failed. Please try again.");
       setLoading(false);
-    } else {
-      router.push(callbackUrl);
     }
   };
 
