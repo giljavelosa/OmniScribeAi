@@ -27,8 +27,10 @@ interface ApiVisit {
   duration: number | null;
   status: string;
   patient: {
-    firstName: string;
-    lastName: string;
+    id: string;
+    identifier: string;
+    firstName: string | null;
+    lastName: string | null;
   };
 }
 
@@ -212,7 +214,7 @@ export default function DashboardPage() {
                   const fw = frameworks.find(f => f.id === visit.frameworkId);
                   const domainLabel = getDomainLabel(visit.domain);
                   const domainColor = getDomainColor(visit.domain);
-                  const patientName = `${visit.patient.firstName} ${visit.patient.lastName}`;
+                  const patientName = [visit.patient.firstName, visit.patient.lastName].filter(Boolean).join(' ') || visit.patient.identifier || 'Unknown';
                   const dateStr = new Date(visit.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
                   return (
                     <Link

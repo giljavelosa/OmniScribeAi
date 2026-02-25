@@ -1465,5 +1465,27 @@ The codebase passed `npm run build` and 71/71 tests but had 14 paths where runti
 
 ---
 
+## FIX-51: Dashboard shows "null null" for patient names ✅ RESOLVED
+**Date:** 2026-02-24
+**Files changed:**
+- `app/src/app/dashboard/page.tsx` (MODIFIED) — Fix patient name display + update ApiVisit type
+
+**What it does:**
+- Replaced unsafe template literal `` `${visit.patient.firstName} ${visit.patient.lastName}` `` (line 215) with null-safe pattern: `[firstName, lastName].filter(Boolean).join(' ') || identifier || 'Unknown'`
+- Updated `ApiVisit.patient` interface to include `id` and `identifier` fields, and type `firstName`/`lastName` as `string | null` to match actual API response
+
+**Root cause:**
+- JavaScript template literals convert `null` to the string `"null"`, producing `"null null"` when both firstName and lastName are null in the database
+- The `ApiVisit` interface typed firstName/lastName as `string` (non-nullable), hiding the issue from TypeScript
+
+**Previous fixes in same file:**
+- FIX-20 (real visits) — untouched
+- UX-1 (recent frameworks) — untouched
+
+**Build:** ✅ `npm run build` passes
+**Tests:** ✅ 71/71 pass
+
+---
+
 ## Remaining Items (not yet implemented)
 - **Infrastructure**: Configure staging/dev droplets
