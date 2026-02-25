@@ -1522,5 +1522,29 @@ The codebase passed `npm run build` and 71/71 tests but had 14 paths where runti
 
 ---
 
+## PHASE-2D: Template Preview Polish ✅ RESOLVED
+**Date:** 2026-02-25
+**Branch:** feat/template-ui-phase2d-template-preview-polish
+**Files changed:**
+- `app/src/app/templates/page.tsx` (MODIFIED) — Skeleton loading cards, dismissible error banner, results count, "Private" badge, source framework badge, relative dates, clear-filters CTA on empty search, focus-visible rings, aria-labels on tabs/filters/buttons, standardized CTA wording ("Preview" vs "View")
+- `app/src/app/templates/new/page.tsx` (MODIFIED) — Search input for framework picker, framework count, section count on cards, "Templates" breadcrumb link, focus-visible rings, dismissible error banner, empty-search state
+- `app/src/app/templates/[id]/page.tsx` (MODIFIED) — Skeleton loading, source framework badge, version/date metadata line, "Private"/"Organization" visibility badges, dismissible error, archive icon+text, clone button icon, focus-visible rings, disabled Save tooltip
+- `app/src/components/template-builder/TemplatePreview.tsx` (MODIFIED) — Item count per section, total items/sections stats header, format badge, better empty state with icon+hint, empty section text
+- `app/src/components/ConfirmDialog.tsx` (MODIFIED) — role="dialog" + aria-modal + aria-labelledby/describedby, focus trap (Tab cycling), focus-visible rings on buttons
+- `app/src/components/TemplateBuilder.tsx` (MODIFIED) — focus-visible + aria-label on Add Section button, max-30 hint
+- `app/src/components/template-builder/SectionEditor.tsx` (MODIFIED) — focus-visible rings on all interactive controls (collapse, move, delete, add item), aria-label on Add Item
+- `app/src/components/template-builder/ItemEditor.tsx` (MODIFIED) — focus-visible rings on move/delete buttons
+
+**What it does:**
+- Improves visual hierarchy: skeleton loaders replace bare spinners, source framework provenance shown, dates/version visible
+- Improves discoverability: results count, clear-filters CTA, Private/Org badges, standardized "Preview"/"Edit" CTA wording
+- Improves accessibility: role/aria attributes on dialog, focus-visible rings on all interactive elements, aria-labels, dismissible error banners
+- No schema, API, or behavioral changes
+
+**Build:** ✅ `npm run build` passes
+**Tests:** ✅ 129/129 pass
+
+---
+
 ## Remaining Items (not yet implemented)
 - **Infrastructure**: Configure staging/dev droplets

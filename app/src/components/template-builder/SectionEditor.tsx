@@ -96,7 +96,7 @@ export default function SectionEditor({
         <button
           type="button"
           onClick={() => setCollapsed(!collapsed)}
-          className="p-1 text-gray-500 hover:text-gray-700"
+          className="p-1 text-gray-500 hover:text-gray-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0d9488]/50 rounded"
           title={collapsed ? 'Expand section' : 'Collapse section'}
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
@@ -148,7 +148,7 @@ export default function SectionEditor({
             onClick={onMoveUp}
             disabled={index === 0}
             title="Move section up"
-            className="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-30 disabled:cursor-not-allowed"
+            className="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-30 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0d9488]/50 rounded"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 15l-6-6-6 6" /></svg>
           </button>
@@ -157,7 +157,7 @@ export default function SectionEditor({
             onClick={onMoveDown}
             disabled={index === totalSections - 1}
             title="Move section down"
-            className="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-30 disabled:cursor-not-allowed"
+            className="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-30 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0d9488]/50 rounded"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9l6 6 6-6" /></svg>
           </button>
@@ -165,7 +165,7 @@ export default function SectionEditor({
             type="button"
             onClick={onDelete}
             title="Delete section"
-            className="p-1 text-gray-400 hover:text-red-500 transition-colors"
+            className="p-1 text-gray-400 hover:text-red-500 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400/50 rounded"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6L6 18M6 6l12 12" /></svg>
           </button>
@@ -210,7 +210,8 @@ export default function SectionEditor({
           <button
             type="button"
             onClick={addItem}
-            className="w-full py-2 border-2 border-dashed border-gray-300 rounded-lg text-sm text-gray-500 hover:border-[#0d9488] hover:text-[#0d9488] transition-colors"
+            aria-label={`Add item to ${section.label}`}
+            className="w-full py-2 border-2 border-dashed border-gray-300 rounded-lg text-sm text-gray-500 hover:border-[#0d9488] hover:text-[#0d9488] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0d9488]/50 focus-visible:border-[#0d9488]"
           >
             + Add Item
           </button>

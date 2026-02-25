@@ -151,9 +151,10 @@ export default function TemplateBuilder({ structure, onChange, errors: externalE
         type="button"
         onClick={addSection}
         disabled={structure.sections.length >= 30}
-        className="w-full py-3 border-2 border-dashed border-gray-300 rounded-xl text-sm font-medium text-gray-500 hover:border-[#0d9488] hover:text-[#0d9488] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        aria-label="Add a new section"
+        className="w-full py-3 border-2 border-dashed border-gray-300 rounded-xl text-sm font-medium text-gray-500 hover:border-[#0d9488] hover:text-[#0d9488] transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0d9488]/50 focus-visible:border-[#0d9488]"
       >
-        + Add Section
+        + Add Section {structure.sections.length >= 30 && '(max 30)'}
       </button>
     </div>
   );
