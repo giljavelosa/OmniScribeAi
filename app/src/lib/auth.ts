@@ -17,16 +17,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       },
       async authorize(credentials) {
         try {
-          console.log("[AUTH] authorize called, has email:", !!credentials?.email, "has password:", !!credentials?.password);
           if (!credentials?.email || !credentials?.password) return null;
 
           const user = await prisma.user.findUnique({
             where: { email: credentials.email as string },
           });
-          console.log("[AUTH] user found:", !!user, "isActive:", user?.isActive);
-          console.log("[AUTH] hash prefix:", user?.passwordHash?.substring(0, 10), "hash length:", user?.passwordHash?.length);
-          const pw = credentials.password as string;
-          console.log("[AUTH] password length:", pw?.length, "chars:", JSON.stringify([...pw].map(c => c.charCodeAt(0))));
 
           if (!user || !user.isActive) return null;
 
@@ -34,7 +29,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             credentials.password as string,
             user.passwordHash
           );
-          console.log("[AUTH] bcrypt valid:", valid);
           if (!valid) return null;
 
           await prisma.user.update({
@@ -42,7 +36,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             data: { lastLoginAt: new Date() },
           });
 
-          console.log("[AUTH] returning user object, role:", user.role);
           return {
             id: user.id,
             email: user.email,
