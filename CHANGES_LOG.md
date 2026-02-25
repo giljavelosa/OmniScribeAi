@@ -1038,5 +1038,44 @@ Rewrites the Pass 1 note generation system prompt to produce notes that read lik
 
 ---
 
+## FIX-36: Add differential diagnosis, medical assessment, and clinical reasoning to notes ✅
+**Date:** 2026-02-25
+**Files changed:**
+- `app/src/app/api/generate-note/route.ts` (MODIFIED) — Pass 1 system prompt rules 6, 7, and Assessment style bullet refined
+
+**What it does:**
+Enhances the Assessment/Medical Assessment section to include factual differential diagnosis, structured clinical reasoning, and evidence-based medical assessment — all strictly from parsed and collected data only. Changes:
+
+- **CLINICAL WRITING STYLE bullet (Assessment)**: Expanded from "demonstrate clinical reasoning between the lines" to explicit instructions for differential diagnosis with most likely dx first, plausible differentials with supporting/refuting evidence from documented findings, and "never fabricate differentials" guard
+- **Rule 6 (Assessment)**: Rewritten from a single sentence to 5 sub-rules (6a–6e):
+  - 6a: **Clinical Reasoning** — synthesize subjective + objective into cohesive picture, explain HOW findings relate (with example)
+  - 6b: **Differential Diagnosis** — most likely dx first, then plausible differentials with specific documented findings for/against each (with example)
+  - 6c: **Severity & Functional Impact** — quantify using documented measurements, relate impairments to functional limitations
+  - 6d: **Prognostic Indicators** — chronicity, aggravating/alleviating factors, prior treatment response, patient goals
+  - 6e: **Guard rail** — ALL reasoning must trace directly to EncounterState JSON facts
+- **Rule 7 (Plan)**: Enhanced to reference assessment findings that justify each intervention (with example)
+
+**Anti-hallucination guard reinforced:**
+- Rule 6e: "never introduce diagnoses or clinical patterns that aren't supported by the documented data"
+- Rule 10 (unchanged): "clinical terminology upgrades are expected, fabricated findings are not"
+- CLINICAL WRITING STYLE: "never fabricate differentials"
+
+**Previous fixes in same file and how they're preserved:**
+- **FIX-2** (prompt sanitizer): Untouched — sanitizeForPrompt/sanitizeSectionTitle still used in prompt construction
+- **FIX-3** (audit error handling): Untouched — try-catch blocks and auditFailed flag preserved
+- **FIX-12** (JSON parse validation): Untouched — parseJsonArray and stripFences unchanged
+- **FIX-19** (demographics): Untouched — extraction schema + rule #2 identification line unchanged
+- **FIX-35** (clinical quality): Rules 1–5, 8–12 preserved. Rules 6–7 refined (same intent, more detailed). CLINICAL WRITING STYLE section preserved except Assessment bullet expanded.
+
+**What could break:**
+- Assessment sections will be significantly longer and more detailed — includes differential diagnosis, severity quantification, and prognostic indicators. This is intentional.
+- Token usage for Pass 1 may increase slightly due to longer output — within the existing 8000 max_tokens limit.
+- If documented data is sparse, the AI should produce a shorter assessment with fewer differentials rather than fabricating — enforced by rules 6e, 10, and 11.
+
+**Build:** ✅ `npm run build` passes
+**Tests:** ✅ 71/71 pass
+
+---
+
 ## Remaining Items (not yet implemented)
 - **Infrastructure**: Configure staging/dev droplets

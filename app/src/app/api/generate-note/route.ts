@@ -347,7 +347,7 @@ CLINICAL WRITING STYLE:
 - Chief complaint and patient-reported symptoms: quote the patient's own words verbatim in quotation marks, then follow with your clinical interpretation. Example: Patient c/o "my knee has been giving out on me when I go down stairs" consistent with quadriceps weakness and patellar instability.
 - Denials: use standard clinical phrasing — "Denies radiating symptoms," "No c/o paresthesia," "Negative for suicidal ideation"
 - Present tense for current exam findings, past tense for history
-- Assessment should demonstrate clinical reasoning between the lines — connect objective findings to functional limitations, note severity implications, reference relevant clinical patterns without fabricating
+- Assessment must demonstrate clinical reasoning — connect objective findings to functional limitations, note severity implications, and reference relevant clinical patterns. Include factual differential diagnosis derived from documented signs, symptoms, and test results. State the most likely diagnosis first, then list plausible differentials that the documented findings support or rule out. All reasoning must trace back to data present in the EncounterState JSON — never fabricate differentials
 
 WRITE THE NOTE:
 1. Include ALL facts present in the JSON — translate to proper clinical terminology
@@ -355,8 +355,13 @@ WRITE THE NOTE:
 3. For items with source "patient_denies": write using standard clinical denial phrasing as described above
 4. OMIT items and entire sections that have NO documented facts in the JSON — do NOT render blanks, placeholders, or "___" for undocumented items
 5. Only include a section if it has at least one documented fact
-6. Assessment: synthesize findings with clinical reasoning — connect impairments to functional deficits, note severity, prognostic indicators, and clinical patterns. Do not simply restate findings.
-7. Plan: write concrete, specific treatment items linked to documented deficits with clinical rationale implied. Use frequency/duration/intensity parameters where applicable.
+6. Assessment / Medical Assessment: This is the most critical section. Do NOT simply restate findings. Instead:
+   a. **Clinical Reasoning**: Synthesize subjective complaints and objective findings into a cohesive clinical picture. Explain HOW the findings relate to each other (e.g., "Limited shoulder flexion ROM to 120° with pain at end-range, combined with positive Neer's and Hawkins-Kennedy tests, is consistent with subacromial impingement syndrome").
+   b. **Differential Diagnosis**: Based STRICTLY on the documented signs, symptoms, history, and test results in the JSON, list the most likely diagnosis first, then plausible differentials. For each differential, cite the specific documented findings that support or argue against it. Example: "Primary impression: Lateral epicondylalgia, supported by TTP over lateral epicondyle and pain with resisted wrist extension. Differential considerations include radial tunnel syndrome (less likely given absence of supinator tenderness) and C6 radiculopathy (less likely given intact dermatome sensation and negative Spurling's)."
+   c. **Severity & Functional Impact**: Quantify severity using documented measurements. Relate impairments to functional limitations (e.g., "Grip strength deficit of 40% compared to contralateral side limits patient's ability to perform occupational tasks requiring sustained grip").
+   d. **Prognostic Indicators**: Note factors from the documented data that inform prognosis (chronicity, aggravating/alleviating factors, prior treatment response, patient goals).
+   e. ALL reasoning must trace directly to facts in the EncounterState JSON — never introduce diagnoses or clinical patterns that aren't supported by the documented data.
+7. Plan: write concrete, specific treatment items linked to documented deficits with clinical rationale implied. Reference the assessment findings that justify each intervention. Use frequency/duration/intensity parameters where applicable (e.g., "Therapeutic exercise for rotator cuff strengthening, 3x/week x 6 weeks, to address documented supraspinatus weakness").
 8. Use professional third-person clinical voice — concise sentences, no filler
 9. Include tables for objective measurements (ROM, MMT, vitals, goniometric data) where applicable
 10. NEVER add clinical data not present in the EncounterState JSON — clinical terminology upgrades are expected, fabricated findings are not
