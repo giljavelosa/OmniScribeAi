@@ -9,7 +9,7 @@ import TemplateMetadataForm, { type TemplateMetadata } from '@/components/templa
 import TemplateBuilder from '@/components/TemplateBuilder';
 import TemplatePreview from '@/components/template-builder/TemplatePreview';
 import { fetchTemplate, updateTemplate, cloneTemplate } from '@/lib/template-client';
-import { getDomainLabel, getDomainColor } from '@/lib/frameworks';
+import { getDomainLabel, getDomainColor, getFrameworkById } from '@/lib/frameworks';
 import {
   TemplateStructureSchema,
   validateTemplateStructure,
@@ -18,6 +18,11 @@ import {
   type Discipline,
 } from '@/lib/template-schema';
 import type { NoteTemplateDetail } from '@/lib/types';
+
+function formatDate(dateStr: string | null): string {
+  if (!dateStr) return '';
+  return new Date(dateStr).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+}
 
 export default function TemplateDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -105,7 +110,8 @@ export default function TemplateDetailPage({ params }: { params: Promise<{ id: s
   }, [dirty]);
 
   const isSystem = template?.sourceType === 'system';
-  const isOwned = !isSystem; // user templates are always editable by owner (authz enforced server-side)
+  const isOwned = !isSystem;
+  const sourceFramework = template?.sourceFrameworkId ? getFrameworkById(template.sourceFrameworkId) : null;
 
   const handleMetadataChange = (newMeta: TemplateMetadata) => {
     setMetadata(newMeta);
@@ -124,13 +130,11 @@ export default function TemplateDetailPage({ params }: { params: Promise<{ id: s
   const handleSave = async () => {
     if (!structure) return;
 
-    // Validate name
     if (!metadata.name.trim()) {
       setError('Name is required');
       return;
     }
 
-    // Validate structure
     const validation = validateTemplateStructure(structure);
     if (!validation.valid) {
       setError(`Validation failed: ${validation.errors.join('; ')}`);
@@ -182,23 +186,35 @@ export default function TemplateDetailPage({ params }: { params: Promise<{ id: s
           {/* Back link */}
           <Link
             href="/templates"
-            className="text-sm text-gray-500 hover:text-gray-700 mb-4 inline-flex items-center gap-1"
+            className="text-sm text-gray-500 hover:text-gray-700 mb-4 inline-flex items-center gap-1 focus-visible:outline-none focus-visible:text-[#0d9488] rounded"
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6" /></svg>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6" /></svg>
             Back to Templates
           </Link>
 
-          {/* Loading */}
+          {/* Loading — skeleton */}
           {loading && (
-            <div className="flex items-center justify-center py-16 gap-2">
-              <div className="animate-spin rounded-full h-5 w-5 border-2 border-[#0d9488] border-t-transparent" />
-              <span className="text-sm text-gray-500">Loading template...</span>
+            <div className="mt-4 animate-pulse" aria-busy="true" aria-label="Loading template">
+              <div className="flex gap-2 mb-3">
+                <div className="h-4 w-20 bg-gray-200 rounded-full" />
+                <div className="h-4 w-12 bg-gray-100 rounded-full" />
+              </div>
+              <div className="h-6 w-2/3 bg-gray-200 rounded mb-2" />
+              <div className="h-4 w-full bg-gray-100 rounded mb-6" />
+              <div className="bg-white rounded-xl border border-gray-200 p-5">
+                <div className="h-4 w-1/3 bg-gray-200 rounded mb-4" />
+                <div className="space-y-3">
+                  {[1, 2, 3].map((n) => (
+                    <div key={n} className="h-12 bg-gray-100 rounded-lg" />
+                  ))}
+                </div>
+              </div>
             </div>
           )}
 
           {/* Error (no template loaded) */}
           {!loading && error && !template && (
-            <div className="px-4 py-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+            <div className="mt-4 px-4 py-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700" role="alert">
               {error}
             </div>
           )}
@@ -207,9 +223,10 @@ export default function TemplateDetailPage({ params }: { params: Promise<{ id: s
           {!loading && template && (
             <>
               {/* Page header */}
-              <div className="flex items-start justify-between mb-6 mt-2">
-                <div>
-                  <div className="flex items-center gap-2 mb-1">
+              <div className="flex items-start justify-between mb-6 mt-2 gap-4">
+                <div className="min-w-0">
+                  {/* Badges row */}
+                  <div className="flex items-center gap-1.5 mb-1.5 flex-wrap">
                     <span
                       className="text-[10px] font-bold px-2 py-0.5 rounded-full text-white"
                       style={{ backgroundColor: getDomainColor(template.domain) }}
@@ -224,35 +241,69 @@ export default function TemplateDetailPage({ params }: { params: Promise<{ id: s
                         System
                       </span>
                     )}
+                    {!isSystem && template.visibility === 'private' && (
+                      <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-gray-50 text-gray-500">
+                        Private
+                      </span>
+                    )}
+                    {!isSystem && template.visibility === 'organization' && (
+                      <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-purple-50 text-purple-600">
+                        Organization
+                      </span>
+                    )}
                     {template.isArchived && (
                       <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-yellow-50 text-yellow-700">
                         Archived
                       </span>
                     )}
                   </div>
-                  <h1 className="text-xl font-bold text-gray-900">{template.name}</h1>
+
+                  <h1 className="text-xl font-bold text-gray-900 leading-tight">{template.name}</h1>
                   {template.description && (
-                    <p className="text-sm text-gray-500 mt-1">{template.description}</p>
+                    <p className="text-sm text-gray-500 mt-1 leading-relaxed">{template.description}</p>
                   )}
+
+                  {/* Metadata line: source framework, version, dates */}
+                  <div className="flex items-center gap-3 mt-2 text-xs text-gray-400 flex-wrap">
+                    {sourceFramework && (
+                      <span className="flex items-center gap-1" title={`Cloned from ${sourceFramework.name}`}>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                          <rect x="9" y="9" width="13" height="13" rx="2" ry="2" /><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
+                        </svg>
+                        Based on {sourceFramework.name}
+                      </span>
+                    )}
+                    {!isSystem && <span>Version {template.version}</span>}
+                    {template.itemCount > 0 && <span>{template.itemCount} items</span>}
+                    {template.updatedAt && (
+                      <span title={new Date(template.updatedAt).toLocaleString()}>
+                        Updated {formatDate(template.updatedAt)}
+                      </span>
+                    )}
+                  </div>
                 </div>
 
-                {/* Dirty indicator + Clone button */}
-                <div className="flex items-center gap-2">
+                {/* Status indicators + Clone button */}
+                <div className="flex items-center gap-2 flex-shrink-0">
                   {dirty && (
-                    <span className="text-xs text-yellow-600 bg-yellow-50 px-2 py-1 rounded-lg font-medium">
+                    <span className="text-xs text-yellow-600 bg-yellow-50 px-2.5 py-1 rounded-lg font-medium border border-yellow-200" role="status">
                       Unsaved changes
                     </span>
                   )}
                   {saveSuccess && (
-                    <span className="text-xs text-green-600 bg-green-50 px-2 py-1 rounded-lg font-medium">
+                    <span className="text-xs text-green-600 bg-green-50 px-2.5 py-1 rounded-lg font-medium border border-green-200" role="status">
                       Saved
                     </span>
                   )}
                   {isSystem && (
                     <button
                       onClick={handleClone}
-                      className="bg-[#0d9488] hover:bg-[#0f766e] text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                      title="Create an editable copy of this system template"
+                      className="bg-[#0d9488] hover:bg-[#0f766e] text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0d9488] focus-visible:ring-offset-2"
                     >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2" /><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
+                      </svg>
                       Clone to My Templates
                     </button>
                   )}
@@ -261,8 +312,11 @@ export default function TemplateDetailPage({ params }: { params: Promise<{ id: s
 
               {/* Error banner (inline) */}
               {error && (
-                <div className="mb-4 px-4 py-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
-                  {error}
+                <div className="mb-4 px-4 py-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700 flex items-center justify-between" role="alert">
+                  <span>{error}</span>
+                  <button onClick={() => setError('')} className="ml-3 text-red-400 hover:text-red-600 flex-shrink-0" aria-label="Dismiss error">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12" /></svg>
+                  </button>
                 </div>
               )}
 
@@ -299,7 +353,8 @@ export default function TemplateDetailPage({ params }: { params: Promise<{ id: s
                     <button
                       onClick={handleSave}
                       disabled={saving || !dirty}
-                      className="bg-[#0d9488] hover:bg-[#0f766e] text-white px-6 py-2.5 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+                      title={!dirty ? 'No changes to save' : 'Save your changes'}
+                      className="bg-[#0d9488] hover:bg-[#0f766e] text-white px-6 py-2.5 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0d9488] focus-visible:ring-offset-2"
                     >
                       {saving ? 'Saving...' : 'Save Changes'}
                     </button>
@@ -310,8 +365,11 @@ export default function TemplateDetailPage({ params }: { params: Promise<{ id: s
               {/* Archived user template: read-only preview */}
               {isOwned && structure && template.isArchived && (
                 <div className="bg-white rounded-xl border border-gray-200 p-5">
-                  <div className="mb-4 px-3 py-2 bg-yellow-50 border border-yellow-200 rounded-lg text-sm text-yellow-700">
-                    This template is archived. Unarchive it to make edits.
+                  <div className="mb-4 px-3 py-2.5 bg-yellow-50 border border-yellow-200 rounded-lg text-sm text-yellow-700 flex items-center gap-2" role="status">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="flex-shrink-0">
+                      <path d="M21 8v13H3V8" /><path d="M1 3h22v5H1z" /><path d="M10 12h4" />
+                    </svg>
+                    This template is archived. Unarchive it from the Templates page to make edits.
                   </div>
                   <TemplatePreview structure={structure} />
                 </div>

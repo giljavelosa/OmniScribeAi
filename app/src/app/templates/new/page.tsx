@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
 import TemplateMetadataForm, { type TemplateMetadata } from '@/components/template-builder/TemplateMetadataForm';
@@ -15,6 +16,7 @@ import {
   type NoteFormat,
   type Discipline,
 } from '@/lib/template-schema';
+
 type Mode = 'choose' | 'scratch' | 'clone';
 
 function makeEmptyStructure(noteFormat: NoteFormat, discipline: Discipline): TemplateStructure {
@@ -69,11 +71,22 @@ export default function NewTemplatePage() {
   // Clone source selection
   const [selectedFrameworkId, setSelectedFrameworkId] = useState('');
   const [cloneDomain, setCloneDomain] = useState('');
+  const [cloneSearch, setCloneSearch] = useState('');
 
   const filteredFrameworks = useMemo(() => {
-    if (!cloneDomain) return frameworks;
-    return frameworks.filter((f) => f.domain === cloneDomain);
-  }, [cloneDomain]);
+    let result = frameworks;
+    if (cloneDomain) result = result.filter((f) => f.domain === cloneDomain);
+    if (cloneSearch.length >= 2) {
+      const q = cloneSearch.toLowerCase();
+      result = result.filter(
+        (f) =>
+          f.name.toLowerCase().includes(q) ||
+          f.description.toLowerCase().includes(q) ||
+          f.subtype.toLowerCase().includes(q),
+      );
+    }
+    return result;
+  }, [cloneDomain, cloneSearch]);
 
   // Keep structure formatType/discipline in sync with metadata
   const handleMetadataChange = (newMeta: TemplateMetadata) => {
@@ -159,6 +172,13 @@ export default function NewTemplatePage() {
         <div className="p-6 md:p-8 max-w-3xl mx-auto">
           {/* Page header */}
           <div className="mb-6">
+            <Link
+              href="/templates"
+              className="text-sm text-gray-500 hover:text-gray-700 mb-3 inline-flex items-center gap-1 focus-visible:outline-none focus-visible:text-[#0d9488] rounded"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6" /></svg>
+              Templates
+            </Link>
             <h1 className="text-2xl font-bold text-gray-900">Create Template</h1>
             <p className="text-sm text-gray-500 mt-1">
               Build a custom clinical note template from scratch or clone a system framework.
@@ -170,9 +190,9 @@ export default function NewTemplatePage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <button
                 onClick={() => setMode('scratch')}
-                className="bg-white rounded-xl border border-gray-200 p-6 text-left hover:shadow-md hover:border-[#0d9488] transition-all group"
+                className="bg-white rounded-xl border border-gray-200 p-6 text-left hover:shadow-md hover:border-[#0d9488] transition-all group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0d9488] focus-visible:ring-offset-2"
               >
-                <div className="w-10 h-10 rounded-lg bg-[#0d9488]/10 flex items-center justify-center mb-3">
+                <div className="w-10 h-10 rounded-lg bg-[#0d9488]/10 flex items-center justify-center mb-3" aria-hidden="true">
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0d9488" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 4v16m8-8H4" /></svg>
                 </div>
                 <h3 className="text-sm font-semibold text-gray-900 group-hover:text-[#0d9488]">
@@ -185,9 +205,9 @@ export default function NewTemplatePage() {
 
               <button
                 onClick={() => setMode('clone')}
-                className="bg-white rounded-xl border border-gray-200 p-6 text-left hover:shadow-md hover:border-[#1e3a5f] transition-all group"
+                className="bg-white rounded-xl border border-gray-200 p-6 text-left hover:shadow-md hover:border-[#1e3a5f] transition-all group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1e3a5f] focus-visible:ring-offset-2"
               >
-                <div className="w-10 h-10 rounded-lg bg-[#1e3a5f]/10 flex items-center justify-center mb-3">
+                <div className="w-10 h-10 rounded-lg bg-[#1e3a5f]/10 flex items-center justify-center mb-3" aria-hidden="true">
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1e3a5f" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2" /><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" /></svg>
                 </div>
                 <h3 className="text-sm font-semibold text-gray-900 group-hover:text-[#1e3a5f]">
@@ -204,62 +224,81 @@ export default function NewTemplatePage() {
           {mode === 'clone' && !selectedFrameworkId && (
             <div>
               <button
-                onClick={() => setMode('choose')}
-                className="text-sm text-gray-500 hover:text-gray-700 mb-4 flex items-center gap-1"
+                onClick={() => { setMode('choose'); setCloneDomain(''); setCloneSearch(''); }}
+                className="text-sm text-gray-500 hover:text-gray-700 mb-4 flex items-center gap-1 focus-visible:outline-none focus-visible:text-[#0d9488] rounded"
               >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6" /></svg>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6" /></svg>
                 Back
               </button>
 
               <h2 className="text-lg font-semibold text-gray-900 mb-4">Choose a Framework to Clone</h2>
 
-              {/* Domain filter */}
-              <div className="flex gap-2 mb-4 flex-wrap">
-                <button
-                  onClick={() => setCloneDomain('')}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                    !cloneDomain ? 'bg-[#1e3a5f] text-white' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
-                  }`}
-                >
-                  All
-                </button>
-                {['medical', 'rehabilitation', 'behavioral_health'].map((d) => (
+              {/* Search + Domain filter row */}
+              <div className="flex flex-wrap gap-2 mb-4 items-center">
+                <div className="relative flex-1 min-w-[180px]">
+                  <svg className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" /></svg>
+                  <input
+                    type="text"
+                    value={cloneSearch}
+                    onChange={(e) => setCloneSearch(e.target.value)}
+                    placeholder="Search frameworks..."
+                    aria-label="Search frameworks"
+                    className="w-full pl-8 pr-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#0d9488]/20 focus:border-[#0d9488]"
+                  />
+                </div>
+                {['', 'medical', 'rehabilitation', 'behavioral_health'].map((d) => (
                   <button
                     key={d}
                     onClick={() => setCloneDomain(d)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1e3a5f]/50 ${
                       cloneDomain === d ? 'bg-[#1e3a5f] text-white' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
                     }`}
                   >
-                    {getDomainLabel(d)}
+                    {d ? getDomainLabel(d) : 'All'}
                   </button>
                 ))}
               </div>
 
-              <div className="grid grid-cols-1 gap-3">
-                {filteredFrameworks.map((fw) => (
+              {filteredFrameworks.length === 0 ? (
+                <div className="text-center py-10">
+                  <p className="text-sm text-gray-400">No frameworks match your search.</p>
                   <button
-                    key={fw.id}
-                    onClick={() => handleCloneSelect(fw.id)}
-                    className="bg-white rounded-xl border border-gray-200 p-4 text-left hover:shadow-md hover:border-[#0d9488] transition-all"
+                    onClick={() => { setCloneDomain(''); setCloneSearch(''); }}
+                    className="mt-2 text-sm text-[#0d9488] hover:text-[#0f766e] font-medium focus-visible:outline-none focus-visible:underline"
                   >
-                    <div className="flex items-center gap-2 mb-1">
-                      <span
-                        className="text-[10px] font-bold px-2 py-0.5 rounded-full text-white"
-                        style={{ backgroundColor: getDomainColor(fw.domain) }}
-                      >
-                        {getDomainLabel(fw.domain)}
-                      </span>
-                      <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">
-                        {fw.type}
-                      </span>
-                      <span className="text-xs text-gray-400">{fw.itemCount} items</span>
-                    </div>
-                    <h3 className="text-sm font-semibold text-gray-900">{fw.name}</h3>
-                    <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">{fw.description}</p>
+                    Clear filters
                   </button>
-                ))}
-              </div>
+                </div>
+              ) : (
+                <>
+                  <div className="text-xs text-gray-400 mb-2">{filteredFrameworks.length} framework{filteredFrameworks.length !== 1 ? 's' : ''}</div>
+                  <div className="grid grid-cols-1 gap-3">
+                    {filteredFrameworks.map((fw) => (
+                      <button
+                        key={fw.id}
+                        onClick={() => handleCloneSelect(fw.id)}
+                        className="bg-white rounded-xl border border-gray-200 p-4 text-left hover:shadow-md hover:border-[#0d9488] transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0d9488] focus-visible:ring-offset-1"
+                      >
+                        <div className="flex items-center gap-2 mb-1">
+                          <span
+                            className="text-[10px] font-bold px-2 py-0.5 rounded-full text-white"
+                            style={{ backgroundColor: getDomainColor(fw.domain) }}
+                          >
+                            {getDomainLabel(fw.domain)}
+                          </span>
+                          <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">
+                            {fw.type}
+                          </span>
+                          <span className="text-xs text-gray-400">{fw.sections.length} sections</span>
+                          <span className="text-xs text-gray-400">{fw.itemCount} items</span>
+                        </div>
+                        <h3 className="text-sm font-semibold text-gray-900">{fw.name}</h3>
+                        <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">{fw.description}</p>
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
             </div>
           )}
 
@@ -274,15 +313,18 @@ export default function NewTemplatePage() {
                     setMode('choose');
                   }
                 }}
-                className="text-sm text-gray-500 hover:text-gray-700 mb-4 flex items-center gap-1"
+                className="text-sm text-gray-500 hover:text-gray-700 mb-4 flex items-center gap-1 focus-visible:outline-none focus-visible:text-[#0d9488] rounded"
               >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6" /></svg>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6" /></svg>
                 Back
               </button>
 
               {error && (
-                <div className="mb-4 px-4 py-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
-                  {error}
+                <div className="mb-4 px-4 py-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700 flex items-center justify-between" role="alert">
+                  <span>{error}</span>
+                  <button onClick={() => setError('')} className="ml-3 text-red-400 hover:text-red-600 flex-shrink-0" aria-label="Dismiss error">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12" /></svg>
+                  </button>
                 </div>
               )}
 
@@ -309,14 +351,14 @@ export default function NewTemplatePage() {
               <div className="flex justify-end gap-3">
                 <button
                   onClick={() => router.push('/templates')}
-                  className="px-4 py-2.5 rounded-lg text-sm font-medium border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors"
+                  className="px-4 py-2.5 rounded-lg text-sm font-medium border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-300"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleSave}
                   disabled={saving}
-                  className="bg-[#0d9488] hover:bg-[#0f766e] text-white px-6 py-2.5 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+                  className="bg-[#0d9488] hover:bg-[#0f766e] text-white px-6 py-2.5 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0d9488] focus-visible:ring-offset-2"
                 >
                   {saving ? 'Creating...' : 'Create Template'}
                 </button>
