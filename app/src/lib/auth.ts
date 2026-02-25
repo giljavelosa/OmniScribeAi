@@ -25,7 +25,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           });
           console.log("[AUTH] user found:", !!user, "isActive:", user?.isActive);
           console.log("[AUTH] hash prefix:", user?.passwordHash?.substring(0, 10), "hash length:", user?.passwordHash?.length);
-          console.log("[AUTH] password length:", (credentials.password as string)?.length, "password type:", typeof credentials.password);
+          const pw = credentials.password as string;
+          console.log("[AUTH] password length:", pw?.length, "chars:", JSON.stringify([...pw].map(c => c.charCodeAt(0))));
 
           if (!user || !user.isActive) return null;
 
