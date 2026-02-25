@@ -58,6 +58,12 @@ export default function Header() {
           <kbd className="text-[10px] font-medium text-gray-400 bg-white px-1 py-0.5 rounded border border-gray-200 ml-1">&#8984;K</kbd>
         </button>
         <Link
+          href="/templates"
+          className="hidden md:flex items-center px-3 py-2 rounded-lg text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors min-h-[44px]"
+        >
+          Templates
+        </Link>
+        <Link
           href="/visit/new"
           className="bg-[#0d9488] hover:bg-[#0f766e] text-white px-3 sm:px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 min-h-[44px]"
         >
