@@ -144,6 +144,11 @@ function renderMarkdown(text: string, sectionTitle: string, missingItems?: Missi
   }
 
   html = html.replace(/(^|<br\/>)\s*- /g, '$1• ');
+  // Numbered lists (1. item, 2. item, a. item, b. item)
+  html = html.replace(/(^|<br\/>)\s*(\d+)\.\s+/g, '$1$2. ');
+  html = html.replace(/(^|<br\/>)\s*([a-z])\.\s+/g, '$1$2. ');
+  // Markdown headers (### Header → bold text)
+  html = html.replace(/(^|<br\/>)\s*#{1,4}\s+(.+?)(<br\/>|<\/p>|$)/g, '$1<strong>$2</strong>$3');
   return `<p>${html}</p>`;
 }
 
