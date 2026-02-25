@@ -28,9 +28,32 @@ export default function FrameworksPage() {
       <Sidebar />
       <main className="lg:ml-64 pt-16">
         <div className="p-6 md:p-8 max-w-5xl">
-          <div className="mb-8">
-            <h1 className="text-2xl font-bold text-gray-900 mb-1">Clinical Frameworks</h1>
-            <p className="text-gray-500">Browse all evidence-based documentation frameworks. Each one is built from regulatory sources and professional guidelines.</p>
+          <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900 mb-1">Clinical Frameworks</h1>
+              <p className="text-gray-500">Browse all evidence-based documentation frameworks. Each one is built from regulatory sources and professional guidelines.</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Link
+                href="/templates"
+                className="px-3 py-2 rounded-lg text-sm font-medium bg-white text-gray-700 border border-gray-200 hover:bg-gray-50 transition-colors"
+              >
+                Manage Templates
+              </Link>
+              <Link
+                href="/templates/new"
+                className="px-3 py-2 rounded-lg text-sm font-medium bg-[#0d9488] text-white hover:bg-[#0f766e] transition-colors"
+              >
+                + New Template
+              </Link>
+            </div>
+          </div>
+
+          <div className="mb-6 rounded-xl border border-[#0d9488]/20 bg-[#0d9488]/5 p-4">
+            <div className="text-sm font-semibold text-gray-900 mb-1">Tip: Start from a framework, then customize a template</div>
+            <p className="text-sm text-gray-600">
+              Use built-in frameworks for fast starts, or create your own reusable templates for your service line, clinician style, or organization workflow.
+            </p>
           </div>
 
           {/* Domain filter */}
@@ -137,13 +160,19 @@ function FrameworkCard({ framework, expanded, onToggle }: { framework: Framework
               </div>
             ))}
           </div>
-          <div className="mt-4 pt-3 border-t border-gray-200">
+          <div className="mt-4 pt-3 border-t border-gray-200 flex flex-wrap gap-2">
             <Link
-              href="/visit/new"
+              href={`/visit/new?frameworkId=${framework.id}`}
               className="text-sm font-medium text-white px-4 py-2 rounded-lg transition-colors inline-block"
               style={{ backgroundColor: color }}
             >
-              Use this framework →
+              Start visit →
+            </Link>
+            <Link
+              href={`/templates/new?frameworkId=${framework.id}`}
+              className="text-sm font-medium text-gray-700 px-4 py-2 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 transition-colors inline-block"
+            >
+              Create template
             </Link>
           </div>
         </div>

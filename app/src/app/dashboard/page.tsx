@@ -86,7 +86,32 @@ export default function DashboardPage() {
           {/* Welcome */}
           <div className="mb-8">
             <h1 className="text-2xl font-bold text-gray-900 mb-1">Welcome back</h1>
-            <p className="text-gray-500">Here are your recent clinical notes.</p>
+            <p className="text-gray-500">Here are your recent clinical notes, quick actions, and template shortcuts.</p>
+          </div>
+
+          {/* Quick Actions */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-6">
+            <Link
+              href="/visit/new"
+              className="bg-white rounded-xl border border-gray-200 p-4 hover:border-[#0d9488] hover:shadow-sm transition-all"
+            >
+              <div className="text-sm font-semibold text-gray-900 mb-1">Start New Visit</div>
+              <div className="text-xs text-gray-500">Open the visit workflow and choose a framework or template.</div>
+            </Link>
+            <Link
+              href="/templates"
+              className="bg-white rounded-xl border border-gray-200 p-4 hover:border-[#1e3a5f] hover:shadow-sm transition-all"
+            >
+              <div className="text-sm font-semibold text-gray-900 mb-1">Manage Templates</div>
+              <div className="text-xs text-gray-500">Create, edit, clone, or archive your reusable note templates.</div>
+            </Link>
+            <Link
+              href="/frameworks"
+              className="bg-white rounded-xl border border-gray-200 p-4 hover:border-gray-400 hover:shadow-sm transition-all"
+            >
+              <div className="text-sm font-semibold text-gray-900 mb-1">Browse Frameworks</div>
+              <div className="text-xs text-gray-500">Review built-in evidence-based frameworks by clinical domain.</div>
+            </Link>
           </div>
 
           {/* Resume Draft */}
@@ -128,11 +153,16 @@ export default function DashboardPage() {
 
           {/* Quick Start — recent frameworks */}
           <div className="mb-8">
-            <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center justify-between mb-3 gap-3">
               <h2 className="font-semibold text-gray-900">Quick Start</h2>
-              <Link href="/visit/new" className="text-sm text-[#0d9488] hover:text-[#0f766e] font-medium">
-                Browse all frameworks
-              </Link>
+              <div className="flex items-center gap-3">
+                <Link href="/templates" className="text-sm text-gray-600 hover:text-gray-900 font-medium">
+                  Templates
+                </Link>
+                <Link href="/visit/new" className="text-sm text-[#0d9488] hover:text-[#0f766e] font-medium">
+                  Browse all frameworks
+                </Link>
+              </div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {recentFwObjects.length > 0 ? (
