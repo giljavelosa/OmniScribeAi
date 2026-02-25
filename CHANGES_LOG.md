@@ -887,5 +887,33 @@ Each item follows the same workflow as FIX-1 through FIX-17:
 
 ---
 
+## FIX-31: Remove PrismaAdapter to fix login CredentialsSignin ✅
+**Date:** 2026-02-25
+**Files changed:**
+- `app/src/lib/auth.ts` (MODIFIED) — removed PrismaAdapter, added try-catch logging to authorize
+
+**Root cause:**
+- NextAuth v5 beta.30's `PrismaAdapter` interferes with the Credentials provider flow
+- The adapter attempts OAuth-style account linking even when only Credentials auth is used
+- After `authorize()` returns a valid user, the adapter's internal lookups fail silently, causing NextAuth to return `CredentialsSignin` error
+- This was the true root cause of the login bug first patched (incompletely) in FIX-29
+
+**What it does:**
+- Removed `PrismaAdapter(prisma)` from NextAuth config — not needed for Credentials-only auth with JWT sessions
+- PrismaAdapter is only for OAuth account linking and DB session management, neither of which OmniScribe uses
+- Added try-catch with `console.error("[AUTH] authorize error:")` for future debugging
+- Removed unused `@auth/prisma-adapter` import
+
+**Verification:**
+- Server login test: POST to `/api/auth/callback/credentials` returns 302 to `/` (success, not error)
+- Session endpoint: returns full user data `{name, email, id, role, clinicianType, mustChangePassword}`
+- PM2 logs: clean, no CredentialsSignin errors
+
+**Build:** ✅ `npm run build` passes
+**Tests:** ✅ 71/71 pass
+**Deployed:** ✅ Commit `e962ee0`, PM2 online
+
+---
+
 ## Remaining Items (not yet implemented)
 - **Infrastructure**: Configure staging/dev droplets
