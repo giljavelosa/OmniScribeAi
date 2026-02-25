@@ -24,6 +24,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             where: { email: credentials.email as string },
           });
           console.log("[AUTH] user found:", !!user, "isActive:", user?.isActive);
+          console.log("[AUTH] hash prefix:", user?.passwordHash?.substring(0, 10), "hash length:", user?.passwordHash?.length);
+          console.log("[AUTH] password length:", (credentials.password as string)?.length, "password type:", typeof credentials.password);
 
           if (!user || !user.isActive) return null;
 
