@@ -1376,5 +1376,55 @@ Enhances the Assessment/Medical Assessment section to include factual differenti
 
 ---
 
+### FIX-49 — Runtime hardening round 2: stop silent error swallowing ✅ RESOLVED
+**Date:** 2026-02-24
+**Files changed:**
+- `app/src/app/api/generate-note/route.ts` (MODIFIED) — 5 fixes
+- `app/src/components/AudioRecorder.tsx` (MODIFIED) — promise chain error handling
+- `app/src/lib/sse-fetch.ts` (MODIFIED) — malformed critical event handling
+- `app/src/app/api/transcribe/route.ts` (MODIFIED) — JSON parse safety
+- `app/src/app/visit/new/page.tsx` (MODIFIED) — error logging + draft cleanup
+
+**What it does (14 findings fixed across 5 files):**
+
+**CRITICAL — generate-note/route.ts:**
+1. `buildEncounterStateFromTranscript()`: Check `result.truncated` after `callAI()` — if truncated, skip JSON parse entirely (would be garbage), return sparse state with transcript fallback instead of silently trying to parse and swallowing the error
+2. `buildEncounterStateFromTranscript()`: Log parse errors with error detail + raw length (was `catch {}` with no error context)
+3. Pass 1 (note generation): Check `noteResult.truncated` — if truncated, send `error` SSE event and close stream instead of feeding truncated JSON to `parseJsonArray` which returns a misleading "Formatting Error" section as if it succeeded
+4. Pass 2 (audit): Check `auditResult.truncated` — if truncated, set `auditFailed=true` with descriptive message instead of trying to parse garbage. Also log error detail on inner parse failure (was `catch {}` with no context)
+5. HIPAA audit log: Log failure with error detail (was `catch { /* non-critical */ }` with no logging)
+
+**CRITICAL — AudioRecorder.tsx:**
+6. `sendChunkForProcessing()`: Add HTTP status check on transcribe-chunk fetch (`.then(r => { if (!r.ok) throw ... })`) — was going straight to `.json()` which silently fails on HTTP errors
+7. Restructure extract-chunk fetch to check HTTP status before `.json()` — was `r?.json()` which returns undefined on failed fetch, causing silent undefined propagation
+8. Outer `.catch()` now increments `failedExtractionRef` and shows toast — was only logging to console.warn with no failure tracking
+
+**HIGH — sse-fetch.ts:**
+9. Throw on malformed `result` event (was silently skipping — stream would end with no result, retrying without telling user why)
+
+**MEDIUM — transcribe/route.ts:**
+10. `transcribeSingle()`: Try-catch around `groqResponse.json()` — if Groq returns malformed body, throw with clear error instead of uncaught exception
+11. `transcribeChunked()`: Try-catch around `groqResponse.json()` per chunk — return `success: false` with chunk index instead of crashing the batch
+
+**MEDIUM — visit/new/page.tsx:**
+12. Draft restore: Remove corrupted draft from localStorage (was `catch {}` ignoring forever, blocking future draft restores)
+13. Patient search: Clear results on failure (was `catch { /* network error — fail silently */ }`)
+14. Both `processWithEncounterState` and `processAudio` catch blocks: Log error via appLog before showing to user (was invisible in production)
+
+**Why this matters:**
+The codebase passed `npm run build` and 71/71 tests but had 14 paths where runtime errors were silently swallowed. When the LLM returns truncated JSON, Groq returns malformed responses, or network requests fail, the system was returning `success: true` with empty/default data or silently dropping results. Users would get scant notes with no indication anything went wrong.
+
+**Previous fixes in same files:**
+- generate-note: FIX-45/46 (transcript enrichment — truncation checks added around same callAI sites)
+- AudioRecorder: FIX-42 (extraction tracking — promise chain restructured), FIX-48 (audio capture — untouched)
+- sse-fetch: FIX-43 (onWarnings callback — untouched)
+- transcribe: FIX-37 (temperature=0), FIX-38 (whisper-large-v3) — both untouched
+- visit/new: UX-2 (patient autocomplete), UX-6 (cancel+draft), UX-10 (auto-save), FIX-42 (extraction warnings) — all untouched
+
+**Build:** ✅ `npm run build` passes
+**Tests:** ✅ 71/71 pass
+
+---
+
 ## Remaining Items (not yet implemented)
 - **Infrastructure**: Configure staging/dev droplets

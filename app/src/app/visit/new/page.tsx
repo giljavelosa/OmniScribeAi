@@ -128,7 +128,10 @@ function NewVisitContent() {
         if (draft.providerType) setProviderType(draft.providerType);
         if (draft.frameworkId) setFrameworkId(draft.frameworkId);
       }
-    } catch { /* ignore parse errors */ }
+    } catch {
+      // Corrupted draft — remove it so it doesn't block future loads
+      localStorage.removeItem('omniscribe-visit-draft');
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -163,7 +166,9 @@ function NewVisitContent() {
           setPatientResults(data.patients || []);
           setShowPatientDropdown(true);
         }
-      } catch { /* network error — fail silently */ }
+      } catch {
+        setPatientResults([]);
+      }
       setSearchingPatients(false);
     }, 300);
   }, []);
@@ -327,6 +332,7 @@ function NewVisitContent() {
         setRecordingReady(true);
         return;
       }
+      appLog('error', 'NewVisit', 'Encounter-state note generation failed', { error: message });
       setErrorMsg(message);
       setStep('error');
     } finally {
@@ -463,6 +469,7 @@ function NewVisitContent() {
         setRecordingReady(!!lastBlobRef.current);
         return;
       }
+      appLog('error', 'NewVisit', 'Legacy audio processing failed', { error: message });
       setErrorMsg(message);
       setStep('error');
     } finally {

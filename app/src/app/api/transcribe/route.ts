@@ -142,7 +142,13 @@ async function transcribeSingle(
       lastStatus = groqResponse.status;
 
       if (groqResponse.ok) {
-        const groqResult = await groqResponse.json();
+        let groqResult;
+        try {
+          groqResult = await groqResponse.json();
+        } catch (jsonErr) {
+          appLog('error', 'Transcribe', 'Groq response JSON parse failed', { error: scrubError(jsonErr), attempt });
+          throw new Error('Transcription response was malformed');
+        }
         const transcript: string = groqResult.text || '';
         const duration: number = groqResult.duration || 0;
         const wordCount = transcript.split(/\s+/).filter(Boolean).length;
@@ -252,7 +258,19 @@ async function transcribeChunked(
       );
     }
 
-    const groqResult = await groqResponse.json();
+    let groqResult;
+    try {
+      groqResult = await groqResponse.json();
+    } catch (jsonErr) {
+      const code = errorCode();
+      appLog('error', 'Transcribe', 'Chunk Groq response JSON parse failed', {
+        chunkIndex: chunk.index, error: scrubError(jsonErr), code,
+      });
+      return NextResponse.json(
+        { success: false, error: `Chunk ${chunk.index + 1} response was malformed`, code },
+        { status: 500, headers: { 'Cache-Control': 'no-store' } }
+      );
+    }
     const text: string = (groqResult.text || '').trim();
     const chunkDuration: number = groqResult.duration || chunk.durationSec;
 

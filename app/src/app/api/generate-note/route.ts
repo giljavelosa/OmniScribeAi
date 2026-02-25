@@ -199,6 +199,26 @@ ${transcript}
 Return null and "not_documented" for anything not explicitly stated.`;
 
   const result = await callAI(extractSystem, extractUser, 4000);
+
+  if (result.truncated) {
+    appLog('warn', 'GenNote', 'Transcript extraction LLM output truncated — EncounterState will be sparse', {
+      outputTokens: result.usage.output_tokens,
+      maxTokens: 4000,
+    });
+    // Don't attempt to parse truncated JSON — return sparse state with transcript fallback
+    state.chunk_count = 1;
+    state.last_updated = Date.now();
+    if (transcript.trim().length > 0) {
+      state.diarized_transcript = [{
+        speaker: 'UNKNOWN' as const,
+        text: transcript.trim(),
+        t0: 0,
+        t1: 0,
+      }];
+    }
+    return state;
+  }
+
   const raw = stripFences(result.content);
 
   try {
@@ -245,8 +265,11 @@ Return null and "not_documented" for anything not explicitly stated.`;
         (sum, fields) => sum + Object.values(fields).filter(f => f.value !== null).length, 0,
       ),
     });
-  } catch {
-    appLog('warn', 'GenNote', 'Transcript fact extraction parse failed — EncounterState may be sparse');
+  } catch (parseErr) {
+    appLog('warn', 'GenNote', 'Transcript fact extraction parse failed — EncounterState will be sparse', {
+      error: scrubError(parseErr),
+      rawLength: raw.length,
+    });
   }
 
   state.chunk_count = 1;
@@ -413,6 +436,20 @@ Write the clinical note using the structured facts. Omit sections with no docume
 
         const noteResult = await callAI(noteSystem, noteUser, 8000);
         totalTokens += noteResult.usage.input_tokens + noteResult.usage.output_tokens;
+
+        if (noteResult.truncated) {
+          appLog('warn', 'GenNote', 'Pass 1 LLM output truncated — note incomplete', {
+            outputTokens: noteResult.usage.output_tokens,
+            maxTokens: 8000,
+          });
+          send("error", {
+            success: false,
+            error: "Note generation was truncated (output too long). Please try again — if this persists, use a simpler framework.",
+          });
+          controller.close();
+          return;
+        }
+
         const clinicalNote = parseJsonArray(noteResult.content);
         appLog('info', 'GenNote', 'Pass 1 complete', { sections: clinicalNote.length });
 
@@ -472,20 +509,32 @@ Return ONLY valid JSON:
           );
           totalTokens += auditResult.usage.input_tokens + auditResult.usage.output_tokens;
 
-          try {
-            const auditJson = JSON.parse(stripFences(auditResult.content));
-            if (auditJson.audit) {
-              auditClean = auditJson.audit.clean !== false;
-              auditIssues = auditJson.audit.issues || [];
-            }
-            if (auditJson.summary) {
-              summary = auditJson.summary;
-            }
-          } catch {
-            appLog('warn', 'GenNote', 'Audit JSON parse failed — marking audit as not completed');
+          if (auditResult.truncated) {
+            appLog('warn', 'GenNote', 'Audit LLM output truncated', {
+              outputTokens: auditResult.usage.output_tokens,
+              maxTokens: 800,
+            });
             auditClean = false;
             auditFailed = true;
-            auditIssues = ['Hallucination audit could not parse results — please review the note manually'];
+            auditIssues = ['Hallucination audit output was truncated — please review the note manually'];
+          } else {
+            try {
+              const auditJson = JSON.parse(stripFences(auditResult.content));
+              if (auditJson.audit) {
+                auditClean = auditJson.audit.clean !== false;
+                auditIssues = auditJson.audit.issues || [];
+              }
+              if (auditJson.summary) {
+                summary = auditJson.summary;
+              }
+            } catch (auditParseErr) {
+              appLog('warn', 'GenNote', 'Audit JSON parse failed — marking audit as not completed', {
+                error: scrubError(auditParseErr),
+              });
+              auditClean = false;
+              auditFailed = true;
+              auditIssues = ['Hallucination audit could not parse results — please review the note manually'];
+            }
           }
         } catch (auditErr) {
           appLog('error', 'GenNote', 'Audit call failed', { error: scrubError(auditErr) });
@@ -522,7 +571,9 @@ Return ONLY valid JSON:
               complianceGrade: validation.compliance.grade,
             },
           });
-        } catch { /* non-critical */ }
+        } catch (auditLogErr) {
+          appLog('warn', 'GenNote', 'HIPAA audit log failed (non-blocking)', { error: scrubError(auditLogErr) });
+        }
 
         // Send final result
         send("result", {

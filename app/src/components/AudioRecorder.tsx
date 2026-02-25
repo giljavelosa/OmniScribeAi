@@ -184,7 +184,10 @@ export default function AudioRecorder({ onRecordingComplete, onPartialTranscript
     fd.append('globalStartSec', String(globalStartSec));
 
     fetch('/api/transcribe-chunk', { method: 'POST', body: fd })
-      .then(r => r.json())
+      .then(r => {
+        if (!r.ok) throw new Error(`Transcribe-chunk HTTP ${r.status}`);
+        return r.json();
+      })
       .then(transcribeResult => {
         if (!transcribeResult.success) {
           console.warn('[AudioRecorder] Transcribe-chunk failed:', transcribeResult.error);
@@ -219,42 +222,46 @@ export default function AudioRecorder({ onRecordingComplete, onPartialTranscript
             frameworkId,
             previousContext: encounterStateRef.current?.last_context,
           }),
-        });
-      })
-      .then(r => r?.json())
-      .then(extractResult => {
-        if (!extractResult?.success || !extractResult.extraction) {
-          failedExtractionRef.current++;
-          totalExtractionRef.current++;
-          showToast('Chunk extraction failed — some clinical data may be missing');
-          setProcessingChunks(n => Math.max(0, n - 1));
-          return;
-        }
-
-        totalExtractionRef.current++;
-
-        // Merge extraction into EncounterState
-        const extraction: ExtractionResult = extractResult.extraction;
-        if (encounterStateRef.current) {
-          encounterStateRef.current = mergeExtractionResult(
-            encounterStateRef.current,
-            extraction,
-          );
-
-          setTranscribedChunks(encounterStateRef.current.chunk_count);
-
-          // Notify parent with live transcript
-          if (onPartialTranscript) {
-            const transcript = formatDiarizedTranscript(encounterStateRef.current);
-            const wordCount = transcript.split(/\s+/).filter(Boolean).length;
-            onPartialTranscript(transcript, wordCount, encounterStateRef.current);
+        }).then(r2 => {
+          if (!r2.ok) throw new Error(`Extract-chunk HTTP ${r2.status}`);
+          return r2.json();
+        }).then(extractResult => {
+          if (!extractResult?.success || !extractResult.extraction) {
+            failedExtractionRef.current++;
+            totalExtractionRef.current++;
+            showToast('Chunk extraction failed — some clinical data may be missing');
+            setProcessingChunks(n => Math.max(0, n - 1));
+            return;
           }
-        }
 
-        setProcessingChunks(n => Math.max(0, n - 1));
+          totalExtractionRef.current++;
+
+          // Merge extraction into EncounterState
+          const extraction: ExtractionResult = extractResult.extraction;
+          if (encounterStateRef.current) {
+            encounterStateRef.current = mergeExtractionResult(
+              encounterStateRef.current,
+              extraction,
+            );
+
+            setTranscribedChunks(encounterStateRef.current.chunk_count);
+
+            // Notify parent with live transcript
+            if (onPartialTranscript) {
+              const transcript = formatDiarizedTranscript(encounterStateRef.current);
+              const wordCount = transcript.split(/\s+/).filter(Boolean).length;
+              onPartialTranscript(transcript, wordCount, encounterStateRef.current);
+            }
+          }
+
+          setProcessingChunks(n => Math.max(0, n - 1));
+        });
       })
       .catch(err => {
         console.warn('[AudioRecorder] Chunk processing error:', err);
+        failedExtractionRef.current++;
+        totalExtractionRef.current++;
+        showToast('Audio processing error — some clinical data may be missing');
         setProcessingChunks(n => Math.max(0, n - 1));
       });
   }, [frameworkId, onPartialTranscript]);

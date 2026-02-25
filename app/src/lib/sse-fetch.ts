@@ -68,9 +68,13 @@ export async function fetchNoteSSE(
               throw new Error(parsed.error || parsed.details || 'Note generation failed');
             }
           } catch (parseErr) {
-            // If error event, rethrow; otherwise skip malformed event
-            if (eventType === 'error') throw parseErr;
-            console.warn('[SSE] Malformed event skipped:', part.substring(0, 100));
+            // Critical events must parse — rethrow so caller sees the failure
+            if (eventType === 'error' || eventType === 'result') throw parseErr;
+            if (eventType === 'warnings') {
+              console.warn('[SSE] Malformed warnings event — skipping', part.substring(0, 100));
+            } else {
+              console.warn('[SSE] Malformed event skipped:', part.substring(0, 100));
+            }
           }
         }
       }
