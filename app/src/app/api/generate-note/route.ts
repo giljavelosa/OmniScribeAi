@@ -305,6 +305,14 @@ async function handleEncounterStateMode(
           return;
         }
 
+        // FIX-43: Send validation warnings to client before note generation
+        if (validation.warnings.length > 0) {
+          send("warnings", {
+            warnings: validation.warnings,
+            compliance: validation.compliance,
+          });
+        }
+
         // Serialize EncounterState facts to compact JSON for the prompt
         const factsJson = serializeFactsForPrompt(encounterState);
 

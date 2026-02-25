@@ -27,6 +27,7 @@ export interface AIUsage {
 export interface AIResponse {
   content: string;
   usage: AIUsage;
+  truncated: boolean;
 }
 
 // ── Provider Configuration ──────────────────────────────────────────
@@ -208,10 +209,16 @@ async function fetchWithRetry(
 
       if (response.ok) {
         const data = await response.json();
-        return {
-          content: extractContent(provider, data),
-          usage: normalizeUsage(provider, data),
-        };
+        const usage = normalizeUsage(provider, data);
+        const maxTok = (body.max_tokens as number) || 4000;
+        const truncated = usage.output_tokens >= maxTok * 0.95;
+        if (truncated) {
+          appLog('warn', 'AIProvider', 'Output likely truncated', {
+            output_tokens: usage.output_tokens,
+            maxTokens: maxTok,
+          });
+        }
+        return { content: extractContent(provider, data), usage, truncated };
       }
 
       const errorText = await response.text();

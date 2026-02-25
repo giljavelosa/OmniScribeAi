@@ -4,6 +4,7 @@ export async function fetchNoteSSE(
   onProgress?: (pass: number, total: number, message: string) => void,
   signal?: AbortSignal,
   maxRetries = 2,
+  onWarnings?: (warnings: string[], compliance: { score: number; grade: string }) => void,
 ): Promise<Record<string, unknown>> {
   let lastAttempt = 0;
 
@@ -59,6 +60,8 @@ export async function fetchNoteSSE(
             const parsed = JSON.parse(data);
             if (eventType === 'progress' && onProgress) {
               onProgress(parsed.pass, parsed.total, parsed.message);
+            } else if (eventType === 'warnings' && onWarnings) {
+              onWarnings(parsed.warnings || [], parsed.compliance || { score: 0, grade: 'F' });
             } else if (eventType === 'result') {
               result = parsed;
             } else if (eventType === 'error') {

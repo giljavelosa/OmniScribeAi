@@ -1180,5 +1180,124 @@ Enhances the Assessment/Medical Assessment section to include factual differenti
 
 ---
 
+### FIX-40 — Truncation detection in callAI ✅ RESOLVED
+**Date:** 2026-02-25
+**Files changed:**
+- `app/src/lib/ai-provider.ts` (MODIFIED) — added `truncated: boolean` to `AIResponse` interface; `fetchWithRetry()` now compares `output_tokens >= maxTokens * 0.95` and logs a warning when truncated
+
+**What it does:**
+- Every `callAI()` and `callAIVision()` response now includes a `truncated` boolean
+- If the LLM used ≥95% of the maxTokens budget, the response is flagged as likely truncated
+- Callers can check `result.truncated` to decide whether to trust the output
+- Logs `warn` level when truncation detected
+
+**HIPAA assessment:**
+- ✅ No PHI changes — this is a model parameter check, not patient data
+- ✅ No new endpoints, no auth/security changes
+
+**Previous fixes in same file:** None
+**Build:** ✅ `npm run build` passes
+**Tests:** ✅ 71/71 pass
+
+---
+
+### FIX-41 — extract-chunk returns failure on truncation and parse errors ✅ RESOLVED
+**Date:** 2026-02-25
+**Files changed:**
+- `app/src/app/api/extract-chunk/route.ts` (MODIFIED) — returns `success: false` with `retryable: true` when LLM output is truncated or JSON parse fails (previously returned `success: true` with empty extraction)
+
+**What it does:**
+- After `callAI()`, checks `result.truncated` — if true, returns `{ success: false, error: "LLM output truncated — extraction incomplete", retryable: true }`
+- The JSON parse catch block now returns `{ success: false, error: "Extraction parse failed", retryable: true }` instead of silently returning empty extraction with `success: true`
+- Client code (AudioRecorder) can now detect and report these failures
+
+**Root cause this fixes:**
+- FIX-39 found that all 12 chunks returned `success: true` with empty data — this was because the parse error catch block silently swallowed failures
+- Now the client knows extraction failed and can warn the user
+
+**HIPAA assessment:**
+- ✅ Improves data integrity — prevents silent clinical data loss
+- ✅ No PHI in error responses, no new endpoints
+
+**Previous fixes in same file:** FIX-2 (prompt injection sanitization — untouched), FIX-39 (maxTokens increase — now dynamic per FIX-44)
+**Build:** ✅ `npm run build` passes
+**Tests:** ✅ 71/71 pass
+
+---
+
+### FIX-42 — AudioRecorder + visit/new show chunk extraction failures to user ✅ RESOLVED
+**Date:** 2026-02-25
+**Files changed:**
+- `app/src/lib/encounter-state.ts` (MODIFIED) — added optional `failedExtractions` and `totalExtractions` fields to `EncounterState` interface
+- `app/src/components/AudioRecorder.tsx` (MODIFIED) — tracks failed extractions via refs, shows toast on transcription/extraction failure, attaches counts to EncounterState before `onRecordingComplete`
+- `app/src/app/visit/new/page.tsx` (MODIFIED) — blocks processing if >50% chunks failed, shows extraction warning banner during processing, stores warnings in visitData
+
+**What it does:**
+- `failedExtractionRef` and `totalExtractionRef` count successes/failures during recording
+- On transcription failure: increments failure counter + shows toast "Audio chunk failed to transcribe — some data may be missing"
+- On extraction failure (success:false from FIX-41): increments failure counter + shows toast "Chunk extraction failed — some clinical data may be missing"
+- Before note generation: if >50% of chunks failed, blocks with clear error message asking user to re-record or upload
+- If some but ≤50% failed, shows amber warning banner during processing
+- Warning info stored in visit data for audit trail
+
+**HIPAA assessment:**
+- ✅ Improves clinical data integrity by making failures visible
+- ✅ Toast messages contain no PHI
+- ✅ No new API calls or endpoints
+
+**Previous fixes in same file:** encounter-state.ts (none), AudioRecorder.tsx (none), visit/new/page.tsx (UX-2 patient autocomplete, UX-3 record-first, UX-5 progress steps, UX-6 cancel+draft, UX-10 auto-save — all untouched)
+**Build:** ✅ `npm run build` passes
+**Tests:** ✅ 71/71 pass
+
+---
+
+### FIX-43 — Validation warnings sent to UI via SSE ✅ RESOLVED
+**Date:** 2026-02-25
+**Files changed:**
+- `app/src/app/api/generate-note/route.ts` (MODIFIED) — sends `warnings` SSE event with validation warnings and compliance score after validation, before Pass 1
+- `app/src/lib/sse-fetch.ts` (MODIFIED) — added `onWarnings` callback parameter, handles `warnings` event type
+- `app/src/app/visit/new/page.tsx` (MODIFIED) — added `validationWarnings` and `complianceInfo` state, passes `onWarnings` callback to `fetchNoteSSE`, renders warnings banner during processing, stores in visitData
+
+**What it does:**
+- Server sends validation warnings (e.g., "Missing required field: Chief Complaint") as an SSE event before note generation starts
+- Client receives warnings and displays them in an amber banner with compliance grade
+- Both encounter-state and legacy flows receive warnings
+- Warnings stored in visit data for the visit detail page
+
+**HIPAA assessment:**
+- ✅ Warnings contain field names only, no PHI
+- ✅ Same SSE stream, no new endpoints or external calls
+
+**Previous fixes in same files:** generate-note (FIX-15 CSRF, FIX-19 demographics — untouched), sse-fetch.ts (none), visit/new/page.tsx (see FIX-42)
+**Build:** ✅ `npm run build` passes
+**Tests:** ✅ 71/71 pass
+
+---
+
+### FIX-44 — Dynamic maxTokens for extract-chunk based on framework complexity ✅ RESOLVED
+**Date:** 2026-02-25
+**Files changed:**
+- `app/src/app/api/extract-chunk/route.ts` (MODIFIED) — calculates maxTokens dynamically: `Math.max(4000, Math.min(500 + totalItems * 60, 8000))` based on framework section item count
+
+**What it does:**
+- Simple frameworks (few items) use 4000 tokens (same as before)
+- Complex frameworks (e.g., PT eval with 60+ items) scale up to 8000 tokens
+- Formula: 500 base + 60 tokens per framework item, clamped to [4000, 8000]
+- Logs the calculated maxTokens for debugging
+
+**Why:**
+- FIX-39 increased from 1500→4000, but complex frameworks can still exceed 4000
+- Dynamic scaling prevents truncation for any framework without wasteful token budgets for simple ones
+
+**HIPAA assessment:**
+- ✅ Token budget is a model parameter, not patient data
+- ✅ No PHI, no new endpoints
+
+**Previous fixes in same file:** FIX-2 (prompt sanitization — untouched), FIX-39 (static 4000 — replaced by dynamic calculation), FIX-41 (truncation check — untouched)
+**Build:** ✅ `npm run build` passes
+**Tests:** ✅ 71/71 pass
+
+---
+
 ## Remaining Items (not yet implemented)
 - **Infrastructure**: Configure staging/dev droplets

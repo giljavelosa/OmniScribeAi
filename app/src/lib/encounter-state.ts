@@ -80,6 +80,12 @@ export interface EncounterState {
     topic: string;
     lastSentence: string;
   };
+
+  /** Number of chunks where extraction failed (truncation, parse error, network) */
+  failedExtractions?: number;
+
+  /** Total extraction attempts (successful + failed) */
+  totalExtractions?: number;
 }
 
 // ─── Silence Stats (from VAD) ──────────────────────────────

@@ -94,6 +94,9 @@ function NewVisitContent() {
   const [recordingReady, setRecordingReady] = useState(false);
   const pendingEncounterRef = useRef<EncounterState | null>(null);
   const encounterStateRef = useRef<EncounterState | null>(null);
+  const [extractionWarning, setExtractionWarning] = useState('');
+  const [validationWarnings, setValidationWarnings] = useState<string[]>([]);
+  const [complianceInfo, setComplianceInfo] = useState<{ score: number; grade: string } | null>(null);
 
   // Pre-select framework and patient from URL query params
   // (e.g., /visit/new?frameworkId=rehab-pt-eval&patientId=xxx&patientName=John+Doe)
@@ -249,6 +252,11 @@ function NewVisitContent() {
           if (pass >= 2) advanceStep(2, steps);
         },
         controller.signal,
+        2,
+        (warnings, compliance) => {
+          setValidationWarnings(warnings);
+          setComplianceInfo(compliance);
+        },
       );
       clearTimeout(noteTimeout);
 
@@ -293,6 +301,9 @@ function NewVisitContent() {
         auditClean: noteData.auditClean,
         auditIssues: noteData.auditIssues,
         validation: noteData.validation,
+        validationWarnings: validationWarnings.length > 0 ? validationWarnings : undefined,
+        complianceInfo: complianceInfo || undefined,
+        extractionWarning: extractionWarning || undefined,
         source: noteData.source,
         generationTime: noteData.generationTime,
         mode: 'encounter-state',
@@ -382,7 +393,12 @@ function NewVisitContent() {
           setProgressText(message);
           if (pass >= 2) advanceStep(2, steps);
         },
-        controller.signal
+        controller.signal,
+        2,
+        (warnings, compliance) => {
+          setValidationWarnings(warnings);
+          setComplianceInfo(compliance);
+        },
       );
       clearTimeout(noteTimeout);
       if (!noteData.success) {
@@ -473,6 +489,19 @@ function NewVisitContent() {
       return;
     }
 
+    // FIX-42: Block if too many extraction failures
+    if (encounterState?.failedExtractions && encounterState?.totalExtractions) {
+      const total = encounterState.totalExtractions;
+      if (encounterState.failedExtractions > total * 0.5) {
+        setErrorMsg(`Too many chunks failed (${encounterState.failedExtractions}/${total}). Please re-record or upload the audio file.`);
+        setStep('error');
+        return;
+      }
+      if (encounterState.failedExtractions > 0) {
+        setExtractionWarning(`${encounterState.failedExtractions} of ${total} chunks had extraction errors — some clinical data may be missing.`);
+      }
+    }
+
     // Use encounter-state mode if real-time extraction produced data
     if (encounterState && encounterState.chunk_count > 0) {
       appLog('info', 'NewVisit', 'Using encounter-state mode', { chunkCount: encounterState.chunk_count, statementCount: encounterState.diarized_transcript.length });
@@ -550,6 +579,23 @@ function NewVisitContent() {
           {step === 'processing' ? (
             <div className="bg-white rounded-2xl border border-gray-200 p-8 md:p-12 animate-fade-in">
               <h2 className="text-xl font-bold text-gray-900 mb-6 text-center">Generating your clinical note...</h2>
+
+              {/* Extraction warning banner */}
+              {extractionWarning && (
+                <div className="mb-4 px-4 py-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-700">
+                  {extractionWarning}
+                </div>
+              )}
+
+              {/* Validation warnings banner */}
+              {validationWarnings.length > 0 && (
+                <div className="mb-4 px-4 py-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-700">
+                  <p className="font-medium mb-1">Validation warnings{complianceInfo ? ` (compliance: ${complianceInfo.grade} — ${complianceInfo.score}%)` : ''}:</p>
+                  <ul className="list-disc list-inside space-y-0.5">
+                    {validationWarnings.map((w, i) => <li key={i}>{w}</li>)}
+                  </ul>
+                </div>
+              )}
 
               {/* Step indicator */}
               <div className="max-w-sm mx-auto mb-8 space-y-3">

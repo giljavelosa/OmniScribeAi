@@ -133,6 +133,8 @@ export default function AudioRecorder({ onRecordingComplete, onPartialTranscript
   const workletNodeRef        = useRef<AudioWorkletNode | null>(null);
   const transcribeChunkIdxRef = useRef(0);
   const isRealtimeModeRef     = useRef(false);
+  const failedExtractionRef   = useRef(0);
+  const totalExtractionRef    = useRef(0);
 
   // Pre-flight on mount
   useEffect(() => {
@@ -186,6 +188,9 @@ export default function AudioRecorder({ onRecordingComplete, onPartialTranscript
       .then(transcribeResult => {
         if (!transcribeResult.success) {
           console.warn('[AudioRecorder] Transcribe-chunk failed:', transcribeResult.error);
+          failedExtractionRef.current++;
+          totalExtractionRef.current++;
+          showToast('Audio chunk failed to transcribe — some data may be missing');
           setProcessingChunks(n => Math.max(0, n - 1));
           return;
         }
@@ -219,9 +224,14 @@ export default function AudioRecorder({ onRecordingComplete, onPartialTranscript
       .then(r => r?.json())
       .then(extractResult => {
         if (!extractResult?.success || !extractResult.extraction) {
+          failedExtractionRef.current++;
+          totalExtractionRef.current++;
+          showToast('Chunk extraction failed — some clinical data may be missing');
           setProcessingChunks(n => Math.max(0, n - 1));
           return;
         }
+
+        totalExtractionRef.current++;
 
         // Merge extraction into EncounterState
         const extraction: ExtractionResult = extractResult.extraction;
@@ -308,6 +318,8 @@ export default function AudioRecorder({ onRecordingComplete, onPartialTranscript
     chunkResultsRef.current = [];
     lastChunkTextRef.current = '';
     transcribeChunkIdxRef.current = 0;
+    failedExtractionRef.current = 0;
+    totalExtractionRef.current = 0;
     setProcessingChunks(0);
 
     // Initialize EncounterState if we have a framework and real-time mode is enabled
@@ -401,6 +413,12 @@ export default function AudioRecorder({ onRecordingComplete, onPartialTranscript
           `stripped ${silenceStats.silenceStrippedSec}s silence, session=${sessionIdRef.current}` +
           (isRealtimeModeRef.current ? `, encounterState chunks=${encounterStateRef.current?.chunk_count}` : '')
         );
+
+        // Attach extraction failure stats to EncounterState
+        if (isRealtimeModeRef.current && encounterStateRef.current) {
+          encounterStateRef.current.failedExtractions = failedExtractionRef.current;
+          encounterStateRef.current.totalExtractions = totalExtractionRef.current;
+        }
 
         onRecordingComplete(
           filteredBlob,

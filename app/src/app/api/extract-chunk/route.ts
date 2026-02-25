@@ -147,13 +147,32 @@ ${wordTimestamps}
 
 Extract speakers + clinical facts. Return JSON only.`;
 
-    const result = await callAI(systemPrompt, userPrompt, 4000);
+    // FIX-44: Dynamic maxTokens based on framework complexity
+    const totalItems = framework.sections.reduce((sum, s) => sum + s.items.length, 0);
+    const estimatedTokens = 500 + totalItems * 60;
+    const maxTokens = Math.max(4000, Math.min(estimatedTokens, 8000));
+    appLog('info', 'ExtractChunk', 'Dynamic maxTokens', { totalItems, maxTokens });
+
+    const result = await callAI(systemPrompt, userPrompt, maxTokens);
 
     appLog("info", "ExtractChunk", "LLM extraction complete", {
       outputLength: result.content.length,
       inputTokens: result.usage.input_tokens,
       outputTokens: result.usage.output_tokens,
+      truncated: result.truncated,
     });
+
+    // FIX-41: Return failure if LLM output was truncated
+    if (result.truncated) {
+      appLog("warn", "ExtractChunk", "LLM output truncated", {
+        outputTokens: result.usage.output_tokens,
+        maxTokens,
+      });
+      return NextResponse.json(
+        { success: false, error: "LLM output truncated — extraction incomplete", retryable: true },
+        { status: 200, headers: { "Cache-Control": "no-store" } },
+      );
+    }
 
     // Parse the LLM response
     let extraction: ExtractionResult;
@@ -201,10 +220,13 @@ Extract speakers + clinical facts. Return JSON only.`;
 
       extraction = { statements, facts, additional_facts };
     } catch (parseError) {
-      appLog("warn", "ExtractChunk", "JSON parse failed, returning empty extraction", {
+      appLog("warn", "ExtractChunk", "JSON parse failed", {
         error: scrubError(parseError),
       });
-      extraction = { statements: [], facts: {}, additional_facts: [] };
+      return NextResponse.json(
+        { success: false, error: "Extraction parse failed", retryable: true },
+        { status: 200, headers: { "Cache-Control": "no-store" } },
+      );
     }
 
     return NextResponse.json(
