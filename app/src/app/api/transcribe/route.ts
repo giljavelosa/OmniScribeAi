@@ -120,11 +120,12 @@ async function transcribeSingle(
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
     const groqFormData = new FormData();
     groqFormData.append('file', new Blob([audioBuffer], { type: mimeType }), fileName);
-    groqFormData.append('model', 'whisper-large-v3-turbo');
+    groqFormData.append('model', 'whisper-large-v3');
     groqFormData.append('response_format', 'verbose_json');
     groqFormData.append('language', 'en');
     groqFormData.append('temperature', '0');
     groqFormData.append('timestamp_granularities[]', 'word');
+    groqFormData.append('timestamp_granularities[]', 'segment');
     groqFormData.append('prompt', MEDICAL_PROMPT);
 
     const controller = new AbortController();
@@ -218,11 +219,12 @@ async function transcribeChunked(
     const groqFormData = new FormData();
     const chunkName = `${fileName.replace(/\.wav$/i, '')}_chunk${chunk.index}.wav`;
     groqFormData.append('file', new Blob([chunk.buffer], { type: 'audio/wav' }), chunkName);
-    groqFormData.append('model', 'whisper-large-v3-turbo');
+    groqFormData.append('model', 'whisper-large-v3');
     groqFormData.append('response_format', 'verbose_json');
     groqFormData.append('language', 'en');
     groqFormData.append('temperature', '0');
     groqFormData.append('timestamp_granularities[]', 'word');
+    groqFormData.append('timestamp_granularities[]', 'segment');
     groqFormData.append('prompt', prompt);
 
     const controller = new AbortController();

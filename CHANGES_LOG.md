@@ -1107,5 +1107,40 @@ Enhances the Assessment/Medical Assessment section to include factual differenti
 
 ---
 
+### FIX-38 — Upgrade Whisper model to whisper-large-v3 + add segment timestamps ✅ RESOLVED
+**Date:** 2026-02-25
+**Files changed:**
+- `app/src/app/api/transcribe/route.ts` (MODIFIED) — model `whisper-large-v3-turbo` → `whisper-large-v3`, added `segment` timestamp granularity in both `transcribeSingle()` and `transcribeChunked()`
+- `app/src/app/api/transcribe-chunk/route.ts` (MODIFIED) — same changes for real-time chunk transcription
+
+**What it does:**
+- Switches from `whisper-large-v3-turbo` to `whisper-large-v3` (full model) across all 3 Groq Whisper call sites
+- Full v3 has lower word error rate — every word preserved, especially messy conversational parts where patients describe symptoms
+- Groq runs v3 at 299x real-time (30-min encounter ≈ 6 seconds) — turbo's extra speed is unnecessary
+- Adds `timestamp_granularities[]: segment` alongside existing `word` — gives segment-level timestamps in addition to word-level, providing the LLM more raw data to work with
+- Cost: ~$0.111/hour of audio (~5-6 cents per 30-min session) — negligible difference from turbo
+
+**HIPAA assessment:**
+- ✅ **Does NOT compromise HIPAA** — lower WER means more accurate clinical documentation
+- ✅ Same Groq API endpoint (already PHI-approved)
+- ✅ No new external endpoints, no PHI sent to new destinations
+- ✅ Segment data returned by API but not stored — code still reads only `text`, `words`, `duration`
+- ✅ No auth, encryption, rate limiting, logging, or security changes
+
+**Previous fixes in same files and how they're preserved:**
+- **FIX-10** (retry logic): Untouched
+- **FIX-11** (empty audio rejection): Untouched
+- **FIX-22** (chunked transcription): Untouched
+- **FIX-37** (temperature=0): Untouched — temperature setting preserved
+
+**What could break:**
+- Transcription may be very slightly slower per-request vs turbo (still under 10s for 30-min audio on Groq). Acceptable tradeoff for better accuracy.
+- `segments` field now present in Groq response but not consumed — no impact on existing code.
+
+**Build:** ✅ `npm run build` passes
+**Tests:** ✅ 71/71 pass
+
+---
+
 ## Remaining Items (not yet implemented)
 - **Infrastructure**: Configure staging/dev droplets

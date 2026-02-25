@@ -78,11 +78,12 @@ export async function POST(request: NextRequest) {
     // Call Groq Whisper API
     const groqFormData = new FormData();
     groqFormData.append("file", audioBlob, `chunk_${chunkIndex}.wav`);
-    groqFormData.append("model", "whisper-large-v3-turbo");
+    groqFormData.append("model", "whisper-large-v3");
     groqFormData.append("response_format", "verbose_json");
     groqFormData.append("language", "en");
     groqFormData.append("temperature", "0");
     groqFormData.append("timestamp_granularities[]", "word");
+    groqFormData.append("timestamp_granularities[]", "segment");
     groqFormData.append("prompt", fullPrompt);
 
     const groqUrl = "https://api.groq.com/openai/v1/audio/transcriptions";
