@@ -1426,5 +1426,44 @@ The codebase passed `npm run build` and 71/71 tests but had 14 paths where runti
 
 ---
 
+### FIX-50 — Persist notes to database + fix amendment flow ✅ RESOLVED
+**Date:** 2026-02-24
+**Files changed:**
+- `app/src/app/visit/new/page.tsx` (MODIFIED) — added `saveVisitToDatabase()` helper, called in both `processWithEncounterState` and `processAudio`
+- `app/src/app/visit/[id]/page.tsx` (MODIFIED) — load from DB for UUID visits, fix handleUpdate/handleFinalize error handling, guard amendment for non-DB visits
+- `app/src/lib/phi-storage.ts` (MODIFIED) — log localStorage write failures instead of silently swallowing
+
+**What it does:**
+- **visit/new/page.tsx**: After note generation, calls `POST /api/patients` (if needed) then `POST /api/visits` to persist the visit to the database. On success, navigates to the DB UUID visit ID. On failure, falls back to localStorage-only (non-blocking).
+- **visit/[id]/page.tsx**: If the visit ID is a UUID (not `visit-` or `mock-` prefix), fetches from `GET /api/visits/:id` and maps the DB schema to the VisitData interface. Falls back to localStorage for legacy/offline visits. Also caches DB visits to localStorage for offline access.
+- **handleUpdate**: Replaced `.catch(console.error)` with proper `res.ok` check + `setSaveStatus('Save failed')` on failure.
+- **handleFinalize**: Replaced `.catch(console.error)` with try/catch + status check + `setSaveStatus('Finalize save failed')`.
+- **handleSubmitAmendment**: Added guard for `visit-` prefixed IDs — skips DB call, saves to localStorage only.
+- **phi-storage.ts**: Empty `catch {}` in `setPhiItem` now logs via `console.warn`.
+- All raw `localStorage.setItem` calls in visit detail replaced with `setPhiItem` for proper TTL envelope.
+
+**Root cause this fixes:**
+- Notes were saved ONLY to localStorage (4h TTL) and never to the database
+- Dashboard couldn't show generated visits (queries DB, not localStorage)
+- Notes vanished on refresh after TTL expiry
+- PATCH/amend to `/api/visits/{id}` returned 404 because visit didn't exist in DB
+- Errors from PATCH/amend were swallowed by `.catch(console.error)`
+
+**What this does NOT change:**
+- No database schema changes (Visit table already has all needed fields)
+- No new API endpoints (POST /api/visits and POST /api/patients already exist)
+- No auth, encryption, rate limiting changes
+- Note generation pipeline unchanged
+
+**Previous fixes in same files:**
+- visit/new: UX-2, UX-3, UX-5, UX-6, UX-10, FIX-42, FIX-43, FIX-49 — all untouched
+- visit/[id]: FIX-8 (XSS verification), FIX-9 (PDF export) — untouched
+- phi-storage: FIX-13 (cleanup improvements) — untouched
+
+**Build:** ✅ `npm run build` passes
+**Tests:** ✅ 71/71 pass
+
+---
+
 ## Remaining Items (not yet implemented)
 - **Infrastructure**: Configure staging/dev droplets

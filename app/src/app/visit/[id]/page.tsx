@@ -11,6 +11,7 @@ import { getFrameworkById, getDomainColor, getDomainLabel } from '@/lib/framewor
 import { NoteSection } from "@/lib/types";
 import MiniRecorder from '@/components/MiniRecorder';
 import ClinicalSynthesis from '@/components/ClinicalSynthesis';
+import { appLog } from '@/lib/logger';
 
 function escapeHtml(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -141,9 +142,57 @@ export default function VisitDetailPage() {
 
   useEffect(() => {
     sweepExpiredPhiItems(); // clean up stale PHI on page load
-    const stored = getPhiItem<VisitData>(`omniscribe-visit-${visitId}`);
-    if (stored) setVisitData(stored);
-    setLoading(false);
+
+    const isClientId = visitId.startsWith('visit-') || visitId.startsWith('mock-');
+
+    if (!isClientId) {
+      // DB visit — fetch from API, fall back to localStorage
+      fetch(`/api/visits/${visitId}`)
+        .then(async (res) => {
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const { visit } = await res.json();
+          // Map DB Visit schema to VisitData interface
+          const mapped: VisitData = {
+            id: visit.id,
+            patientName: [visit.patient?.firstName, visit.patient?.lastName].filter(Boolean).join(' ') || visit.patient?.identifier || 'Unknown',
+            providerType: visit.user?.clinicianType || '',
+            frameworkId: visit.frameworkId,
+            transcript: visit.transcript || '',
+            transcriptSource: visit.transcriptSource || '',
+            transcriptDuration: visit.duration || 0,
+            transcriptConfidence: visit.transcriptConfidence || 0,
+            parsedData: (visit.parsedData as VisitData['parsedData']) || undefined,
+            clinicalNote: (visit.noteData as VisitData['clinicalNote']) || undefined,
+            clinicalSynthesis: (visit.clinicalSynthesis as VisitData['clinicalSynthesis']) || undefined,
+            compliance: (visit.auditResult as VisitData['compliance']) || undefined,
+            summary: visit.summary || '',
+            extractedFacts: typeof visit.extractedFacts === 'string' ? visit.extractedFacts : visit.extractedFacts ? JSON.stringify(visit.extractedFacts) : undefined,
+            auditClean: undefined,
+            auditIssues: undefined,
+            source: '',
+            generationTime: visit.generationTime || 0,
+            createdAt: visit.date || visit.createdAt || '',
+            finalized: visit.status === 'FINALIZED' || visit.status === 'AMENDED' || !!visit.finalizedAt,
+            finalizedAt: visit.finalizedAt || undefined,
+            amendments: (visit.amendments as VisitData['amendments']) || undefined,
+          };
+          setVisitData(mapped);
+          // Also cache to localStorage for offline access
+          setPhiItem(`omniscribe-visit-${visitId}`, mapped);
+          setLoading(false);
+        })
+        .catch(() => {
+          // API failed — try localStorage fallback
+          const stored = getPhiItem<VisitData>(`omniscribe-visit-${visitId}`);
+          if (stored) setVisitData(stored);
+          setLoading(false);
+        });
+    } else {
+      // Client-generated or mock ID — use localStorage
+      const stored = getPhiItem<VisitData>(`omniscribe-visit-${visitId}`);
+      if (stored) setVisitData(stored);
+      setLoading(false);
+    }
   }, [visitId]);
 
   const mockVisit = mockVisits.find(v => v.id === visitId);
@@ -203,16 +252,26 @@ export default function VisitDetailPage() {
       const key = tab === 'clinicalNote' ? 'clinicalNote' : 'parsedData';
       const updatedVisit = { ...visitData, [key]: updatedSections };
       setVisitData(updatedVisit);
-      localStorage.setItem(`omniscribe-visit-${visitId}`, JSON.stringify(updatedVisit));
-      if (!visitId.startsWith('mock-')) {
+      setPhiItem(`omniscribe-visit-${visitId}`, updatedVisit);
+      const isDbVisit = !visitId.startsWith('mock-') && !visitId.startsWith('visit-');
+      if (isDbVisit) {
         fetch(`/api/visits/${visitId}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ noteData: updatedSections, status: 'COMPLETE' }),
-        }).catch(console.error);
+        }).then(res => {
+          if (!res.ok) {
+            setSaveStatus('Save failed');
+            appLog('warn', 'VisitDetail', 'PATCH update failed', { visitId, status: res.status });
+          }
+        }).catch(() => {
+          setSaveStatus('Save failed');
+        });
       }
     }
-    setTimeout(() => setSaveStatus('Saved'), 500);
+    setTimeout(() => {
+      setSaveStatus(prev => prev === 'Save failed' ? prev : 'Saved');
+    }, 500);
   };
 
   const handleFinalize = async () => {
@@ -226,13 +285,24 @@ export default function VisitDetailPage() {
       finalizedAt: now,
     };
     setVisitData(finalizedVisit);
-    localStorage.setItem(`omniscribe-visit-${visitId}`, JSON.stringify(finalizedVisit));
-    if (!visitId.startsWith('mock-')) {
-      await fetch(`/api/visits/${visitId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'FINALIZED', noteData: finalizedVisit.clinicalNote || finalizedVisit.note, finalizedAt: now }),
-      }).catch(console.error);
+    setPhiItem(`omniscribe-visit-${visitId}`, finalizedVisit);
+    const isDbVisit = !visitId.startsWith('mock-') && !visitId.startsWith('visit-');
+    if (isDbVisit) {
+      try {
+        const res = await fetch(`/api/visits/${visitId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: 'FINALIZED', noteData: finalizedVisit.clinicalNote || finalizedVisit.note, finalizedAt: now }),
+        });
+        if (!res.ok) {
+          appLog('warn', 'VisitDetail', 'Finalize PATCH failed', { visitId, status: res.status });
+          setSaveStatus('Finalize save failed');
+          return;
+        }
+      } catch {
+        setSaveStatus('Finalize save failed');
+        return;
+      }
     }
     setSaveStatus('Finalized');
   };
@@ -266,8 +336,9 @@ export default function VisitDetailPage() {
         return;
       }
 
-      // Save to DB
-      if (!visitId.startsWith('mock-')) {
+      // Save to DB (only for DB-persisted visits, not client-generated IDs)
+      const isDbVisit = !visitId.startsWith('mock-') && !visitId.startsWith('visit-');
+      if (isDbVisit) {
         const res = await fetch(`/api/visits/${visitId}/amend`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -295,7 +366,7 @@ export default function VisitDetailPage() {
         amendments: [...existingAmendments, amendment],
       };
       setVisitData(updatedVisit);
-      localStorage.setItem(`omniscribe-visit-${visitId}`, JSON.stringify(updatedVisit));
+      setPhiItem(`omniscribe-visit-${visitId}`, updatedVisit);
       setAmendModalOpen(false);
       setSaveStatus('Amendment saved');
     } catch (err: unknown) {

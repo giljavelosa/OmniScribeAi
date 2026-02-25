@@ -11,6 +11,7 @@ import FrameworkSelector from '@/components/FrameworkSelector';
 import { ProviderType } from '@/lib/types';
 import { getSuggestedDomain } from '@/lib/frameworks';
 import { appLog } from '@/lib/logger';
+import { getFrameworkById } from '@/lib/frameworks';
 import type { EncounterState } from '@/lib/encounter-state';
 
 function escapeHtml(s: string): string {
@@ -211,6 +212,76 @@ function NewVisitContent() {
     return updated;
   }, []);
 
+  // Persist a completed visit to the database. Returns the DB visit ID on success, null on failure.
+  // Failure is non-blocking — the note stays in localStorage and the user can still view it.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const saveVisitToDatabase = async (visitData: Record<string, any>): Promise<string | null> => {
+    try {
+      // Step 1: Ensure we have a patient ID
+      let pid = patientId;
+      if (!pid) {
+        // No linked patient — create one from the typed name
+        const nameParts = patientName.trim().split(/\s+/);
+        const firstName = nameParts[0] || patientName.trim();
+        const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : null;
+        const identifier = patientName.trim(); // use full name as identifier
+
+        const patientRes = await fetch('/api/patients', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ identifier, firstName, lastName }),
+        });
+        if (!patientRes.ok) {
+          const err = await patientRes.json().catch(() => ({}));
+          appLog('warn', 'NewVisit', 'Failed to create patient for DB save', { error: err.error || patientRes.status });
+          return null;
+        }
+        const patientData = await patientRes.json();
+        pid = patientData.patient?.id;
+        if (!pid) return null;
+      }
+
+      // Step 2: Look up the framework domain
+      const fw = getFrameworkById(frameworkId);
+      const domain = fw?.domain || 'medical';
+
+      // Step 3: Create the visit
+      const visitRes = await fetch('/api/visits', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          patientId: pid,
+          frameworkId,
+          domain,
+          status: 'COMPLETE',
+          transcript: visitData.transcript,
+          transcriptSource: visitData.transcriptSource,
+          transcriptConfidence: visitData.transcriptConfidence || null,
+          duration: visitData.transcriptDuration || null,
+          noteData: visitData.clinicalNote || visitData.parsedData || null,
+          parsedData: visitData.parsedData || null,
+          auditResult: visitData.auditResult || null,
+          cmsScore: typeof visitData.compliance === 'object' && visitData.compliance !== null && 'score' in visitData.compliance
+            ? (visitData.compliance as { score: number }).score
+            : null,
+          summary: visitData.summary || null,
+          generationTime: visitData.generationTime || null,
+        }),
+      });
+      if (!visitRes.ok) {
+        const err = await visitRes.json().catch(() => ({}));
+        appLog('warn', 'NewVisit', 'Failed to save visit to DB', { error: err.error || visitRes.status });
+        return null;
+      }
+      const { visit } = await visitRes.json();
+      appLog('info', 'NewVisit', 'Visit saved to DB', { visitId: visit.id, patientId: pid });
+      return visit.id as string;
+    } catch (err) {
+      appLog('warn', 'NewVisit', 'DB save error', { error: err instanceof Error ? err.message : String(err) });
+      return null;
+    }
+  };
+
   const canGenerate = patientName.trim() !== '' && frameworkId !== '';
 
   // Callback for live transcript updates during recording
@@ -288,17 +359,18 @@ function NewVisitContent() {
       const formattedTranscript = diarizedLines.join('\n\n');
 
       // Store visit data
-      const visitId = `visit-${Date.now()}`;
-      const visitData = {
+      let visitId = `visit-${Date.now()}`;
+      const transcriptDuration = Math.round(encounterState.diarized_transcript.length > 0
+        ? encounterState.diarized_transcript[encounterState.diarized_transcript.length - 1].t1
+        : 0);
+      const visitDataObj = {
         id: visitId,
         patientName,
         providerType,
         frameworkId,
         transcript: formattedTranscript,
         transcriptSource: 'groq-realtime',
-        transcriptDuration: Math.round(encounterState.diarized_transcript.length > 0
-          ? encounterState.diarized_transcript[encounterState.diarized_transcript.length - 1].t1
-          : 0),
+        transcriptDuration,
         parsedData: noteData.parsedData,
         clinicalNote: noteData.clinicalNote,
         summary: noteData.summary,
@@ -315,7 +387,26 @@ function NewVisitContent() {
         createdAt: new Date().toISOString(),
       };
 
-      setPhiItem(`omniscribe-visit-${visitId}`, visitData);
+      // Try to persist to database (non-blocking — falls back to localStorage-only)
+      const dbVisitId = await saveVisitToDatabase({
+        transcript: formattedTranscript,
+        transcriptSource: 'groq-realtime',
+        transcriptDuration,
+        parsedData: noteData.parsedData,
+        clinicalNote: noteData.clinicalNote,
+        summary: noteData.summary,
+        compliance: noteData.compliance,
+        auditResult: noteData.auditResult,
+        generationTime: noteData.generationTime,
+        mode: 'encounter-state',
+      });
+
+      if (dbVisitId) {
+        visitId = dbVisitId;
+        visitDataObj.id = dbVisitId;
+      }
+
+      setPhiItem(`omniscribe-visit-${visitId}`, visitDataObj);
 
       setProgress(100);
       setProgressText('Done!');
@@ -415,9 +506,9 @@ function NewVisitContent() {
       setProgress(80);
       setProgressText('Finalizing clinical note...');
 
-      // Step 3: Store in localStorage for the visit page to pick up
-      const visitId = `visit-${Date.now()}`;
-      const visitData = {
+      // Step 3: Store visit data and persist to DB
+      let visitId = `visit-${Date.now()}`;
+      const visitDataObj = {
         id: visitId,
         patientName,
         providerType,
@@ -438,7 +529,26 @@ function NewVisitContent() {
         createdAt: new Date().toISOString(),
       };
 
-      setPhiItem(`omniscribe-visit-${visitId}`, visitData);
+      // Try to persist to database (non-blocking — falls back to localStorage-only)
+      const dbVisitId = await saveVisitToDatabase({
+        transcript: transcribeData.transcript,
+        transcriptSource: transcribeData.source,
+        transcriptDuration: transcribeData.duration,
+        transcriptConfidence: transcribeData.confidence,
+        parsedData: noteData.parsedData,
+        clinicalNote: noteData.clinicalNote,
+        summary: noteData.summary,
+        compliance: noteData.compliance,
+        auditResult: noteData.auditResult,
+        generationTime: noteData.generationTime,
+      });
+
+      if (dbVisitId) {
+        visitId = dbVisitId;
+        visitDataObj.id = dbVisitId;
+      }
+
+      setPhiItem(`omniscribe-visit-${visitId}`, visitDataObj);
 
       setProgress(100);
       setProgressText('Done!');

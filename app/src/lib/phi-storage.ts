@@ -29,8 +29,8 @@ export function setPhiItem<T>(key: string, value: T): void {
   };
   try {
     localStorage.setItem(key, JSON.stringify(entry));
-  } catch {
-    // Storage quota exceeded or blocked — fail silently (data still in memory)
+  } catch (err) {
+    console.warn('[phi-storage] localStorage write failed for key:', key, err);
   }
 }
 
