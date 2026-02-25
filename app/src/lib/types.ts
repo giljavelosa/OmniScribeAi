@@ -30,6 +30,8 @@ export interface Visit {
   transcript: string;
   note: NoteSection[];
   summary: string;
+  templateId?: string | null;
+  templateSnapshotJson?: unknown | null;
 }
 
 export interface NoteSection {
@@ -42,3 +44,28 @@ export interface NoteSection {
 export type ProviderType = 'MD' | 'DO' | 'PA-C' | 'NP' | 'PT' | 'OT' | 'SLP' | 'LCSW' | 'PhD' | 'PsyD';
 
 export type Domain = 'medical' | 'rehabilitation' | 'behavioral_health';
+
+// ─── Note Template Types ──────────────────────────────────
+
+export interface NoteTemplateSummary {
+  id: string;
+  name: string;
+  description: string | null;
+  domain: string;
+  noteFormat: string;
+  subtype: string | null;
+  sourceType: 'system' | 'user';
+  sourceFrameworkId: string | null;
+  ownerUserId: string | null;
+  visibility: 'private' | 'organization' | null;  // null for system
+  organizationId: string | null;
+  itemCount: number;
+  version: number;
+  isArchived: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface NoteTemplateDetail extends NoteTemplateSummary {
+  structureJson: unknown;  // TemplateStructure (validated by zod at runtime)
+}

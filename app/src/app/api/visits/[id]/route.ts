@@ -68,6 +68,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       'extractedFacts', 'clinicalSynthesis', 'parsedData', 'noteData', 'auditResult',
       'cmsScore', 'summary', 'generationTime', 'duration',
       'finalizedAt', 'finalizedBy',
+      'templateId', 'templateSnapshotJson',
     ] as const;
 
     const allowed: Record<string, unknown> = {};

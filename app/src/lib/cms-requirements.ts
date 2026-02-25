@@ -11,13 +11,14 @@ export interface CMSRequirement {
 }
 
 export interface ComplianceResult {
-  score: number;                    // 0-100 percentage
+  cmsStatus: 'scored' | 'not_applicable';
+  score: number | null;             // 0-100 percentage, null when not_applicable
   totalRequired: number;
   documented: number;
   missing: CMSRequirement[];
   documented_items: CMSRequirement[];
-  grade: 'A' | 'B' | 'C' | 'D' | 'F';
-  riskLevel: 'low' | 'moderate' | 'high' | 'critical';
+  grade: 'A' | 'B' | 'C' | 'D' | 'F' | null;  // null when not_applicable
+  riskLevel: 'low' | 'moderate' | 'high' | 'critical' | null;  // null when not_applicable
   summary: string;
 }
 
@@ -379,14 +380,15 @@ export function calculateCompliance(
   const requirements = cmsRequirements[frameworkId];
   if (!requirements) {
     return {
-      score: -1,
+      cmsStatus: 'not_applicable',
+      score: null,
       totalRequired: 0,
       documented: 0,
       missing: [],
       documented_items: [],
-      grade: 'A',
-      riskLevel: 'low',
-      summary: 'No CMS requirements defined for this framework yet.',
+      grade: null,
+      riskLevel: null,
+      summary: 'CMS compliance scoring is not available for this template.',
     };
   }
 
@@ -396,6 +398,7 @@ export function calculateCompliance(
     facts = JSON.parse(extractedFacts);
   } catch {
     return {
+      cmsStatus: 'scored',
       score: 0, totalRequired: requirements.length, documented: 0,
       missing: requirements, documented_items: [], grade: 'F', riskLevel: 'critical',
       summary: 'Unable to parse extracted facts.',
@@ -505,6 +508,7 @@ export function calculateCompliance(
   }
 
   return {
+    cmsStatus: 'scored',
     score,
     totalRequired,
     documented: documented.length,
@@ -513,7 +517,5 @@ export function calculateCompliance(
     grade,
     riskLevel,
     summary: summaryParts.join('. ') + '.',
-  
-
-};
+  };
 }

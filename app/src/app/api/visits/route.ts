@@ -1,6 +1,7 @@
 import { auth } from "@/lib/auth";
 import { auditLog } from "@/lib/audit";
 import { prisma } from "@/lib/db";
+import { frameworks } from "@/lib/frameworks";
 import { NextRequest, NextResponse } from "next/server";
 import { appLog, scrubError } from "@/lib/logger";
 
@@ -44,6 +45,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "patientId and frameworkId required" }, { status: 400 });
     }
 
+    // Validate frameworkId: must be a known framework or 'custom'
+    const isKnownFramework = frameworks.some(f => f.id === data.frameworkId);
+    if (!isKnownFramework && data.frameworkId !== 'custom') {
+      return NextResponse.json({ error: "Invalid frameworkId: must be a known framework or 'custom'" }, { status: 400 });
+    }
+
     const visit = await prisma.visit.create({
       data: {
         patientId: data.patientId,
@@ -64,6 +71,8 @@ export async function POST(req: NextRequest) {
         cmsScore: data.cmsScore || null,
         summary: data.summary || null,
         generationTime: data.generationTime || null,
+        templateId: data.templateId || null,
+        templateSnapshotJson: data.templateSnapshotJson || null,
       },
     });
 
@@ -71,7 +80,7 @@ export async function POST(req: NextRequest) {
       userId: session.user.id,
       action: "CREATE_VISIT",
       resource: `visit:${visit.id}`,
-      details: { frameworkId: data.frameworkId, patientId: data.patientId },
+      details: { frameworkId: data.frameworkId, patientId: data.patientId, templateId: data.templateId || undefined },
     });
 
     return NextResponse.json({ visit }, { status: 201 });

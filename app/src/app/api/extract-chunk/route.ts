@@ -17,6 +17,8 @@ import { appLog, scrubError, errorCode } from "@/lib/logger";
 import { NextRequest, NextResponse } from "next/server";
 import { frameworks } from "@/lib/frameworks";
 import { safeJsonKey } from "@/lib/prompt-sanitizer";
+import { resolveTemplate, TemplateResolutionError } from "@/lib/template-resolver";
+import { prisma } from "@/lib/db";
 import type { ExtractionResult, DiarizedStatement, ClinicalFact } from "@/lib/encounter-state";
 
 export const maxDuration = 60;
@@ -30,7 +32,8 @@ interface ExtractRequest {
   text: string;
   words: Array<{ word: string; start: number; end: number }>;
   globalStartSec: number;
-  frameworkId: string;
+  frameworkId?: string;
+  templateId?: string;
   previousContext?: {
     lastSpeaker: "CLINICIAN" | "PATIENT" | "UNKNOWN";
     topic: string;
@@ -46,7 +49,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const body: ExtractRequest = await request.json();
-    const { text, words, globalStartSec, frameworkId, previousContext } = body;
+    const { text, words, globalStartSec, frameworkId, templateId, previousContext } = body;
 
     if (!text || text.trim().length === 0) {
       return NextResponse.json(
@@ -55,16 +58,51 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const framework = frameworks.find((f) => f.id === frameworkId);
-    if (!framework) {
+    if (!templateId && !frameworkId) {
       return NextResponse.json(
-        { success: false, error: "Unknown framework" },
+        { success: false, error: "Either templateId or frameworkId is required" },
         { status: 400 },
       );
     }
 
+    // ═══ Template Resolution — templateId takes priority over frameworkId ═══
+    let resolved;
+    try {
+      const user = await prisma.user.findUnique({
+        where: { id: session.user.id },
+        select: { organizationId: true },
+      });
+
+      resolved = await resolveTemplate({
+        templateId: templateId || undefined,
+        frameworkId: !templateId ? frameworkId : undefined,
+        userId: session.user.id,
+        userOrgId: user?.organizationId,
+      });
+    } catch (err) {
+      if (err instanceof TemplateResolutionError) {
+        return NextResponse.json(
+          { success: false, error: err.message, code: err.code },
+          { status: 400 },
+        );
+      }
+      throw err;
+    }
+
+    const framework = {
+      id: resolved.id,
+      name: resolved.name,
+      domain: resolved.domain,
+      type: resolved.type,
+      subtype: resolved.subtype,
+      sections: resolved.frameworkSections,
+      itemCount: resolved.itemCount,
+    };
+    const resolvedFrameworkId = resolved.sourceType === 'system' ? resolved.id : (resolved.sourceFrameworkId || 'custom');
+
     appLog("info", "ExtractChunk", "Starting extraction", {
-      frameworkId,
+      frameworkId: resolvedFrameworkId,
+      templateId: templateId || undefined,
       textLength: text.length,
       wordCount: words.length,
       globalStartSec: Math.round(globalStartSec),

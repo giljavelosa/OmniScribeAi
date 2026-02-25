@@ -25,6 +25,7 @@ model User {
   sessions       Session[]
   accounts       Account[]
   visits         Visit[]
+  ownedTemplates NoteTemplate[] @relation("OwnedTemplates")
   auditLogs      AuditLog[]
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
@@ -81,10 +82,11 @@ model Organization {
   zip       String?
   phone     String?
   fax       String?
-  users     User[]
-  patients  Patient[]
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  users          User[]
+  patients       Patient[]
+  noteTemplates  NoteTemplate[]
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 }
 
 // ─── FHIR-Aligned Patient ────────────────────────────────
@@ -231,6 +233,38 @@ model PatientDocument {
   @@index([patientId])
 }
 
+// ─── Note Templates ──────────────────────────────────────
+
+model NoteTemplate {
+  id                String         @id @default(cuid())
+  name              String
+  description       String?        @db.Text
+  domain            String         // 'medical' | 'rehabilitation' | 'behavioral_health'
+  noteFormat        String         // 'SOAP' | 'DAP' | 'narrative' | 'H&P' | 'eval' | 'custom'
+  subtype           String?
+  sourceType        String         // 'system' | 'user'
+  sourceFrameworkId String?        // original frameworkId if cloned from built-in
+  visibility        String         @default("private") // 'private' | 'organization'
+  ownerUserId       String?
+  ownerUser         User?          @relation("OwnedTemplates", fields: [ownerUserId], references: [id])
+  organizationId    String?
+  organization      Organization?  @relation(fields: [organizationId], references: [id])
+  structureJson     Json           // validated by TemplateStructureSchema
+  itemCount         Int
+  version           Int            @default(1)
+  isArchived        Boolean        @default(false)
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  visits            Visit[]        @relation("TemplateVisits")
+
+  @@index([ownerUserId])
+  @@index([organizationId])
+  @@index([domain])
+  @@index([sourceType])
+  @@index([visibility])
+}
+
 // ─── FHIR-Aligned Visit (Encounter) ─────────────────────
 
 model Visit {
@@ -239,8 +273,11 @@ model Visit {
   patient       Patient     @relation(fields: [patientId], references: [id])
   userId        String
   user          User        @relation(fields: [userId], references: [id])
-  frameworkId   String
-  domain        String
+  frameworkId           String
+  domain                String
+  templateId            String?
+  template              NoteTemplate?  @relation("TemplateVisits", fields: [templateId], references: [id])
+  templateSnapshotJson  Json?
   date          DateTime    @default(now())
   duration      Int?        // seconds
   status        VisitStatus @default(RECORDING)

@@ -11,6 +11,8 @@ import { frameworks } from "@/lib/frameworks";
 import { mockNotes } from "@/lib/mock-data";
 import { validateEncounterState } from "@/lib/encounter-validator";
 import { createInitialEncounterState, serializeFactsForPrompt, formatTranscriptForNoteGeneration, type EncounterState, type ClinicalFact } from "@/lib/encounter-state";
+import { resolveTemplate, effectiveFrameworkId, buildSnapshot, TemplateResolutionError } from "@/lib/template-resolver";
+import { prisma } from "@/lib/db";
 
 // Validate API key tier on module load
 assertProductionApiKey();
@@ -83,17 +85,17 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json();
-  const { transcript, frameworkId, useMock, regenerateFrom, mode, encounterState } = body;
+  const { transcript, frameworkId, templateId, visitId, useMock, regenerateFrom, mode, encounterState } = body;
 
   // Mock mode — return JSON directly (no streaming needed)
   if (useMock === true || (!process.env.ANTHROPIC_API_KEY && !process.env.XAI_API_KEY && !process.env.DEEPSEEK_API_KEY)) {
     await new Promise((resolve) => setTimeout(resolve, 500));
-    // Only 2 framework IDs differ from their mock key; the rest match directly
+    const mockFrameworkId = frameworkId || 'rehab-pt-eval';
     const FRAMEWORK_TO_MOCK: Record<string, string> = {
       'rehab-pt-eval': 'pt-eval',
       'med-soap-followup': 'soap-followup',
     };
-    const noteKey = FRAMEWORK_TO_MOCK[frameworkId] ?? frameworkId;
+    const noteKey = FRAMEWORK_TO_MOCK[mockFrameworkId] ?? mockFrameworkId;
     const note = mockNotes[noteKey] ?? mockNotes['pt-eval'];
     return new Response(JSON.stringify({
       success: true,
@@ -105,17 +107,58 @@ export async function POST(request: NextRequest) {
     }), { headers: { "Content-Type": "application/json" } });
   }
 
-  const framework = frameworks.find((f) => f.id === frameworkId);
-  if (!framework) {
-    return new Response(JSON.stringify({ success: false, error: "Framework not found" }), { status: 400, headers: { "Content-Type": "application/json" } });
+  // ═══════════════════════════════════════════════════════════════
+  // TEMPLATE RESOLUTION — resolve template or framework
+  // templateId takes priority over frameworkId
+  // ═══════════════════════════════════════════════════════════════
+  let resolved;
+  try {
+    // Get user's org for visibility check
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { organizationId: true },
+    });
+
+    if (templateId && frameworkId) {
+      appLog('warn', 'GenNote', 'Both templateId and frameworkId provided — templateId takes priority', { templateId, frameworkId });
+    }
+
+    resolved = await resolveTemplate({
+      templateId: templateId || undefined,
+      frameworkId: !templateId ? frameworkId : undefined,
+      userId: session.user.id,
+      userOrgId: user?.organizationId,
+    });
+  } catch (err) {
+    if (err instanceof TemplateResolutionError) {
+      return new Response(JSON.stringify({ success: false, error: err.message, code: err.code }), { status: 400, headers: { "Content-Type": "application/json" } });
+    }
+    throw err;
   }
+
+  // Build a framework-compatible object from the resolved template
+  const framework = {
+    id: resolved.id,
+    name: resolved.name,
+    domain: resolved.domain as 'medical' | 'rehabilitation' | 'behavioral_health',
+    type: resolved.type,
+    subtype: resolved.subtype,
+    sections: resolved.frameworkSections,
+    itemCount: resolved.itemCount,
+  };
+  const resolvedFrameworkId = effectiveFrameworkId(resolved);
+  const templateSnapshot = buildSnapshot(resolved);
 
   // ═══════════════════════════════════════════════════════════════
   // ENCOUNTER-STATE MODE — 2-pass pipeline
   // Used when real-time extraction built the EncounterState during recording
   // ═══════════════════════════════════════════════════════════════
   if (mode === 'encounter-state' && encounterState) {
-    return handleEncounterStateMode(encounterState as EncounterState, framework, frameworkId, session);
+    return handleEncounterStateMode(encounterState as EncounterState, framework, resolvedFrameworkId, session, {
+      templateSnapshot,
+      frameworkSections: resolved.frameworkSections,
+      visitId,
+    });
   }
 
   // ═══════════════════════════════════════════════════════════════
@@ -129,12 +172,16 @@ export async function POST(request: NextRequest) {
   }
 
   appLog('info', 'GenNote', 'Transcript mode — building EncounterState from full transcript', {
-    frameworkId,
+    frameworkId: resolvedFrameworkId,
     transcriptLength: transcriptText.length,
   });
 
   const builtState = await buildEncounterStateFromTranscript(transcriptText, framework);
-  return handleEncounterStateMode(builtState, framework, frameworkId, session);
+  return handleEncounterStateMode(builtState, framework, resolvedFrameworkId, session, {
+    templateSnapshot,
+    frameworkSections: resolved.frameworkSections,
+    visitId,
+  });
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -146,7 +193,7 @@ export async function POST(request: NextRequest) {
 
 async function buildEncounterStateFromTranscript(
   transcript: string,
-  framework: (typeof frameworks)[number],
+  framework: { id: string; name: string; domain: string; type: string; subtype: string; sections: Array<{ id: string; title: string; items: string[]; required: boolean }>; itemCount: number },
 ): Promise<EncounterState> {
   const state = createInitialEncounterState(framework.sections);
 
@@ -297,9 +344,14 @@ Return null and "not_documented" for anything not explicitly stated.`;
 
 async function handleEncounterStateMode(
   encounterState: EncounterState,
-  framework: (typeof frameworks)[number],
+  framework: { id: string; name: string; domain: string; type: string; subtype: string; sections: Array<{ id: string; title: string; items: string[]; required: boolean }>; itemCount: number },
   frameworkId: string,
   session: { user: { id: string; name: string | null; email: string } },
+  templateOptions?: {
+    templateSnapshot?: import('@/lib/template-schema').TemplateSnapshot;
+    frameworkSections?: Array<{ id: string; title: string; items: string[]; required: boolean }>;
+    visitId?: string;
+  },
 ) {
   const encoder = new TextEncoder();
   const stream = new ReadableStream({
@@ -318,7 +370,9 @@ async function handleEncounterStateMode(
         });
 
         // ─── Step 0: Deterministic validation (zero tokens) ───
-        const validation = validateEncounterState(encounterState, frameworkId);
+        const validation = validateEncounterState(encounterState, frameworkId, {
+          frameworkSections: templateOptions?.frameworkSections,
+        });
         appLog('info', 'GenNote', 'Validation complete', {
           valid: validation.valid,
           warningCount: validation.warnings.length,
@@ -411,7 +465,7 @@ WRITE THE NOTE:
 9. Include tables for objective measurements (ROM, MMT, vitals, goniometric data) where applicable
 10. NEVER add clinical data not present in ${hasTranscript ? 'either the Facts JSON or the Transcript' : 'the EncounterState JSON'} — clinical terminology upgrades are expected, fabricated findings are not
 11. NEVER mention or list items that were not assessed, not documented, or not in ${hasTranscript ? 'either source' : 'the JSON'}
-12. The compliance score is ${validation.compliance.score}% (grade: ${validation.compliance.grade})${validation.requiredMissing.length > 0 ? ` — missing: ${validation.requiredMissing.join(', ')}` : ''}
+12. ${validation.compliance.cmsStatus === 'scored' ? `The compliance score is ${validation.compliance.score}% (grade: ${validation.compliance.grade})${validation.requiredMissing.length > 0 ? ` — missing: ${validation.requiredMissing.join(', ')}` : ''}` : 'CMS compliance scoring is not applicable for this template.'}
 
 FRAMEWORK: ${sanitizeForPrompt(framework.name)}
 TYPE: ${sanitizeForPrompt(framework.type)} — ${sanitizeForPrompt(framework.subtype)}
@@ -575,6 +629,45 @@ Return ONLY valid JSON:
           appLog('warn', 'GenNote', 'HIPAA audit log failed (non-blocking)', { error: scrubError(auditLogErr) });
         }
 
+        // ─── Snapshot persistence (if visitId provided) ────────
+        let snapshotPersisted: boolean | undefined;
+        let snapshotError: string | undefined;
+        if (templateOptions?.visitId && templateOptions?.templateSnapshot) {
+          try {
+            // Ownership check: verify visit belongs to the authenticated user
+            const visitRecord = await prisma.visit.findUnique({
+              where: { id: templateOptions.visitId },
+              select: { id: true, userId: true },
+            });
+            if (!visitRecord) {
+              snapshotPersisted = false;
+              snapshotError = 'Visit not found';
+              appLog('warn', 'GenNote', 'Snapshot persistence skipped — visit not found', {
+                visitId: templateOptions.visitId,
+              });
+            } else if (visitRecord.userId !== session.user.id) {
+              snapshotPersisted = false;
+              snapshotError = 'Forbidden visit access';
+              appLog('warn', 'GenNote', 'Snapshot persistence denied — visit belongs to another user', {
+                visitId: templateOptions.visitId,
+              });
+            } else {
+              await prisma.visit.update({
+                where: { id: templateOptions.visitId },
+                data: { templateSnapshotJson: JSON.parse(JSON.stringify(templateOptions.templateSnapshot)) },
+              });
+              snapshotPersisted = true;
+            }
+          } catch (snapErr) {
+            snapshotPersisted = false;
+            snapshotError = scrubError(snapErr);
+            appLog('error', 'GenNote', 'Failed to persist template snapshot', {
+              visitId: templateOptions.visitId,
+              error: snapshotError,
+            });
+          }
+        }
+
         // Send final result
         send("result", {
           success: true,
@@ -594,6 +687,8 @@ Return ONLY valid JSON:
           source: getActiveProvider(),
           tokensUsed: totalTokens,
           mode: 'encounter-state',
+          templateSnapshot: templateOptions?.templateSnapshot || undefined,
+          ...(snapshotPersisted !== undefined ? { snapshotPersisted, snapshotError } : {}),
         });
       } catch (error) {
         const code = errorCode();

@@ -50,6 +50,9 @@ export interface ValidationResult {
 export function validateEncounterState(
   state: EncounterState,
   frameworkId: string,
+  options?: {
+    frameworkSections?: Array<{ id: string; title: string; items: string[]; required: boolean }>;
+  },
 ): ValidationResult {
   const errors: string[] = [];
   const warnings: string[] = [];
@@ -57,7 +60,10 @@ export function validateEncounterState(
   let documentedFactCount = 0;
   let evidenceLinkedCount = 0;
 
-  const framework = frameworks.find(f => f.id === frameworkId);
+  // Use provided sections (custom template) or look up from frameworks.ts (system)
+  const framework = options?.frameworkSections
+    ? { sections: options.frameworkSections }
+    : frameworks.find(f => f.id === frameworkId);
   if (!framework) {
     errors.push(`Unknown framework: ${frameworkId}`);
     return {
@@ -172,14 +178,15 @@ function calculateComplianceFromState(
 ): ComplianceResult {
   if (requirements.length === 0) {
     return {
-      score: -1,
+      cmsStatus: 'not_applicable',
+      score: null,
       totalRequired: 0,
       documented: 0,
       missing: [],
       documented_items: [],
-      grade: 'A',
-      riskLevel: 'low',
-      summary: 'No CMS requirements defined for this framework yet.',
+      grade: null,
+      riskLevel: null,
+      summary: 'CMS compliance scoring is not available for this template.',
     };
   }
 
@@ -255,6 +262,7 @@ function calculateComplianceFromState(
   }
 
   return {
+    cmsStatus: 'scored',
     score,
     totalRequired,
     documented: documented.length,
@@ -274,13 +282,14 @@ function toKey(name: string): string {
 
 function emptyCompliance(): ComplianceResult {
   return {
-    score: 0,
+    cmsStatus: 'not_applicable',
+    score: null,
     totalRequired: 0,
     documented: 0,
     missing: [],
     documented_items: [],
-    grade: 'F',
-    riskLevel: 'critical',
+    grade: null,
+    riskLevel: null,
     summary: 'Unable to calculate compliance.',
   };
 }
