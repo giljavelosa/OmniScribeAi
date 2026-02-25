@@ -1487,5 +1487,40 @@ The codebase passed `npm run build` and 71/71 tests but had 14 paths where runti
 
 ---
 
+## PHASE-2B: Template Management UI Pages ✅ RESOLVED
+**Date:** 2026-02-25
+**Branch:** feat/template-management-ui-phase2b
+**Files changed:**
+- `app/src/lib/template-client.ts` (MODIFIED) — Full CRUD helpers: fetchTemplates, fetchTemplate, createTemplate, updateTemplate, archiveTemplate, unarchiveTemplate, cloneTemplate + legacy aliases
+- `app/src/components/ConfirmDialog.tsx` (NEW) — Reusable confirm/cancel modal with danger variant
+- `app/src/components/template-builder/TemplateMetadataForm.tsx` (NEW) — Controlled fields: name, description, domain, noteFormat, subtype, visibility
+- `app/src/components/template-builder/ItemEditor.tsx` (NEW) — Single item editor with auto-key, required/hidden toggles, guidance text, style hints, move up/down/delete
+- `app/src/components/template-builder/SectionEditor.tsx` (NEW) — Collapsible section card with item CRUD, reorder, per-section required/hidden
+- `app/src/components/TemplateBuilder.tsx` (NEW) — Full section/item editor with live validation, error mapping, add section, stats bar
+- `app/src/components/template-builder/TemplatePreview.tsx` (NEW) — Read-only preview using templateStructureToFrameworkSections()
+- `app/src/app/templates/page.tsx` (NEW) — Template list page with tabs (My Templates / System), search, domain filter, archive toggle, cards with actions
+- `app/src/app/templates/new/page.tsx` (NEW) — Create template: from scratch or clone system framework
+- `app/src/app/templates/[id]/page.tsx` (NEW) — Detail/edit page: system=read-only preview + clone, user=edit metadata + builder + save, dirty indicator + beforeunload guard
+
+**What it does:**
+- Complete template management UI: list, create, view, edit, archive, unarchive, clone
+- System templates show read-only preview with "Clone to My Templates" action
+- User templates show full editable metadata + TemplateBuilder with live validation
+- Dirty state tracking with unsaved changes indicator and beforeunload guard
+- Consistent error handling (never swallows errors, shows API error messages)
+- Reuses existing patterns: Tailwind cards, domain colors, filter tabs, loading spinners
+
+**Reuses from Phase 1/2A:**
+- validateTemplateStructure(), frameworkSectionsToTemplateStructure(), countTemplateItems()
+- safeJsonKey() for auto-key generation
+- frameworks, getDomainColor(), getDomainLabel()
+- NoteTemplateSummary/NoteTemplateDetail types
+- Backend APIs unchanged (GET/POST/PATCH /api/templates, archive, unarchive, clone)
+
+**Build:** ✅ `npm run build` passes
+**Tests:** ✅ 129/129 pass
+
+---
+
 ## Remaining Items (not yet implemented)
 - **Infrastructure**: Configure staging/dev droplets
