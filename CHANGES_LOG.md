@@ -1008,5 +1008,35 @@ Two browser-side bugs in the login form:
 
 ---
 
+## FIX-35: Refine note generation prompt for clinical quality ✅
+**Date:** 2026-02-25
+**Files changed:**
+- `app/src/app/api/generate-note/route.ts` (MODIFIED) — Pass 1 system prompt rewritten
+
+**What it does:**
+Rewrites the Pass 1 note generation system prompt to produce notes that read like an experienced clinician wrote them, not a template. Key improvements:
+- **Verbatim patient quotes**: Chief complaint and patient-reported symptoms now use patient's exact words in quotation marks, followed by clinical interpretation (e.g., Patient c/o "my knee has been giving out" consistent with quadriceps weakness)
+- **Clinical terminology translation**: Explicit instruction to upgrade lay language — "sore" → "tenderness," "numb" → "paresthesia," "swollen" → "edema," "stiff" → "decreased mobility," etc.
+- **Standard clinical abbreviations**: Encourages natural use of c/o, s/p, b/l, WNL, WBAT, w/o, pt, hx, dx, tx, fx, TTP, NWB, etc.
+- **Clinical denial phrasing**: "Denies radiating symptoms," "Negative for suicidal ideation" instead of plain negations
+- **Assessment reasoning**: Instructs to synthesize findings with clinical reasoning — connect impairments to functional deficits, note severity/prognostic indicators, reference clinical patterns
+- **Plan specificity**: Concrete treatment items with frequency/duration/intensity parameters, linked to documented deficits
+- **Tense conventions**: Present tense for current exam findings, past tense for history
+- **Guard rail preserved**: Rule 10 explicitly clarifies "clinical terminology upgrades are expected, fabricated findings are not"
+
+**Previous fixes in same file and how they're preserved:**
+- **FIX-2, FIX-3** (SSE streaming, error handling): Untouched — only the prompt string changed
+- **FIX-12** (prompt sanitizer): Untouched — sanitizeForPrompt/sanitizeSectionTitle still used
+- **FIX-19** (JSON parse hardening): Untouched — parseJsonArray and stripFences unchanged
+
+**What could break:**
+- Note style will change noticeably — more clinical jargon, abbreviations, verbatim quotes. This is intentional per user feedback.
+- The anti-hallucination rule (rule 10) is preserved — the AI should still only use facts from the EncounterState JSON.
+
+**Build:** ✅ `npm run build` passes
+**Tests:** ✅ 71/71 pass
+
+---
+
 ## Remaining Items (not yet implemented)
 - **Infrastructure**: Configure staging/dev droplets
