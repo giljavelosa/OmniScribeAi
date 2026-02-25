@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import ConfirmDialog from '@/components/ConfirmDialog';
 import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
 import TemplateMetadataForm, { type TemplateMetadata } from '@/components/template-builder/TemplateMetadataForm';
@@ -51,6 +52,8 @@ export default function NewTemplatePage() {
   const [mode, setMode] = useState<Mode>('choose');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [pendingNav, setPendingNav] = useState<(() => void) | null>(null);
+  const savingRef = useRef(false);
 
   // Metadata form state
   const [metadata, setMetadata] = useState<TemplateMetadata>({
@@ -72,6 +75,26 @@ export default function NewTemplatePage() {
   const [selectedFrameworkId, setSelectedFrameworkId] = useState('');
   const [cloneDomain, setCloneDomain] = useState('');
   const [cloneSearch, setCloneSearch] = useState('');
+
+  // Dirty detection: user is in editor mode and has entered content
+  const isInEditor = mode === 'scratch' || (mode === 'clone' && !!selectedFrameworkId);
+  const dirty = isInEditor && (
+    metadata.name.trim().length > 0 ||
+    metadata.description.trim().length > 0 ||
+    structure.sections.length > 1 ||
+    (structure.sections.length === 1 && structure.sections[0].items.length > 1)
+  );
+
+  // Keep saving ref in sync
+  useEffect(() => { savingRef.current = saving; }, [saving]);
+
+  // Beforeunload guard
+  useEffect(() => {
+    if (!dirty) return;
+    const handler = (e: BeforeUnloadEvent) => { e.preventDefault(); };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [dirty]);
 
   const filteredFrameworks = useMemo(() => {
     let result = frameworks;
@@ -135,7 +158,8 @@ export default function NewTemplatePage() {
     return Object.keys(errs).length === 0;
   };
 
-  const handleSave = async () => {
+  const handleSave = useCallback(async () => {
+    if (savingRef.current) return;
     if (!validateMeta()) return;
 
     const validation = validateTemplateStructure(structure);
@@ -161,6 +185,30 @@ export default function NewTemplatePage() {
       setError(err instanceof Error ? err.message : 'Failed to create template');
     } finally {
       setSaving(false);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [metadata, structure, router]);
+
+  // Keyboard shortcut: Cmd+S / Ctrl+S to create
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 's') {
+        e.preventDefault();
+        if (!savingRef.current) {
+          handleSave();
+        }
+      }
+    };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [handleSave]);
+
+  // Navigation guard helper
+  const guardedNavigate = (action: () => void) => {
+    if (dirty) {
+      setPendingNav(() => action);
+    } else {
+      action();
     }
   };
 
@@ -307,11 +355,10 @@ export default function NewTemplatePage() {
             <div>
               <button
                 onClick={() => {
-                  if (mode === 'clone') {
-                    setSelectedFrameworkId('');
-                  } else {
-                    setMode('choose');
-                  }
+                  const action = mode === 'clone'
+                    ? () => setSelectedFrameworkId('')
+                    : () => setMode('choose');
+                  guardedNavigate(action);
                 }}
                 className="text-sm text-gray-500 hover:text-gray-700 mb-4 flex items-center gap-1 focus-visible:outline-none focus-visible:text-[#0d9488] rounded"
               >
@@ -350,7 +397,7 @@ export default function NewTemplatePage() {
               {/* Save button */}
               <div className="flex justify-end gap-3">
                 <button
-                  onClick={() => router.push('/templates')}
+                  onClick={() => guardedNavigate(() => router.push('/templates'))}
                   className="px-4 py-2.5 rounded-lg text-sm font-medium border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-300"
                 >
                   Cancel
@@ -358,15 +405,30 @@ export default function NewTemplatePage() {
                 <button
                   onClick={handleSave}
                   disabled={saving}
-                  className="bg-[#0d9488] hover:bg-[#0f766e] text-white px-6 py-2.5 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0d9488] focus-visible:ring-offset-2"
+                  className="bg-[#0d9488] hover:bg-[#0f766e] text-white px-6 py-2.5 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0d9488] focus-visible:ring-offset-2"
                 >
-                  {saving ? 'Creating...' : 'Create Template'}
+                  {saving ? 'Creating…' : 'Create Template'}
                 </button>
               </div>
             </div>
           )}
         </div>
       </main>
+
+      {/* Unsaved changes confirm dialog */}
+      <ConfirmDialog
+        open={!!pendingNav}
+        title="Discard unsaved changes?"
+        message="You have unsaved work on this template. Are you sure you want to leave? Your changes will be lost."
+        confirmLabel="Discard"
+        variant="danger"
+        onConfirm={() => {
+          const nav = pendingNav;
+          setPendingNav(null);
+          nav?.();
+        }}
+        onCancel={() => setPendingNav(null)}
+      />
     </div>
   );
 }

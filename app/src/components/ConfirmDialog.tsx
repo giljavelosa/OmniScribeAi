@@ -10,6 +10,7 @@ interface ConfirmDialogProps {
   cancelLabel?: string;
   variant?: 'danger' | 'default';
   loading?: boolean;
+  loadingLabel?: string;
   onConfirm: () => void;
   onCancel: () => void;
 }
@@ -22,6 +23,7 @@ export default function ConfirmDialog({
   cancelLabel = 'Cancel',
   variant = 'default',
   loading = false,
+  loadingLabel = 'Processing…',
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
@@ -37,7 +39,7 @@ export default function ConfirmDialog({
   useEffect(() => {
     if (!open) return;
     const handleKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onCancel();
+      if (e.key === 'Escape' && !loading) onCancel();
       // Trap focus within dialog
       if (e.key === 'Tab' && dialogRef.current) {
         const focusable = dialogRef.current.querySelectorAll<HTMLElement>(
@@ -57,7 +59,7 @@ export default function ConfirmDialog({
     };
     document.addEventListener('keydown', handleKey);
     return () => document.removeEventListener('keydown', handleKey);
-  }, [open, onCancel]);
+  }, [open, onCancel, loading]);
 
   if (!open) return null;
 
@@ -66,7 +68,7 @@ export default function ConfirmDialog({
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center" role="dialog" aria-modal="true" aria-labelledby="confirm-dialog-title" aria-describedby="confirm-dialog-desc">
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/40" onClick={onCancel} aria-hidden="true" />
+      <div className="absolute inset-0 bg-black/40" onClick={loading ? undefined : onCancel} aria-hidden="true" />
 
       {/* Dialog */}
       <div ref={dialogRef} className="relative bg-white rounded-xl shadow-2xl w-full max-w-sm mx-4 p-6">
@@ -92,7 +94,7 @@ export default function ConfirmDialog({
                 : 'bg-[#0d9488] hover:bg-[#0f766e] focus-visible:ring-[#0d9488]'
             }`}
           >
-            {loading ? 'Processing...' : confirmLabel}
+            {loading ? loadingLabel : confirmLabel}
           </button>
         </div>
       </div>
