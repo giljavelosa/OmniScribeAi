@@ -147,7 +147,7 @@ ${wordTimestamps}
 
 Extract speakers + clinical facts. Return JSON only.`;
 
-    const result = await callAI(systemPrompt, userPrompt, 1500);
+    const result = await callAI(systemPrompt, userPrompt, 4000);
 
     appLog("info", "ExtractChunk", "LLM extraction complete", {
       outputLength: result.content.length,

@@ -1142,5 +1142,43 @@ Enhances the Assessment/Medical Assessment section to include factual differenti
 
 ---
 
+### FIX-39 — Increase extract-chunk maxTokens to prevent JSON truncation ✅ RESOLVED
+**Date:** 2026-02-25
+**Files changed:**
+- `app/src/app/api/extract-chunk/route.ts` (MODIFIED) — changed `callAI(systemPrompt, userPrompt, 1500)` to `callAI(systemPrompt, userPrompt, 4000)` on line 150
+
+**What it does:**
+- Increases the LLM output token limit for chunk extraction from 1500 to 4000
+- The PT eval framework (and other complex frameworks) produce JSON responses with many sections, items, and evidence pointers that exceed 1500 output tokens
+- With the old limit, every chunk extraction hit the 1500 token ceiling, producing truncated/invalid JSON that failed to parse
+- All chunks returned empty extractions → EncounterState had 0 documented facts → note generation validation failed → "Controller is already closed" errors from SSE retries
+- With 4000 tokens, the full JSON extraction response can complete for all framework schemas
+
+**Root cause of the error:**
+- Live recording produced 12 transcribed chunks
+- All 12 chunk extractions logged exactly 1500 output tokens and `"JSON parse failed, returning empty extraction"`
+- JSON parse errors like `"Expected ',' or '}' after property value in JSON at position 5372"` confirmed truncation mid-object
+- GenNote was called 3x (client SSE retries) — each time validation failed with `documentedFacts: 0`
+- The batch transcription fallback also failed (Groq 400 on 6MB webm — secondary issue)
+
+**HIPAA assessment:**
+- ✅ **Does NOT compromise HIPAA** — actually improves it by preventing silent data loss of documented clinical facts
+- ✅ `maxTokens` is a model inference parameter, not patient data
+- ✅ No PHI is exposed, logged, or stored differently
+- ✅ Same endpoint (xAI/Grok), same data flow — just allows JSON response to complete
+- ✅ No auth, encryption, rate limiting, logging, or security changes
+
+**Previous fixes in same file and how they're preserved:**
+- **FIX-2** (prompt injection via framework data): Untouched — `safeJsonKey()` sanitization for schema fields still in place
+
+**What could break:**
+- Slightly higher token usage per chunk extraction (~2-3x more output tokens). At Grok pricing this adds negligible cost (~$0.01 per encounter).
+- No functional regressions — the JSON schema and parsing logic are unchanged.
+
+**Build:** ✅ `npm run build` passes
+**Tests:** ✅ 71/71 pass
+
+---
+
 ## Remaining Items (not yet implemented)
 - **Infrastructure**: Configure staging/dev droplets
