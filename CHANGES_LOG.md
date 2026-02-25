@@ -827,7 +827,23 @@ Each item follows the same workflow as FIX-1 through FIX-17:
 
 ---
 
+## FIX-27: Unit tests for rate-limiter and prompt-sanitizer ✅
+**Date:** 2026-02-24
+**Files changed:**
+- `app/tests/unit/rate-limiter.test.ts` (NEW) — 12 tests
+- `app/tests/unit/prompt-sanitizer.test.ts` (NEW) — 16 tests
+
+**What it does:**
+- **rate-limiter tests (12)**: allows under limit, correct remaining count, blocks after exceeding login limit, returns correct limit per tier, falls back to api tier for unknown tiers, tracks identifiers independently, getTierForPath routes for login/ai/api paths
+- **prompt-sanitizer tests (16)**: passes normal text, strips HTML tags, strips IGNORE ABOVE injections, strips system: prefix, strips template injection ({{}} and {%%}), strips code fences, strips disallowed chars, allows common punctuation, collapses whitespace, truncates at 200 chars, sanitizeSectionTitle delegates correctly, sanitizeItemName works, safeJsonKey normalizes properly
+
+**Test total:** 71 tests (43 existing + 28 new), all passing
+
+**Build:** ✅ `npm run build` passes
+**Tests:** ✅ `vitest run` passes (71/71) — must run from `app/` directory
+
+---
+
 ## Remaining Items (not yet implemented)
 - **Infrastructure**: Configure staging/dev droplets
-- **Test coverage**: Unit tests for middleware, security headers, SSE pipeline
 - **Gold transcripts**: Expand from 3 to 15 test transcripts for pipeline validation
