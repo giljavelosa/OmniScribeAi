@@ -854,5 +854,23 @@ Each item follows the same workflow as FIX-1 through FIX-17:
 
 ---
 
+## FIX-29: Login broken after auth.config.ts split ✅
+**Date:** 2026-02-24
+**Files changed:**
+- `app/middleware.ts` (MODIFIED) — added `api/auth` to matcher exclusion list
+
+**What it does:**
+- FIX-23 split auth into `auth.config.ts` (Edge, `providers: []`) and `auth.ts` (Node, Credentials provider)
+- The middleware's Edge NextAuth instance (with no providers) was intercepting `POST /api/auth/callback/credentials` before the real API route handler could process it, causing all logins to fail with `CredentialsSignin`
+- Fix: excluded `/api/auth` from the middleware matcher so auth routes go directly to the API route handler which has the full Credentials provider
+- Login rate limiting still covered by nginx `limit_req zone=login` (FIX-26)
+
+**What could break:** Nothing — middleware never needed to process auth callback routes, it just needed to check `req.auth` on other routes
+
+**Build:** ✅ `npm run build` passes
+**Deployed:** ✅ Commit `c0f79b7`, PM2 online, login confirmed working
+
+---
+
 ## Remaining Items (not yet implemented)
 - **Infrastructure**: Configure staging/dev droplets
