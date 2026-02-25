@@ -872,5 +872,20 @@ Each item follows the same workflow as FIX-1 through FIX-17:
 
 ---
 
+## FIX-30: Create clean test users on prod ✅
+**Date:** 2026-02-25
+**Server:** 143.198.131.243 (omniscribe-prod)
+
+**What it does:**
+- Deleted old `admin@omniscribe.ai` and `demo@omniscribe.ai` users
+- Created fresh users with password `Demo2026!` (bcrypt hash, 12 rounds):
+  1. **admin@omniscribe.ai** — ADMIN role, name "OmniScribe Admin", clinicianType MD, `mustChangePassword: false`
+  2. **demo@omniscribe.ai** — CLINICIAN role, name "Demo Clinician", clinicianType PT (credentials: PT, DPT), `mustChangePassword: false`
+- Other demo users remain: demo2, dr.chen, bh.moss, pt.rivera
+
+**What could break:** Old sessions for deleted users will be invalidated (JWT tokens reference old user IDs)
+
+---
+
 ## Remaining Items (not yet implemented)
 - **Infrastructure**: Configure staging/dev droplets
