@@ -1546,5 +1546,32 @@ The codebase passed `npm run build` and 71/71 tests but had 14 paths where runti
 
 ---
 
+## PHASE-2E: Template Actions UX + Safety Guards ✅ RESOLVED
+**Date:** 2026-02-25
+**Branch:** feat/template-ui-phase2e-template-actions-ux
+**Files changed:**
+- `app/src/components/ConfirmDialog.tsx` (MODIFIED) — Added `loadingLabel` prop for context-specific loading text (e.g., "Archiving…" instead of generic "Processing…"), fixed Escape key and backdrop click to respect `loading` state, added `loading` to keydown effect deps
+- `app/src/app/templates/page.tsx` (MODIFIED) — Added success state with auto-dismiss banner, clone loading guard (`cloningId`) to prevent duplicate clone requests, success feedback after archive/unarchive, `loadingLabel` on ConfirmDialog, disabled state on clone buttons while any clone is in-flight
+- `app/src/app/templates/[id]/page.tsx` (MODIFIED) — Added `cloning` loading state with disabled/loading UI on clone button, converted `handleSave` to `useCallback`, added Cmd+S/Ctrl+S keyboard shortcut with ref-based guard (prevents stale closures), added duplicate submission guard via `savingRef`, updated "Saving…" label to use proper ellipsis
+- `app/src/app/templates/new/page.tsx` (MODIFIED) — Added dirty state detection (name, description, or multi-section/item content), beforeunload guard, in-app navigation guard with ConfirmDialog ("Discard unsaved changes?"), converted `handleSave` to `useCallback` with `savingRef` guard, added Cmd+S/Ctrl+S keyboard shortcut, guarded Cancel and Back buttons through `guardedNavigate`, updated "Creating…" label
+
+**What it does:**
+1. **Unsaved changes guard**: Detects dirty state on create/edit flows; warns on browser close (beforeunload) and in-app navigation (ConfirmDialog); no false positives after save
+2. **Duplicate submission prevention**: All action buttons (Save, Clone, Archive, Unarchive) disabled while in-flight with loading labels; `savingRef`/`cloningId` guards prevent rapid double-clicks
+3. **Action feedback**: Inline dismissible success/error banners on templates list; context-specific loading labels in confirm dialog ("Archiving…", "Unarchiving…"); auto-dismiss success after 4s
+4. **Keyboard save shortcut**: Cmd+S (macOS) / Ctrl+S (Windows/Linux) on both create and edit pages; prevents browser default; respects validation and saving state
+5. **Accessibility**: Disabled buttons have `disabled:cursor-not-allowed` and `disabled:opacity-50`; ConfirmDialog blocks Escape/backdrop during loading; focus-visible preserved on all new controls
+
+**What this does NOT change:**
+- No database/schema changes
+- No API contract changes
+- No changes to TemplateBuilder, SectionEditor, ItemEditor, TemplatePreview, or TemplatePicker
+- No regressions to existing template flows
+
+**Build:** ✅ `npm run build` passes
+**Tests:** ✅ 129/129 pass
+
+---
+
 ## Remaining Items (not yet implemented)
 - **Infrastructure**: Configure staging/dev droplets

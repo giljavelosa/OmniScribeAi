@@ -37,6 +37,7 @@ export default function TemplatesPage() {
   const [templates, setTemplates] = useState<NoteTemplateSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [search, setSearch] = useState('');
   const [domainFilter, setDomainFilter] = useState('');
   const [showArchived, setShowArchived] = useState(false);
@@ -47,6 +48,16 @@ export default function TemplatesPage() {
     template: NoteTemplateSummary;
   } | null>(null);
   const [confirmLoading, setConfirmLoading] = useState(false);
+
+  // Clone loading guard — tracks ID of template currently being cloned
+  const [cloningId, setCloningId] = useState<string | null>(null);
+
+  // Auto-dismiss success message
+  useEffect(() => {
+    if (!success) return;
+    const timer = setTimeout(() => setSuccess(''), 4000);
+    return () => clearTimeout(timer);
+  }, [success]);
 
   const loadTemplates = useCallback(async () => {
     setLoading(true);
@@ -75,11 +86,13 @@ export default function TemplatesPage() {
     if (!confirmAction) return;
     setConfirmLoading(true);
     try {
+      const actionName = confirmAction.type === 'archive' ? 'archived' : 'unarchived';
       if (confirmAction.type === 'archive') {
         await archiveTemplate(confirmAction.template.id);
       } else {
         await unarchiveTemplate(confirmAction.template.id);
       }
+      setSuccess(`Template ${actionName} successfully.`);
       setConfirmAction(null);
       loadTemplates();
     } catch (err) {
@@ -91,11 +104,15 @@ export default function TemplatesPage() {
   };
 
   const handleClone = async (template: NoteTemplateSummary) => {
+    if (cloningId) return;
+    setCloningId(template.id);
     try {
       const cloned = await cloneTemplate(template.id);
       router.push(`/templates/${cloned.id}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to clone template');
+    } finally {
+      setCloningId(null);
     }
   };
 
@@ -197,6 +214,20 @@ export default function TemplatesPage() {
             )}
           </div>
 
+          {/* Success banner */}
+          {success && (
+            <div className="mb-4 px-4 py-3 bg-green-50 border border-green-200 rounded-lg text-sm text-green-700 flex items-center justify-between" role="status">
+              <span>{success}</span>
+              <button
+                onClick={() => setSuccess('')}
+                className="ml-3 text-green-400 hover:text-green-600 transition-colors flex-shrink-0"
+                aria-label="Dismiss message"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12" /></svg>
+              </button>
+            </div>
+          )}
+
           {/* Error banner */}
           {error && (
             <div className="mb-4 px-4 py-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700 flex items-center justify-between" role="alert">
@@ -279,6 +310,7 @@ export default function TemplatesPage() {
                     key={t.id}
                     template={t}
                     isSystemTab={tab === 'system'}
+                    cloningId={cloningId}
                     onArchive={() => setConfirmAction({ type: 'archive', template: t })}
                     onUnarchive={() => setConfirmAction({ type: 'unarchive', template: t })}
                     onClone={() => handleClone(t)}
@@ -302,6 +334,7 @@ export default function TemplatesPage() {
         confirmLabel={confirmAction?.type === 'archive' ? 'Archive' : 'Unarchive'}
         variant={confirmAction?.type === 'archive' ? 'danger' : 'default'}
         loading={confirmLoading}
+        loadingLabel={confirmAction?.type === 'archive' ? 'Archiving…' : 'Unarchiving…'}
         onConfirm={handleArchive}
         onCancel={() => setConfirmAction(null)}
       />
@@ -314,12 +347,14 @@ export default function TemplatesPage() {
 function TemplateCard({
   template,
   isSystemTab,
+  cloningId,
   onArchive,
   onUnarchive,
   onClone,
 }: {
   template: NoteTemplateSummary;
   isSystemTab: boolean;
+  cloningId: string | null;
   onArchive: () => void;
   onUnarchive: () => void;
   onClone: () => void;
@@ -420,10 +455,11 @@ function TemplateCard({
           {isSystemTab && isSystem && (
             <button
               onClick={onClone}
+              disabled={cloningId !== null}
               title={`Clone "${template.name}" to your templates`}
-              className="px-3 py-1.5 text-xs font-medium rounded-lg bg-[#0d9488] text-white hover:bg-[#0f766e] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0d9488] focus-visible:ring-offset-1"
+              className="px-3 py-1.5 text-xs font-medium rounded-lg bg-[#0d9488] text-white hover:bg-[#0f766e] transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0d9488] focus-visible:ring-offset-1"
             >
-              Clone to My Templates
+              {cloningId === template.id ? 'Cloning…' : 'Clone to My Templates'}
             </button>
           )}
 

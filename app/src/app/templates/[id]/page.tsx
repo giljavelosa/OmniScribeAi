@@ -32,6 +32,7 @@ export default function TemplateDetailPage({ params }: { params: Promise<{ id: s
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
+  const [cloning, setCloning] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
   // Editable state
@@ -48,6 +49,9 @@ export default function TemplateDetailPage({ params }: { params: Promise<{ id: s
 
   // Track initial state for dirty detection
   const initialStateRef = useRef<string>('');
+  // Refs for keyboard shortcut (avoid stale closures)
+  const savingRef = useRef(false);
+  const dirtyRef = useRef(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -109,6 +113,10 @@ export default function TemplateDetailPage({ params }: { params: Promise<{ id: s
     return () => window.removeEventListener('beforeunload', handler);
   }, [dirty]);
 
+  // Keep refs in sync for keyboard handler
+  useEffect(() => { savingRef.current = saving; }, [saving]);
+  useEffect(() => { dirtyRef.current = dirty; }, [dirty]);
+
   const isSystem = template?.sourceType === 'system';
   const isOwned = !isSystem;
   const sourceFramework = template?.sourceFrameworkId ? getFrameworkById(template.sourceFrameworkId) : null;
@@ -127,8 +135,8 @@ export default function TemplateDetailPage({ params }: { params: Promise<{ id: s
     }
   };
 
-  const handleSave = async () => {
-    if (!structure) return;
+  const handleSave = useCallback(async () => {
+    if (!structure || savingRef.current) return;
 
     if (!metadata.name.trim()) {
       setError('Name is required');
@@ -166,14 +174,32 @@ export default function TemplateDetailPage({ params }: { params: Promise<{ id: s
     } finally {
       setSaving(false);
     }
-  };
+  }, [structure, metadata, id]);
+
+  // Keyboard shortcut: Cmd+S / Ctrl+S to save
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 's') {
+        e.preventDefault();
+        if (!savingRef.current && dirtyRef.current) {
+          handleSave();
+        }
+      }
+    };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [handleSave]);
 
   const handleClone = async () => {
+    if (cloning) return;
+    setCloning(true);
     try {
       const cloned = await cloneTemplate(id);
       router.push(`/templates/${cloned.id}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to clone template');
+    } finally {
+      setCloning(false);
     }
   };
 
@@ -298,13 +324,14 @@ export default function TemplateDetailPage({ params }: { params: Promise<{ id: s
                   {isSystem && (
                     <button
                       onClick={handleClone}
+                      disabled={cloning}
                       title="Create an editable copy of this system template"
-                      className="bg-[#0d9488] hover:bg-[#0f766e] text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0d9488] focus-visible:ring-offset-2"
+                      className="bg-[#0d9488] hover:bg-[#0f766e] text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0d9488] focus-visible:ring-offset-2"
                     >
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                         <rect x="9" y="9" width="13" height="13" rx="2" ry="2" /><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
                       </svg>
-                      Clone to My Templates
+                      {cloning ? 'Cloning…' : 'Clone to My Templates'}
                     </button>
                   )}
                 </div>
@@ -356,7 +383,7 @@ export default function TemplateDetailPage({ params }: { params: Promise<{ id: s
                       title={!dirty ? 'No changes to save' : 'Save your changes'}
                       className="bg-[#0d9488] hover:bg-[#0f766e] text-white px-6 py-2.5 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0d9488] focus-visible:ring-offset-2"
                     >
-                      {saving ? 'Saving...' : 'Save Changes'}
+                      {saving ? 'Saving…' : 'Save Changes'}
                     </button>
                   </div>
                 </>
