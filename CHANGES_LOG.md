@@ -844,6 +844,15 @@ Each item follows the same workflow as FIX-1 through FIX-17:
 
 ---
 
+## FIX-28: Gold transcripts — 15 test transcripts ✅ (ALREADY IMPLEMENTED)
+**Date:** 2026-02-24
+**Status:** Verified already complete — 15 transcripts exist in `app/src/lib/test-transcripts.ts`
+- Rehab (5): PT eval, PT daily, OT eval, SLP eval, rehab discharge
+- Medical (5): SOAP follow-up, SOAP new, H&P, procedure, ED visit
+- BH (5): BH intake, BH progress, psych eval, group therapy, crisis intervention
+- Each has expectedFacts and shouldNotAppear validation arrays
+
+---
+
 ## Remaining Items (not yet implemented)
 - **Infrastructure**: Configure staging/dev droplets
-- **Gold transcripts**: Expand from 3 to 15 test transcripts for pipeline validation
