@@ -943,5 +943,36 @@ Two browser-side bugs in the login form:
 
 ---
 
+## FIX-33: File upload zone disabled + no drag-and-drop ✅
+**Date:** 2026-02-25
+**Files changed:**
+- `app/src/app/visit/new/page.tsx` (MODIFIED)
+
+**Root cause:**
+- The file upload zone (`<button>` with dashed border) was gated on `disabled={!canGenerate}`, which requires BOTH patient name AND framework. If the user selected a patient but hadn't chosen a framework yet, the upload zone was grayed out and unclickable.
+- The dashed-border UI looks like a drag-and-drop zone but had no `onDrop`/`onDragOver` handlers — only a click handler.
+
+**What it does:**
+- Removed `disabled={!canGenerate}` from the file-select button — users can now select or drop a file at any time
+- Added `onDragOver` and `onDrop` handlers for drag-and-drop file selection
+- Added `handleFileDrop` function
+- Updated button text from "Click to upload audio file" to "Click or drop audio file here"
+- The "Generate Clinical Note" button (line 843) remains gated on `disabled={!canGenerate || !uploadedFile}` — processing still requires patient + framework + file
+
+**Previous fixes in same file and how they're preserved:**
+- **UX-3** (record-first workflow): Changed `canRecord` → `canGenerate` and gated Upload/Generate buttons. This fix follows UX-3's own pattern — recording is always enabled, now file selection is too. Only the Generate button stays gated. UX-3's intent preserved.
+- **UX-1, UX-2, UX-5, UX-6, UX-8, UX-10**: All untouched — changes are 3 lines in the upload section only.
+- **FIX-22** (client-side >24MB rejection): Still in `handleUploadSubmit()`, untouched.
+- **POST-UX** (appLog): Untouched.
+
+**What could break:**
+- Users could now select a file before choosing patient/framework. This is intentional and matches the record-first pattern from UX-3.
+- If someone edits the upload zone, they must preserve the `disabled={!canGenerate || !uploadedFile}` on the Generate button to prevent processing without patient+framework.
+
+**Build:** ✅ `npm run build` passes
+**Tests:** ✅ 71/71 pass
+
+---
+
 ## Remaining Items (not yet implemented)
 - **Infrastructure**: Configure staging/dev droplets

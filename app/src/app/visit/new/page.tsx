@@ -492,6 +492,12 @@ function NewVisitContent() {
     }
   };
 
+  const handleFileDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    const file = e.dataTransfer.files[0];
+    if (file) setUploadedFile(file);
+  };
+
   const handleUploadSubmit = async () => {
     if (!uploadedFile) return;
 
@@ -794,8 +800,9 @@ function NewVisitContent() {
                     {!uploadedFile ? (
                       <button
                         onClick={() => fileInputRef.current?.click()}
-                        disabled={!canGenerate}
-                        className="w-full max-w-md border-2 border-dashed border-gray-300 rounded-xl p-8 hover:border-[#0d9488] hover:bg-[#0d9488]/5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        onDragOver={(e) => e.preventDefault()}
+                        onDrop={handleFileDrop}
+                        className="w-full max-w-md border-2 border-dashed border-gray-300 rounded-xl p-8 hover:border-[#0d9488] hover:bg-[#0d9488]/5 transition-colors"
                       >
                         <div className="flex flex-col items-center gap-3">
                           <div className="w-14 h-14 rounded-full bg-gray-100 flex items-center justify-center">
@@ -806,7 +813,7 @@ function NewVisitContent() {
                             </svg>
                           </div>
                           <div>
-                            <p className="text-sm font-medium text-gray-700">Click to upload audio file</p>
+                            <p className="text-sm font-medium text-gray-700">Click or drop audio file here</p>
                             <p className="text-xs text-gray-400 mt-1">MP3, MP4, M4A, WAV, WebM, OGG, AAC, FLAC, WMA</p>
                           </div>
                         </div>
