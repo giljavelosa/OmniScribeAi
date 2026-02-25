@@ -103,15 +103,16 @@ ${contextInfo}
 
 TASK 2 — FACT EXTRACTION:
 Extract clinical facts into the provided schema for framework: ${framework.name} (${framework.type} — ${framework.subtype}).
-ABSOLUTE RULES:
+RULES:
 1. Stated in transcript → value + source:"transcript" + evidence: {speaker, text (exact quote), t0, t1}
 2. Explicitly denied → value + source:"patient_denies" + evidence pointer
 3. NOT mentioned → value:null + source:"not_documented" + evidence:null
-4. NEVER fabricate, infer, or assume ANY clinical data
-5. NEVER use medical knowledge to fill in expected findings
-6. Use EXACT words from transcript for all factual data
-7. Measurements: ONLY exact numbers stated
-8. If the clinician says "everything else is within normal limits" or "the rest is normal", mark those items as value:"WNL" source:"transcript"
+4. CATEGORIZE CONVERSATIONAL LANGUAGE: Patients describe symptoms in lay terms. Map descriptions to the correct schema field. The VALUE preserves the patient's words. The FIELD PLACEMENT is clinical judgment. Example: "it hurts when I reach up" → place under shoulder_flexion or overhead_reaching with value "reports pain with reaching overhead"
+5. When in doubt about which field a statement maps to, place it in additional_facts rather than leaving it unextracted
+6. Measurements: ONLY exact numbers stated — never invent measurements, scores, or findings that were not stated
+7. NEVER fabricate clinical data that was not discussed in the transcript
+8. NEVER fill in expected findings — only extract what was actually said
+9. If the clinician says "everything else is within normal limits" or "the rest is normal", mark those items as value:"WNL" source:"transcript"
 
 TASK 3 — MEDICAL TERM CORRECTION:
 If the transcript contains likely medical term errors, correct them in your extraction:

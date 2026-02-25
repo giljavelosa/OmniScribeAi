@@ -10,7 +10,7 @@ export const maxDuration = 300;
 import { frameworks } from "@/lib/frameworks";
 import { mockNotes } from "@/lib/mock-data";
 import { validateEncounterState } from "@/lib/encounter-validator";
-import { createInitialEncounterState, serializeFactsForPrompt, type EncounterState, type ClinicalFact } from "@/lib/encounter-state";
+import { createInitialEncounterState, serializeFactsForPrompt, formatTranscriptForNoteGeneration, type EncounterState, type ClinicalFact } from "@/lib/encounter-state";
 
 // Validate API key tier on module load
 assertProductionApiKey();
@@ -252,6 +252,16 @@ Return null and "not_documented" for anything not explicitly stated.`;
   state.chunk_count = 1;
   state.last_updated = Date.now();
 
+  // Store the raw transcript so transcript-enriched note generation works for file uploads too
+  if (transcript.trim().length > 0) {
+    state.diarized_transcript = [{
+      speaker: 'UNKNOWN' as const,
+      text: transcript.trim(),
+      t0: 0,
+      t1: 0,
+    }];
+  }
+
   return state;
 }
 
@@ -315,6 +325,8 @@ async function handleEncounterStateMode(
 
         // Serialize EncounterState facts to compact JSON for the prompt
         const factsJson = serializeFactsForPrompt(encounterState);
+        const transcriptText = formatTranscriptForNoteGeneration(encounterState);
+        const hasTranscript = transcriptText.length > 0;
 
         const clinicianType = framework.domain === 'rehabilitation'
           ? 'rehabilitation clinician (PT/OT/SLP)'
@@ -343,10 +355,12 @@ async function handleEncounterStateMode(
 
         const noteSystem = `You are a senior ${clinicianType} with 20+ years of experience writing clinical documentation. Write as a seasoned clinician would — concise, authoritative, with natural clinical jargon.
 
-INPUT: A validated EncounterState JSON containing:
-- Every fact has been extracted from the clinical encounter transcript
+INPUT: You receive ${hasTranscript ? 'TWO sources' : 'ONE source'}:
+1. **Structured Facts JSON** (primary for measurements, scores, objective data) — extracted from the clinical encounter
+${hasTranscript ? '2. **Encounter Transcript** (context, nuance, patient quotes, clinical flow) — the actual clinician-patient conversation' : ''}
 - Facts are tagged as "transcript" (documented), "patient_denies" (explicitly denied), or omitted (not documented)
 - Speaker attribution indicates if CLINICIAN or PATIENT stated the information
+${hasTranscript ? '- When the Transcript contains clinically relevant information not captured in Facts JSON, you MAY include it with appropriate clinical language' : ''}
 
 CLINICAL WRITING STYLE:
 - Write like an experienced clinician documenting for peer review — not like a template or a medical student
@@ -355,25 +369,25 @@ CLINICAL WRITING STYLE:
 - Chief complaint and patient-reported symptoms: quote the patient's own words verbatim in quotation marks, then follow with your clinical interpretation. Example: Patient c/o "my knee has been giving out on me when I go down stairs" consistent with quadriceps weakness and patellar instability.
 - Denials: use standard clinical phrasing — "Denies radiating symptoms," "No c/o paresthesia," "Negative for suicidal ideation"
 - Present tense for current exam findings, past tense for history
-- Assessment must demonstrate clinical reasoning — connect objective findings to functional limitations, note severity implications, and reference relevant clinical patterns. Include factual differential diagnosis derived from documented signs, symptoms, and test results. State the most likely diagnosis first, then list plausible differentials that the documented findings support or rule out. All reasoning must trace back to data present in the EncounterState JSON — never fabricate differentials
+- Assessment must demonstrate clinical reasoning — connect objective findings to functional limitations, note severity implications, and reference relevant clinical patterns. Include factual differential diagnosis derived from documented signs, symptoms, and test results. State the most likely diagnosis first, then list plausible differentials that the documented findings support or rule out. When making clinical inferences, base them ONLY on information present in either source. The inference itself is expected — inventing findings that appear in neither source is not.
 
 WRITE THE NOTE:
-1. Include ALL facts present in the JSON — translate to proper clinical terminology
+1. Include ALL facts present in the JSON — translate to proper clinical terminology${hasTranscript ? '. Enrich with relevant details from the Transcript that add clinical value (patient statements, contextual details, clinical observations mentioned in conversation)' : ''}
 2. The FIRST section MUST begin with a patient identification line stating the patient's name, age, gender, and occupation (from "patient_demographics" in the JSON). Example: "Robert Johnson is a 45-year-old male electrician presenting for..." — this line is REQUIRED if any demographics are present
 3. For items with source "patient_denies": write using standard clinical denial phrasing as described above
-4. OMIT items and entire sections that have NO documented facts in the JSON — do NOT render blanks, placeholders, or "___" for undocumented items
-5. Only include a section if it has at least one documented fact
+4. OMIT sections with no relevant content from ${hasTranscript ? 'either source' : 'the JSON'} — do NOT render blanks, placeholders, or "___" for undocumented items
+5. Only include a section if it has at least one documented fact${hasTranscript ? ' or relevant transcript content' : ''}
 6. Assessment / Medical Assessment: This is the most critical section. Do NOT simply restate findings. Instead:
    a. **Clinical Reasoning**: Synthesize subjective complaints and objective findings into a cohesive clinical picture. Explain HOW the findings relate to each other (e.g., "Limited shoulder flexion ROM to 120° with pain at end-range, combined with positive Neer's and Hawkins-Kennedy tests, is consistent with subacromial impingement syndrome").
-   b. **Differential Diagnosis**: Based STRICTLY on the documented signs, symptoms, history, and test results in the JSON, list the most likely diagnosis first, then plausible differentials. For each differential, cite the specific documented findings that support or argue against it. Example: "Primary impression: Lateral epicondylalgia, supported by TTP over lateral epicondyle and pain with resisted wrist extension. Differential considerations include radial tunnel syndrome (less likely given absence of supinator tenderness) and C6 radiculopathy (less likely given intact dermatome sensation and negative Spurling's)."
+   b. **Differential Diagnosis**: Based STRICTLY on the documented signs, symptoms, history, and test results${hasTranscript ? ' from Facts JSON and Transcript' : ' in the JSON'}, list the most likely diagnosis first, then plausible differentials. For each differential, cite the specific documented findings that support or argue against it. Example: "Primary impression: Lateral epicondylalgia, supported by TTP over lateral epicondyle and pain with resisted wrist extension. Differential considerations include radial tunnel syndrome (less likely given absence of supinator tenderness) and C6 radiculopathy (less likely given intact dermatome sensation and negative Spurling's)."
    c. **Severity & Functional Impact**: Quantify severity using documented measurements. Relate impairments to functional limitations (e.g., "Grip strength deficit of 40% compared to contralateral side limits patient's ability to perform occupational tasks requiring sustained grip").
    d. **Prognostic Indicators**: Note factors from the documented data that inform prognosis (chronicity, aggravating/alleviating factors, prior treatment response, patient goals).
-   e. ALL reasoning must trace directly to facts in the EncounterState JSON — never introduce diagnoses or clinical patterns that aren't supported by the documented data.
+   e. ALL reasoning must trace directly to facts in the JSON${hasTranscript ? ' or statements in the Transcript' : ''} — never introduce diagnoses or clinical patterns that aren't supported by the documented data.
 7. Plan: write concrete, specific treatment items linked to documented deficits with clinical rationale implied. Reference the assessment findings that justify each intervention. Use frequency/duration/intensity parameters where applicable (e.g., "Therapeutic exercise for rotator cuff strengthening, 3x/week x 6 weeks, to address documented supraspinatus weakness").
 8. Use professional third-person clinical voice — concise sentences, no filler
 9. Include tables for objective measurements (ROM, MMT, vitals, goniometric data) where applicable
-10. NEVER add clinical data not present in the EncounterState JSON — clinical terminology upgrades are expected, fabricated findings are not
-11. NEVER mention or list items that were not assessed, not documented, or not in the JSON
+10. NEVER add clinical data not present in ${hasTranscript ? 'either the Facts JSON or the Transcript' : 'the EncounterState JSON'} — clinical terminology upgrades are expected, fabricated findings are not
+11. NEVER mention or list items that were not assessed, not documented, or not in ${hasTranscript ? 'either source' : 'the JSON'}
 12. The compliance score is ${validation.compliance.score}% (grade: ${validation.compliance.grade})${validation.requiredMissing.length > 0 ? ` — missing: ${validation.requiredMissing.join(', ')}` : ''}
 
 FRAMEWORK: ${sanitizeForPrompt(framework.name)}
@@ -384,10 +398,18 @@ ${sectionPrompt}
 
 OUTPUT: Return ONLY a JSON array: [{ "title": "section title", "content": "formatted section content with markdown" }]`;
 
-        const noteUser = `ENCOUNTERSTATE FACTS:
+        const noteUser = hasTranscript
+          ? `STRUCTURED FACTS JSON:
 ${factsJson}
 
-Write the clinical note using ONLY facts present in the JSON. Omit any sections or items with no documented facts — do not add blanks or placeholders.`;
+ENCOUNTER TRANSCRIPT:
+${transcriptText}
+
+Write a comprehensive clinical note using the structured facts as your primary data source, enriched by the encounter transcript for context, patient quotes, and clinical nuance. Omit sections with no relevant content from either source.`
+          : `STRUCTURED FACTS JSON:
+${factsJson}
+
+Write the clinical note using the structured facts. Omit sections with no documented facts.`;
 
         const noteResult = await callAI(noteSystem, noteUser, 8000);
         totalTokens += noteResult.usage.input_tokens + noteResult.usage.output_tokens;
@@ -405,8 +427,25 @@ Write the clinical note using ONLY facts present in the JSON. Omit any sections 
         let summary = "Clinical note generated from encounter data.";
 
         try {
-          const auditResult = await callAI(
-            `You have two tasks:
+          const auditSystem = hasTranscript
+            ? `You have two tasks:
+
+TASK 1 — AUDIT: Compare this clinical note against the source data (Facts JSON + Encounter Transcript).
+- Documented facts appearing in note: OK
+- Clinical reasoning logically derived from documented facts or transcript statements: OK
+- Clinical terminology upgrades of lay language: OK
+- Reasonable clinical inferences from documented data: OK
+- Any clinical data NOT traceable to the Facts JSON OR Transcript: FLAG as hallucination
+- Blanks (___) for undocumented items: OK
+
+TASK 2 — SUMMARY: Write a 2-3 sentence visit summary from the note. Be concise and clinical.
+
+Return ONLY valid JSON:
+{
+  "audit": { "issues": ["description of any problems"], "clean": true },
+  "summary": "2-3 sentence clinical summary"
+}`
+            : `You have two tasks:
 
 TASK 1 — AUDIT: Compare this clinical note against the source EncounterState facts.
 - Documented facts appearing in note: OK
@@ -420,8 +459,15 @@ Return ONLY valid JSON:
 {
   "audit": { "issues": ["description of any problems"], "clean": true },
   "summary": "2-3 sentence clinical summary"
-}`,
-            `ENCOUNTERSTATE FACTS:\n${factsJson}\n\nCLINICAL NOTE:\n${JSON.stringify(clinicalNote)}`,
+}`;
+
+          const auditUser = hasTranscript
+            ? `STRUCTURED FACTS JSON:\n${factsJson}\n\nENCOUNTER TRANSCRIPT:\n${transcriptText}\n\nCLINICAL NOTE:\n${JSON.stringify(clinicalNote)}`
+            : `ENCOUNTERSTATE FACTS:\n${factsJson}\n\nCLINICAL NOTE:\n${JSON.stringify(clinicalNote)}`;
+
+          const auditResult = await callAI(
+            auditSystem,
+            auditUser,
             800,
           );
           totalTokens += auditResult.usage.input_tokens + auditResult.usage.output_tokens;

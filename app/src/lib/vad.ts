@@ -12,7 +12,7 @@
  * Default threshold: 5 (above ambient noise, below speech)
  */
 
-const DEFAULT_THRESHOLD = 5;
+const DEFAULT_THRESHOLD = 3;
 
 /**
  * Returns true if the average frequency energy exceeds the threshold,

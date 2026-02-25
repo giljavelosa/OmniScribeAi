@@ -205,7 +205,7 @@ export default function AudioRecorder({ onRecordingComplete, onPartialTranscript
         });
 
         // Update last chunk text for Whisper prompt continuity
-        const lastSentence = transcribeResult.text.slice(-200);
+        const lastSentence = transcribeResult.text.slice(-500);
         lastChunkTextRef.current = lastSentence;
 
         // Step 2: Extract facts + diarize via LLM
@@ -337,7 +337,7 @@ export default function AudioRecorder({ onRecordingComplete, onPartialTranscript
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        audio: { echoCancellation: true, noiseSuppression: true, sampleRate: 16000 },
+        audio: { echoCancellation: true, noiseSuppression: false, sampleRate: 16000 },
       });
       streamRef.current = stream;
 

@@ -270,6 +270,28 @@ export function serializeFactsForPrompt(state: EncounterState): string {
   return JSON.stringify(compact, null, 1);
 }
 
+/**
+ * Format diarized transcript for inclusion in note generation prompt.
+ * Compact format: [C] / [P] speaker labels, no timestamps (saves tokens).
+ * Capped at 6000 chars to leave room for facts + system prompt.
+ */
+export function formatTranscriptForNoteGeneration(state: EncounterState): string {
+  if (state.diarized_transcript.length === 0) return '';
+  const lines: string[] = [];
+  let lastSpeaker: string | null = null;
+  for (const stmt of state.diarized_transcript) {
+    if (stmt.speaker !== lastSpeaker) {
+      const label = stmt.speaker === 'CLINICIAN' ? 'C' : stmt.speaker === 'PATIENT' ? 'P' : '?';
+      lines.push(`[${label}] ${stmt.text}`);
+    } else {
+      lines.push(stmt.text);
+    }
+    lastSpeaker = stmt.speaker;
+  }
+  const full = lines.join('\n');
+  return full.length > 6000 ? full.slice(0, 5900) + '\n[... transcript truncated]' : full;
+}
+
 // ─── Helpers ───────────────────────────────────────────────
 
 /** Convert a display name to a snake_case key matching the existing generate-note pattern */

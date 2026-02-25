@@ -1299,5 +1299,82 @@ Enhances the Assessment/Medical Assessment section to include factual differenti
 
 ---
 
+### FIX-45 — New serialization for transcript-enriched note generation ✅ RESOLVED
+**Date:** 2026-02-24
+**Files changed:**
+- `app/src/lib/encounter-state.ts` (MODIFIED) — added `formatTranscriptForNoteGeneration()` function
+
+**What it does:**
+- New function formats the diarized transcript for inclusion in the note generation prompt
+- Compact format: `[C]` / `[P]` speaker labels, no timestamps (saves tokens)
+- Capped at 6000 chars to leave room for facts + system prompt
+- Does NOT modify existing `serializeFactsForPrompt()` or `formatDiarizedTranscript()` — purely additive
+
+**Previous fixes in same file:** FIX-42 (failedExtractions/totalExtractions fields — untouched)
+**Build:** ✅ `npm run build` passes
+**Tests:** ✅ 71/71 pass
+
+---
+
+### FIX-46 — Pass transcript to note generation + rewrite prompts ✅ RESOLVED
+**Date:** 2026-02-24
+**Files changed:**
+- `app/src/app/api/generate-note/route.ts` (MODIFIED) — 6 sub-changes (46a–46f)
+
+**What it does:**
+- **46a**: Import `formatTranscriptForNoteGeneration` from encounter-state
+- **46b**: After `factsJson`, build `transcriptText` and `hasTranscript` flag
+- **46c**: Rewrite Pass 1 system prompt to accept dual sources (Facts JSON + Encounter Transcript). When transcript available: allows transcript-derived content, allows clinical inferences based on either source. When no transcript: falls back to facts-only mode
+- **46d**: Rewrite Pass 1 user prompt to include both `factsJson` and `transcriptText` when available, with clear instructions for dual-source writing
+- **46e**: Update Pass 2 audit prompt to accept transcript as a valid source — "Clinical terminology upgrades of lay language: OK", "Reasonable clinical inferences from documented data: OK", "Any clinical data NOT traceable to Facts JSON OR Transcript: FLAG as hallucination"
+- **46f**: In `buildEncounterStateFromTranscript()`, store the raw transcript as a single `UNKNOWN` speaker diarized statement so file uploads also get transcript-enriched note generation
+
+**Root cause this fixes:**
+- The diarized transcript was NEVER passed to the note writer — it only received sparse facts JSON
+- ~70-85% of framework items marked `not_documented` were stripped by `serializeFactsForPrompt`
+- The LLM could only write from the sparse remaining facts, producing scant notes
+- Now the LLM has the full conversation for context, nuance, and patient quotes
+
+**Previous fixes in same file:** FIX-2 (prompt sanitizer — untouched), FIX-3 (audit error handling — untouched), FIX-12 (JSON parse hardening — untouched), FIX-19 (demographics — untouched), FIX-35 (clinical quality — integrated into new prompt), FIX-36 (differential dx — integrated into new prompt), FIX-43 (SSE warnings — untouched)
+**Build:** ✅ `npm run build` passes
+**Tests:** ✅ 71/71 pass
+
+---
+
+### FIX-47 — Relax extraction rules for clinical categorization ✅ RESOLVED
+**Date:** 2026-02-24
+**Files changed:**
+- `app/src/app/api/extract-chunk/route.ts` (MODIFIED) — TASK 2 extraction rules rewritten
+
+**What it does:**
+- **Removed**: "NEVER fabricate, infer, or assume ANY clinical data" (too broad — prevented categorization), "NEVER use medical knowledge to fill in expected findings" (over-restrictive), "Use EXACT words from transcript for all factual data" (prevented lay→clinical mapping)
+- **Added**: "CATEGORIZE CONVERSATIONAL LANGUAGE" rule — patients describe symptoms in lay terms; map descriptions to correct schema field; VALUE preserves patient's words, FIELD PLACEMENT is clinical judgment
+- **Added**: Safety net — "When in doubt about which field a statement maps to, place it in additional_facts rather than leaving it unextracted"
+- **Kept narrow guards**: "NEVER fabricate clinical data that was not discussed", "NEVER invent measurements/scores/findings not stated", "NEVER fill in expected findings"
+- Separates **categorization** (appropriate clinical judgment) from **fabrication** (unacceptable)
+
+**Previous fixes in same file:** FIX-2 (prompt sanitization — untouched), FIX-41 (truncation check — untouched), FIX-44 (dynamic maxTokens — untouched)
+**Build:** ✅ `npm run build` passes
+**Tests:** ✅ 71/71 pass
+
+---
+
+### FIX-48 — Audio capture: preserve more speech ✅ RESOLVED
+**Date:** 2026-02-24
+**Files changed:**
+- `app/src/lib/vad.ts` (MODIFIED) — `DEFAULT_THRESHOLD` 5 → 3
+- `app/src/components/AudioRecorder.tsx` (MODIFIED) — `noiseSuppression: false`, prompt context `.slice(-200)` → `.slice(-500)`
+
+**What it does:**
+- **48a**: Lower VAD threshold from 5 to 3 — threshold 5 is in the "background noise" range (3–10), causing quiet speech, trailing-off patients, and soft clinical observations to be classified as silence. Whisper-large-v3 handles slight background noise well.
+- **48b**: Disable browser `noiseSuppression` — browser noise suppression is designed for voice calls and aggressively strips soft speech. Whisper has its own noise handling. `echoCancellation` kept for speakerphone use.
+- **48c**: Extend Whisper chunk prompt context from 200 to 500 chars — gives ~4-5 sentences of context between chunks instead of ~2, improving medical term recognition continuity.
+
+**Previous fixes in same files:** vad.ts (none), AudioRecorder.tsx (FIX-42 extraction tracking — untouched)
+**Build:** ✅ `npm run build` passes
+**Tests:** ✅ 71/71 pass
+
+---
+
 ## Remaining Items (not yet implemented)
 - **Infrastructure**: Configure staging/dev droplets
