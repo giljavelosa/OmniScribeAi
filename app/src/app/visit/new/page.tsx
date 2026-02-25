@@ -95,17 +95,27 @@ function NewVisitContent() {
   const pendingEncounterRef = useRef<EncounterState | null>(null);
   const encounterStateRef = useRef<EncounterState | null>(null);
 
-  // Pre-select framework from URL query param (e.g., /visit/new?frameworkId=rehab-pt-eval)
+  // Pre-select framework and patient from URL query params
+  // (e.g., /visit/new?frameworkId=rehab-pt-eval&patientId=xxx&patientName=John+Doe)
   useEffect(() => {
     const fwParam = searchParams.get('frameworkId');
     if (fwParam && !frameworkId) {
       setFrameworkId(fwParam);
     }
-  }, [searchParams, frameworkId]);
+    const pidParam = searchParams.get('patientId');
+    const pnameParam = searchParams.get('patientName');
+    if (pidParam && !patientId) {
+      setPatientId(pidParam);
+      if (pnameParam) {
+        setPatientName(pnameParam);
+        setPatientSearch(pnameParam);
+      }
+    }
+  }, [searchParams, frameworkId, patientId]);
 
   // Restore draft from localStorage on mount (only if no URL params override)
   useEffect(() => {
-    if (searchParams.get('frameworkId')) return; // URL param takes priority
+    if (searchParams.get('frameworkId') || searchParams.get('patientId')) return; // URL params take priority
     try {
       const raw = localStorage.getItem('omniscribe-visit-draft');
       if (raw) {

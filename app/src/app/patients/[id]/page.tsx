@@ -60,7 +60,7 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
                 </p>
               </div>
             </div>
-            <Link href={`/visit/new?patientId=${patient.id}`}
+            <Link href={`/visit/new?patientId=${patient.id}&patientName=${encodeURIComponent(fullName)}`}
               className="bg-[#0d9488] hover:bg-[#0f766e] text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
               + New Visit
             </Link>

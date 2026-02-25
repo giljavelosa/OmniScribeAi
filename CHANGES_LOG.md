@@ -974,5 +974,39 @@ Two browser-side bugs in the login form:
 
 ---
 
+## FIX-34: Patient context not passed to visit/new page ✅
+**Date:** 2026-02-25
+**Files changed:**
+- `app/src/app/patients/[id]/page.tsx` (MODIFIED) — "New Visit" link now includes patient name
+- `app/src/app/visit/new/page.tsx` (MODIFIED) — Reads patientId + patientName from URL params
+
+**Root cause:**
+- The patient detail page (`patients/[id]/page.tsx`) linked to `/visit/new?patientId=xxx` but did NOT include the patient name in the URL.
+- The visit/new page only read `frameworkId` from URL query params (UX-1), never read `patientId` or `patientName`.
+- Result: after selecting a patient and clicking "New Visit", the visit/new page had empty patient fields → `canGenerate` was false → "Generate Clinical Note" button was disabled.
+- User reported two symptoms (same root cause): (1) "could not see who you chose earlier" and (2) "cannot process the note after clicking generate clinical note."
+
+**What it does:**
+- `patients/[id]/page.tsx`: Changed `href` from `/visit/new?patientId=${patient.id}` to `/visit/new?patientId=${patient.id}&patientName=${encodeURIComponent(fullName)}` — passes both ID and display name
+- `visit/new/page.tsx`: Added reading of `patientId` and `patientName` from URL search params in the same useEffect that reads `frameworkId` (lines 99-111). Sets `patientId`, `patientName`, and `patientSearch` states.
+- `visit/new/page.tsx`: Updated draft restore guard to also skip restore when `patientId` is in URL params (URL params take priority over drafts)
+
+**Previous fixes in same files and how they're preserved:**
+- **patients/[id]/page.tsx**: Never previously modified — no conflicts.
+- **UX-1** (frameworkId from URL): Unchanged, same useEffect extended with patient params.
+- **UX-2** (patient autocomplete): Unchanged — if patient comes from URL, the search field is pre-filled with the name and shows "Linked" badge.
+- **UX-10** (draft restore): Guard extended from `if (searchParams.get('frameworkId'))` to `if (searchParams.get('frameworkId') || searchParams.get('patientId'))`. Draft restore skipped when URL provides patient context.
+- **FIX-33** (drag-and-drop): Untouched.
+- **All other UX/FIX entries**: Untouched.
+
+**What could break:**
+- If a patient name contains special characters, `encodeURIComponent` handles encoding and `searchParams.get()` auto-decodes.
+- If someone navigates to `/visit/new?patientId=xxx` without `patientName`, the patient ID is set but the name field stays empty — user can type it manually.
+
+**Build:** ✅ `npm run build` passes
+**Tests:** ✅ 71/71 pass
+
+---
+
 ## Remaining Items (not yet implemented)
 - **Infrastructure**: Configure staging/dev droplets
