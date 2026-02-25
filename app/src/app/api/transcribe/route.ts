@@ -123,6 +123,7 @@ async function transcribeSingle(
     groqFormData.append('model', 'whisper-large-v3-turbo');
     groqFormData.append('response_format', 'verbose_json');
     groqFormData.append('language', 'en');
+    groqFormData.append('temperature', '0');
     groqFormData.append('timestamp_granularities[]', 'word');
     groqFormData.append('prompt', MEDICAL_PROMPT);
 
@@ -220,6 +221,7 @@ async function transcribeChunked(
     groqFormData.append('model', 'whisper-large-v3-turbo');
     groqFormData.append('response_format', 'verbose_json');
     groqFormData.append('language', 'en');
+    groqFormData.append('temperature', '0');
     groqFormData.append('timestamp_granularities[]', 'word');
     groqFormData.append('prompt', prompt);
 

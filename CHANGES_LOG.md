@@ -1077,5 +1077,35 @@ Enhances the Assessment/Medical Assessment section to include factual differenti
 
 ---
 
+### FIX-37 — Set Groq Whisper temperature to 0 for deterministic transcription ✅ RESOLVED
+**Date:** 2026-02-25
+**Files changed:**
+- `app/src/app/api/transcribe/route.ts` (MODIFIED) — added `temperature=0` to both `transcribeSingle()` and `transcribeChunked()` Groq Whisper calls
+- `app/src/app/api/transcribe-chunk/route.ts` (MODIFIED) — added `temperature=0` to real-time chunk Groq Whisper call
+
+**What it does:**
+- Sets `temperature: 0` on all 3 Groq Whisper API call sites (single upload, chunked upload, real-time chunk)
+- Makes transcription fully deterministic — same audio always produces same text
+- Reduces risk of Whisper hallucinating words not present in the audio
+
+**HIPAA assessment:**
+- ✅ **Does NOT compromise HIPAA** — improves it by reducing hallucination/fabrication risk
+- ✅ No PHI is exposed, logged, or stored differently
+- ✅ No auth, encryption, rate limiting, or security headers changed
+- ✅ Temperature is a model inference parameter, not patient data
+
+**Previous fixes in same files and how they're preserved:**
+- **FIX-10** (retry logic in transcribeSingle): Untouched — retry loop and backoff logic unchanged
+- **FIX-11** (empty audio rejection): Untouched — size check in both files unchanged
+- **FIX-22** (chunked transcription): Untouched — splitWavFile, chunked loop, context passing all unchanged
+
+**What could break:**
+- Nothing — `temperature=0` is a supported Groq Whisper parameter. The only behavioral change is more deterministic output, which is desirable for clinical documentation.
+
+**Build:** ✅ `npm run build` passes
+**Tests:** ✅ 71/71 pass
+
+---
+
 ## Remaining Items (not yet implemented)
 - **Infrastructure**: Configure staging/dev droplets

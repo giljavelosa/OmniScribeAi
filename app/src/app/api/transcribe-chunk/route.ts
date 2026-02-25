@@ -81,6 +81,7 @@ export async function POST(request: NextRequest) {
     groqFormData.append("model", "whisper-large-v3-turbo");
     groqFormData.append("response_format", "verbose_json");
     groqFormData.append("language", "en");
+    groqFormData.append("temperature", "0");
     groqFormData.append("timestamp_granularities[]", "word");
     groqFormData.append("prompt", fullPrompt);
 
