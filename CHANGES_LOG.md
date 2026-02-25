@@ -1077,33 +1077,5 @@ Enhances the Assessment/Medical Assessment section to include factual differenti
 
 ---
 
-### FIX-37 — Clinical note formatting: Assessment outputs lettered sub-points instead of flowing prose ✅ RESOLVED
-**Date:** 2026-02-24
-**Symptom:** Clinical notes are not formatted properly — the Assessment section outputs content with lettered sub-headings (a., b., c.) and bold sub-headers instead of natural clinical prose.
-
-**Root cause:** FIX-36 added prompt rules 6a–6e with lettered structure. The AI interpreted these as output format directives, producing Assessment content with lettered sub-points and bold sub-headers (a. **Clinical Reasoning**:, b. **Differential Diagnosis**:, etc.) instead of flowing clinical narrative.
-
-**Fix (2 files):**
-
-1. **`app/src/app/api/generate-note/route.ts`** — Rewrote rule 6 to explicitly instruct "FLOWING CLINICAL PROSE — one cohesive narrative, NOT lettered sub-points or sub-headings." Changed lettered sub-rules (a-e) to dash-list guidance of what to include, plus a full-paragraph example of the expected narrative style.
-
-2. **`app/src/components/NoteEditor.tsx`** — Enhanced `renderMarkdown()` to handle:
-   - Numbered lists (`1. item`, `2. item`) — preserves numbering in rendered output
-   - Lettered lists (`a. item`, `b. item`) — preserves lettering in rendered output
-   - Markdown headers (`### Header`) — renders as bold text
-   These additions are defensive — the prompt change should prevent lettered output, but if the AI still produces these formats in Plan or other sections, they'll render correctly.
-
-**Files modified:** `app/src/app/api/generate-note/route.ts`, `app/src/components/NoteEditor.tsx`
-**Previous fixes on same files:** FIX-2, FIX-3, FIX-12, FIX-19, FIX-35, FIX-36 (route.ts); FIX-8 (NoteEditor.tsx)
-**What could break:**
-- Assessment style will change from structured sub-headings to flowing narrative — this is the intended fix.
-- If the AI occasionally still produces numbered/lettered lists (e.g., in Plan section), they now render correctly in the UI.
-- No changes to data flow, API contract, or other sections.
-
-**Build:** ✅ `npm run build` passes
-**Tests:** ✅ 71/71 pass
-
----
-
 ## Remaining Items (not yet implemented)
 - **Infrastructure**: Configure staging/dev droplets
