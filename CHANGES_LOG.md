@@ -1754,5 +1754,27 @@ The codebase passed `npm run build` and 71/71 tests but had 14 paths where runti
 
 ---
 
+## DEPLOY-2: Production release attempt for FIX-54 through FIX-58 ⚠️ ROLLED BACK
+**Date:** 2026-03-01
+**Target host:** `root@143.198.131.243` (`/home/omniscribe/omniscribeai`)
+**Branch attempted:** `feat/template-ui-phase2f-visit-template-selection` at `d00cb6c`
+**Rollback target:** `1b2bdc9`
+
+**What happened:**
+- Initial deploy attempt failed at build due Prisma type/schema mismatch on server checkout.
+- Second attempt with migration path failed on `prisma migrate deploy` (`P3005` baseline error: production DB already non-empty and not baselined for Prisma Migrate history).
+- Automatic rollback policy executed: server reset to `1b2bdc9`, rebuilt, and restarted via PM2.
+
+**Post-rollback verification:**
+- Current server git SHA: `1b2bdc9`
+- PM2 app `omniscribe`: online
+- Domain smoke checks: `https://omniscribeai.us/login` = `200`, `https://omniscribeai.us/` = `200`
+
+**Blocking item to complete production rollout:**
+- Production database must be baselined for Prisma migrations (or migration history reconciled) before applying `20260228_visit_sharing`.
+- Until baseline is completed, code depending on visit-sharing schema changes cannot be safely promoted.
+
+---
+
 ## Remaining Items (not yet implemented)
 - **Infrastructure**: Configure staging/dev droplets
