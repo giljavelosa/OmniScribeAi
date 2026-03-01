@@ -68,7 +68,7 @@ describe('API error envelope integration', () => {
     });
   });
 
-  it('patients POST success payload shape is backward-compatible', async () => {
+  it('patients POST success returns canonical envelope', async () => {
     mockAuth.mockResolvedValue({ user: { id: 'user_123', role: 'CLINICIAN' } });
     mockPrisma.patient.create.mockResolvedValue({ id: 'p1', identifier: 'PT-001' });
 
@@ -82,13 +82,13 @@ describe('API error envelope integration', () => {
 
     expect(response.status).toBe(201);
     expect(body).toEqual({
-      patient: { id: 'p1', identifier: 'PT-001' },
+      success: true,
+      data: { patient: { id: 'p1', identifier: 'PT-001' } },
+      meta: { timestamp: expect.any(String) },
     });
-    expect(body.success).toBeUndefined();
-    expect(body.error).toBeUndefined();
   });
 
-  it('patients GET success payload shape is backward-compatible', async () => {
+  it('patients GET success returns canonical envelope', async () => {
     mockAuth.mockResolvedValue({ user: { id: 'user_123', role: 'CLINICIAN' } });
     mockPrisma.user.findUnique.mockResolvedValue({ organizationId: 'org_1' });
     mockPrisma.patient.findMany.mockResolvedValue([{ id: 'p1', identifier: 'PT-001' }]);
@@ -99,9 +99,10 @@ describe('API error envelope integration', () => {
 
     expect(response.status).toBe(200);
     expect(body).toEqual({
-      patients: [{ id: 'p1', identifier: 'PT-001' }],
+      success: true,
+      data: { patients: [{ id: 'p1', identifier: 'PT-001' }] },
+      meta: { timestamp: expect.any(String) },
     });
-    expect(body.success).toBeUndefined();
   });
 
   it('visits GET unauthorized returns AUTH_UNAUTHORIZED envelope', async () => {
@@ -135,27 +136,27 @@ describe('API error envelope integration', () => {
     });
   });
 
-  it('visits POST success payload shape is backward-compatible', async () => {
+  it('visits POST success returns canonical envelope', async () => {
     mockAuth.mockResolvedValue({ user: { id: 'user_123', role: 'CLINICIAN' } });
-    mockPrisma.visit.create.mockResolvedValue({ id: 'v1', patientId: 'p1', frameworkId: 'soap-md-general' });
+    mockPrisma.visit.create.mockResolvedValue({ id: 'v1', patientId: 'p1', frameworkId: 'med-soap-followup' });
 
     const { POST } = await import('../../src/app/api/visits/route');
     const response = await POST(new NextRequest('http://localhost/api/visits', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ patientId: 'p1', frameworkId: 'soap-md-general' }),
+      body: JSON.stringify({ patientId: 'p1', frameworkId: 'med-soap-followup' }),
     }));
     const body = await response.json();
 
     expect(response.status).toBe(201);
     expect(body).toEqual({
-      visit: { id: 'v1', patientId: 'p1', frameworkId: 'soap-md-general' },
+      success: true,
+      data: { visit: { id: 'v1', patientId: 'p1', frameworkId: 'med-soap-followup' } },
+      meta: { timestamp: expect.any(String) },
     });
-    expect(body.success).toBeUndefined();
-    expect(body.error).toBeUndefined();
   });
 
-  it('visits GET success payload shape is backward-compatible', async () => {
+  it('visits GET success returns canonical envelope', async () => {
     mockAuth.mockResolvedValue({ user: { id: 'user_123', role: 'CLINICIAN' } });
     mockPrisma.visit.findMany.mockResolvedValue([{ id: 'v1', patientId: 'p1' }]);
 
@@ -164,8 +165,11 @@ describe('API error envelope integration', () => {
     const body = await response.json();
 
     expect(response.status).toBe(200);
-    expect(body).toEqual({ visits: [{ id: 'v1', patientId: 'p1' }] });
-    expect(body.success).toBeUndefined();
+    expect(body).toEqual({
+      success: true,
+      data: { visits: [{ id: 'v1', patientId: 'p1' }] },
+      meta: { timestamp: expect.any(String) },
+    });
   });
 
   it('templates GET unauthorized returns AUTH_UNAUTHORIZED envelope', async () => {
@@ -199,7 +203,7 @@ describe('API error envelope integration', () => {
     });
   });
 
-  it('templates POST success payload shape is backward-compatible', async () => {
+  it('templates POST success returns canonical envelope', async () => {
     mockAuth.mockResolvedValue({ user: { id: 'user_123', role: 'CLINICIAN' } });
     mockPrisma.user.findUnique.mockResolvedValue({ organizationId: 'org_1' });
     mockPrisma.noteTemplate.create.mockResolvedValue({ id: 't1', name: 'My Template' });
@@ -212,20 +216,20 @@ describe('API error envelope integration', () => {
         name: 'My Template',
         domain: 'medical',
         noteFormat: 'SOAP',
-        sourceFrameworkId: 'soap-md-general',
+        sourceFrameworkId: 'med-soap-followup',
       }),
     }));
     const body = await response.json();
 
     expect(response.status).toBe(201);
     expect(body).toEqual({
-      template: { id: 't1', name: 'My Template' },
+      success: true,
+      data: { template: { id: 't1', name: 'My Template' } },
+      meta: { timestamp: expect.any(String) },
     });
-    expect(body.success).toBeUndefined();
-    expect(body.error).toBeUndefined();
   });
 
-  it('templates GET success payload shape is backward-compatible', async () => {
+  it('templates GET success returns canonical envelope', async () => {
     mockAuth.mockResolvedValue({ user: { id: 'user_123', role: 'CLINICIAN' } });
 
     const { GET } = await import('../../src/app/api/templates/route');
@@ -233,11 +237,14 @@ describe('API error envelope integration', () => {
     const body = await response.json();
 
     expect(response.status).toBe(200);
-    expect(Array.isArray(body.templates)).toBe(true);
+    expect(Array.isArray(body.data.templates)).toBe(true);
     expect(body).toEqual({
-      templates: expect.any(Array),
-      total: expect.any(Number),
+      success: true,
+      data: {
+        templates: expect.any(Array),
+        total: expect.any(Number),
+      },
+      meta: { timestamp: expect.any(String) },
     });
-    expect(body.success).toBeUndefined();
   });
 });

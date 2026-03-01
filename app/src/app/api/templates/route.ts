@@ -1,6 +1,6 @@
 import { auth } from "@/lib/auth";
 import { auditLog } from "@/lib/audit";
-import { fail } from "@/lib/api-contract";
+import { fail, ok } from "@/lib/api-contract";
 import { prisma } from "@/lib/db";
 import { frameworks } from "@/lib/frameworks";
 import { appLog, scrubError } from "@/lib/logger";
@@ -13,7 +13,7 @@ import {
   type NoteFormat,
   type Discipline,
 } from "@/lib/template-schema";
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 
 // ─── GET /api/templates — list templates ──────────────────
 
@@ -152,7 +152,7 @@ export async function GET(req: NextRequest) {
     // Apply pagination across combined results
     const paginated = results.slice(offset, offset + limit);
 
-    return NextResponse.json({ templates: paginated, total });
+    return ok({ templates: paginated, total });
   } catch (error) {
     appLog("error", "GET /api/templates", scrubError(error));
     return fail("INTERNAL_ERROR", "Internal server error", 500);
@@ -272,7 +272,7 @@ export async function POST(req: NextRequest) {
       details: { name: safeName, domain, noteFormat, sourceFrameworkId: sourceFrameworkId || null },
     });
 
-    return NextResponse.json({ template }, { status: 201 });
+    return ok({ template }, { status: 201 });
   } catch (error) {
     appLog("error", "POST /api/templates", scrubError(error));
     return fail("INTERNAL_ERROR", "Internal server error", 500);
