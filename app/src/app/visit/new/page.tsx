@@ -240,8 +240,14 @@ function NewVisitContent() {
           body: JSON.stringify({ identifier, firstName, lastName }),
         });
         if (!patientRes.ok) {
-          const err = await patientRes.json().catch(() => ({}));
-          appLog('warn', 'NewVisit', 'Failed to create patient for DB save', { error: err.error || patientRes.status });
+          let apiError = `HTTP ${patientRes.status}`;
+          try {
+            const parsed = (await patientRes.json()) as { error?: string };
+            if (typeof parsed?.error === 'string' && parsed.error) apiError = parsed.error;
+          } catch {
+            // Keep status-based fallback when response is not JSON.
+          }
+          appLog('warn', 'NewVisit', 'Failed to create patient for DB save', { error: apiError });
           return null;
         }
         const patientData = await patientRes.json();
@@ -280,8 +286,14 @@ function NewVisitContent() {
         }),
       });
       if (!visitRes.ok) {
-        const err = await visitRes.json().catch(() => ({}));
-        appLog('warn', 'NewVisit', 'Failed to save visit to DB', { error: err.error || visitRes.status });
+        let apiError = `HTTP ${visitRes.status}`;
+        try {
+          const parsed = (await visitRes.json()) as { error?: string };
+          if (typeof parsed?.error === 'string' && parsed.error) apiError = parsed.error;
+        } catch {
+          // Keep status-based fallback when response is not JSON.
+        }
+        appLog('warn', 'NewVisit', 'Failed to save visit to DB', { error: apiError });
         return null;
       }
       const { visit } = await visitRes.json();

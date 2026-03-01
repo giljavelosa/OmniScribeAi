@@ -16,6 +16,7 @@ export async function createTestPatient(identifier = 'TEST-PT-001') {
 export async function cleanupTestData() {
   // Delete in FK-safe order
   await prisma.auditLog.deleteMany({});
+  await prisma.visitShareGrant.deleteMany({});
   await prisma.visit.deleteMany({});
   await prisma.patientDocument.deleteMany({});
   await prisma.condition.deleteMany({});
@@ -23,4 +24,5 @@ export async function cleanupTestData() {
   await prisma.allergy.deleteMany({});
   await prisma.coverage.deleteMany({});
   await prisma.patient.deleteMany({});
+  await prisma.organization.deleteMany({});
 }

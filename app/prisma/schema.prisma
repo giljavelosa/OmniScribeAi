@@ -25,6 +25,8 @@ model User {
   sessions       Session[]
   accounts       Account[]
   visits         Visit[]
+  sharedVisits   VisitShareGrant[] @relation("VisitShareGrantee")
+  grantsIssued   VisitShareGrant[] @relation("VisitShareGrantor")
   ownedTemplates NoteTemplate[] @relation("OwnedTemplates")
   auditLogs      AuditLog[]
   createdAt      DateTime  @default(now())
@@ -84,6 +86,7 @@ model Organization {
   fax       String?
   users          User[]
   patients       Patient[]
+  visits         Visit[]
   noteTemplates  NoteTemplate[]
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
@@ -273,6 +276,9 @@ model Visit {
   patient       Patient     @relation(fields: [patientId], references: [id])
   userId        String
   user          User        @relation(fields: [userId], references: [id])
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id])
+  visibility     VisitVisibility @default(private)
   frameworkId           String
   domain                String
   templateId            String?
@@ -297,12 +303,33 @@ model Visit {
   finalizedAt   DateTime?
   finalizedBy   String?
   amendments    Json?       // array of {id, timestamp, author, reason, changes}
+  shareGrants   VisitShareGrant[]
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
 
   @@index([userId])
   @@index([patientId])
   @@index([date])
+  @@index([organizationId])
+  @@index([organizationId, visibility])
+}
+
+model VisitShareGrant {
+  id              String    @id @default(cuid())
+  visitId         String
+  visit           Visit      @relation(fields: [visitId], references: [id], onDelete: Cascade)
+  granteeUserId   String
+  granteeUser     User       @relation("VisitShareGrantee", fields: [granteeUserId], references: [id], onDelete: Cascade)
+  grantedByUserId String
+  grantedByUser   User       @relation("VisitShareGrantor", fields: [grantedByUserId], references: [id], onDelete: Cascade)
+  permission      VisitSharePermission @default(view)
+  createdAt       DateTime   @default(now())
+  revokedAt       DateTime?
+
+  @@index([visitId])
+  @@index([granteeUserId])
+  @@index([visitId, granteeUserId, revokedAt])
+  @@unique([visitId, granteeUserId])
 }
 
 // ─── Audit ───────────────────────────────────────────────
@@ -346,4 +373,15 @@ enum Gender {
   FEMALE
   OTHER
   UNKNOWN
+}
+
+enum VisitVisibility {
+  private
+  organization
+  restricted
+}
+
+enum VisitSharePermission {
+  view
+  comment
 }

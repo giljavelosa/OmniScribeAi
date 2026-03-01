@@ -18,7 +18,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
   try {
     const { id } = await params;
-    const body = await req.json().catch(() => ({}));
+    let body: { name?: string } = {};
+    try {
+      body = (await req.json()) as { name?: string };
+    } catch {
+      return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+    }
     const customName = body.name?.trim();
 
     // Get cloner's org

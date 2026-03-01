@@ -1,5 +1,7 @@
 'use client';
 
+import { appLog, scrubError } from '@/lib/logger';
+
 /**
  * PHI-Safe localStorage Wrapper
  *
@@ -30,7 +32,10 @@ export function setPhiItem<T>(key: string, value: T): void {
   try {
     localStorage.setItem(key, JSON.stringify(entry));
   } catch (err) {
-    console.warn('[phi-storage] localStorage write failed for key:', key, err);
+    appLog('warn', 'PhiStorage', 'localStorage write failed', {
+      key: key.slice(0, 80),
+      error: scrubError(err),
+    });
   }
 }
 

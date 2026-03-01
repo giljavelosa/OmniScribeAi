@@ -53,10 +53,21 @@ export async function GET(req: NextRequest) {
       },
     });
 
-    // Search visits by user (most recent, matching patient names, max 5)
+    // Search visits with the same access model as /api/visits.
     const visitWhere: Record<string, unknown> = {};
     if (!isAdmin) {
-      visitWhere.userId = session.user.id;
+      const accessOr: Record<string, unknown>[] = [{ userId: session.user.id }];
+      if ("organizationId" in ownershipFilter && (ownershipFilter as { organizationId?: string }).organizationId) {
+        accessOr.push({
+          visibility: "organization",
+          organizationId: (ownershipFilter as { organizationId: string }).organizationId,
+        });
+      }
+      accessOr.push({
+        visibility: "restricted",
+        shareGrants: { some: { granteeUserId: session.user.id, revokedAt: null } },
+      });
+      visitWhere.OR = accessOr;
     }
 
     const visits = await prisma.visit.findMany({

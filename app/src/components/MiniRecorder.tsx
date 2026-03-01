@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import { appLog, scrubError } from '@/lib/logger';
 
 interface MiniRecorderProps {
   onTranscript: (transcript: string) => void;
@@ -57,7 +58,7 @@ export default function MiniRecorder({ onTranscript, disabled }: MiniRecorderPro
             onTranscript(data.transcript);
           }
         } catch (err) {
-          console.error('Transcription error:', err);
+          appLog('error', 'MiniRecorder', 'Transcription request failed', { error: scrubError(err) });
         } finally {
           setProcessing(false);
           setDuration(0);
@@ -70,7 +71,7 @@ export default function MiniRecorder({ onTranscript, disabled }: MiniRecorderPro
       setDuration(0);
       timerRef.current = setInterval(() => setDuration(d => d + 1), 1000);
     } catch (err) {
-      console.error('Mic access error:', err);
+      appLog('error', 'MiniRecorder', 'Microphone access failed', { error: scrubError(err) });
       alert('Could not access microphone. Please allow microphone permissions.');
     }
   };

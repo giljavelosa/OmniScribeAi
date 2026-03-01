@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { frameworks } from "@/lib/frameworks";
 import { NextRequest, NextResponse } from "next/server";
 import { appLog, scrubError } from "@/lib/logger";
+import type { Prisma, VisitVisibility } from "@prisma/client";
 
 // GET /api/visits — list visits for current user
 export async function GET(req: NextRequest) {
@@ -13,9 +14,35 @@ export async function GET(req: NextRequest) {
   try {
     const patientId = req.nextUrl.searchParams.get("patientId");
     const limit = Math.min(parseInt(req.nextUrl.searchParams.get("limit") || "50") || 50, 100);
+    const isAdmin = session.user.role === "ADMIN";
 
-    const where: { userId: string; patientId?: string } = { userId: session.user.id };
-    if (patientId) where.patientId = patientId;
+    const filters: Prisma.VisitWhereInput[] = [];
+    if (patientId) filters.push({ patientId });
+
+    if (!isAdmin) {
+      const accessOr: Prisma.VisitWhereInput[] = [{ userId: session.user.id }];
+
+      if (session.user.organizationId) {
+        accessOr.push({
+          visibility: "organization",
+          organizationId: session.user.organizationId,
+        });
+      }
+
+      accessOr.push({
+        visibility: "restricted",
+        shareGrants: {
+          some: {
+            granteeUserId: session.user.id,
+            revokedAt: null,
+          },
+        },
+      });
+
+      filters.push({ OR: accessOr });
+    }
+
+    const where: Prisma.VisitWhereInput = filters.length > 0 ? { AND: filters } : {};
 
     const visits = await prisma.visit.findMany({
       where,
@@ -23,10 +50,14 @@ export async function GET(req: NextRequest) {
       orderBy: { date: "desc" },
       include: {
         patient: { select: { id: true, identifier: true, firstName: true, lastName: true } },
+        user: { select: { id: true, name: true } },
       },
     });
 
-    return NextResponse.json({ visits });
+    return NextResponse.json(
+      { visits },
+      { headers: { "Cache-Control": "no-store" } },
+    );
   } catch (error) {
     appLog('error', 'GET /api/visits', scrubError(error));
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
@@ -51,10 +82,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Invalid frameworkId: must be a known framework or 'custom'" }, { status: 400 });
     }
 
+    const visibilityFromInput = typeof data.visibility === "string" ? data.visibility : "private";
+    const allowedVisibility: VisitVisibility[] = ["private", "organization", "restricted"];
+    const visibility: VisitVisibility = allowedVisibility.includes(visibilityFromInput as VisitVisibility)
+      ? (visibilityFromInput as VisitVisibility)
+      : "private";
+
     const visit = await prisma.visit.create({
       data: {
         patientId: data.patientId,
         userId: session.user.id,
+        organizationId: session.user.organizationId || null,
+        visibility,
         frameworkId: data.frameworkId,
         domain: data.domain || "medical",
         date: data.date ? new Date(data.date) : new Date(),
@@ -80,10 +119,18 @@ export async function POST(req: NextRequest) {
       userId: session.user.id,
       action: "CREATE_VISIT",
       resource: `visit:${visit.id}`,
-      details: { frameworkId: data.frameworkId, patientId: data.patientId, templateId: data.templateId || undefined },
+      details: {
+        frameworkId: data.frameworkId,
+        patientId: data.patientId,
+        templateId: data.templateId || undefined,
+        visibility,
+      },
     });
 
-    return NextResponse.json({ visit }, { status: 201 });
+    return NextResponse.json(
+      { visit },
+      { status: 201, headers: { "Cache-Control": "no-store" } },
+    );
   } catch (error) {
     appLog('error', 'POST /api/visits', scrubError(error));
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });

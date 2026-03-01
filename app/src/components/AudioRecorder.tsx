@@ -15,6 +15,7 @@ import {
 import { frameworks } from '@/lib/frameworks';
 import { fetchTemplateDetail } from '@/lib/template-client';
 import { TemplateStructureSchema, templateStructureToFrameworkSections } from '@/lib/template-schema';
+import { appLog, scrubError } from '@/lib/logger';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 const SESSION_LIMIT_SEC  = 90 * 60;   // 1 h 30 m — VAD auto-stop threshold
@@ -193,7 +194,10 @@ export default function AudioRecorder({ onRecordingComplete, onPartialTranscript
       })
       .then(transcribeResult => {
         if (!transcribeResult.success) {
-          console.warn('[AudioRecorder] Transcribe-chunk failed:', transcribeResult.error);
+          appLog('warn', 'AudioRecorder', 'Transcribe-chunk failed', {
+            chunkIndex: chunkIdx,
+            error: String(transcribeResult.error || 'unknown').slice(0, 200),
+          });
           failedExtractionRef.current++;
           totalExtractionRef.current++;
           showToast('Audio chunk failed to transcribe — some data may be missing');
@@ -262,7 +266,10 @@ export default function AudioRecorder({ onRecordingComplete, onPartialTranscript
         });
       })
       .catch(err => {
-        console.warn('[AudioRecorder] Chunk processing error:', err);
+        appLog('warn', 'AudioRecorder', 'Chunk processing error', {
+          chunkIndex: chunkIdx,
+          error: scrubError(err),
+        });
         failedExtractionRef.current++;
         totalExtractionRef.current++;
         showToast('Audio processing error — some clinical data may be missing');
@@ -287,7 +294,7 @@ export default function AudioRecorder({ onRecordingComplete, onPartialTranscript
   const autoStopRecording = useCallback(() => {
     const rec = mediaRecorder.current;
     if (!rec || rec.state === 'inactive') return;
-    console.log('[AudioRecorder] Auto-stopping — no voice detected for 5+ min past 90 min mark');
+    appLog('info', 'AudioRecorder', 'Auto-stopping due to silence timeout');
     rec.requestData(); // flush final chunk
     rec.stop();        // triggers onstop → blob assembly → processing
     setRecState('idle');
@@ -348,7 +355,9 @@ export default function AudioRecorder({ onRecordingComplete, onPartialTranscript
           encounterStateRef.current = createInitialEncounterState(framework.sections);
         } else {
           // Unknown frameworkId — skip real-time extraction with warning
-          console.warn('[AudioRecorder] Unknown frameworkId, disabling real-time extraction:', frameworkId);
+          appLog('warn', 'AudioRecorder', 'Unknown frameworkId, disabling real-time extraction', {
+            frameworkId: String(frameworkId),
+          });
           isRealtimeModeRef.current = false;
           setIsRealtimeMode(false);
         }
@@ -362,14 +371,16 @@ export default function AudioRecorder({ onRecordingComplete, onPartialTranscript
               const sections = templateStructureToFrameworkSections(parsed.data);
               encounterStateRef.current = createInitialEncounterState(sections);
             } else {
-              console.warn('[AudioRecorder] Template structure invalid, disabling real-time extraction');
+              appLog('warn', 'AudioRecorder', 'Template structure invalid, disabling real-time extraction');
               isRealtimeModeRef.current = false;
               setIsRealtimeMode(false);
               showToast('Template structure could not be loaded — real-time extraction disabled');
             }
           })
           .catch(err => {
-            console.warn('[AudioRecorder] Failed to fetch template for EncounterState:', err);
+            appLog('warn', 'AudioRecorder', 'Template fetch failed, disabling real-time extraction', {
+              error: scrubError(err),
+            });
             isRealtimeModeRef.current = false;
             setIsRealtimeMode(false);
             showToast('Template could not be loaded — real-time extraction disabled');
@@ -403,7 +414,9 @@ export default function AudioRecorder({ onRecordingComplete, onPartialTranscript
           source.connect(workletNode);
           workletNodeRef.current = workletNode;
         } catch (workletErr) {
-          console.warn('[AudioRecorder] AudioWorklet failed, falling back to legacy mode:', workletErr);
+          appLog('warn', 'AudioRecorder', 'AudioWorklet failed, using legacy mode', {
+            error: scrubError(workletErr),
+          });
           isRealtimeModeRef.current = false;
           setIsRealtimeMode(false);
         }
@@ -450,11 +463,14 @@ export default function AudioRecorder({ onRecordingComplete, onPartialTranscript
           originalDurationSec: allChunks.length * 10,
         };
 
-        console.log(
-          `[AudioRecorder] Stop: ${filteredBlob.size} bytes (filtered from ${allChunks.length} to ${voiceChunks.length} chunks), ` +
-          `stripped ${silenceStats.silenceStrippedSec}s silence, session=${sessionIdRef.current}` +
-          (isRealtimeModeRef.current ? `, encounterState chunks=${encounterStateRef.current?.chunk_count}` : '')
-        );
+        appLog('info', 'AudioRecorder', 'Recording stopped and filtered', {
+          bytes: filteredBlob.size,
+          totalChunks: allChunks.length,
+          voiceChunks: voiceChunks.length,
+          silenceStrippedSec: silenceStats.silenceStrippedSec,
+          hasEncounterState: isRealtimeModeRef.current,
+          encounterChunks: encounterStateRef.current?.chunk_count,
+        });
 
         // Attach extraction failure stats to EncounterState
         if (isRealtimeModeRef.current && encounterStateRef.current) {
@@ -473,7 +489,7 @@ export default function AudioRecorder({ onRecordingComplete, onPartialTranscript
       };
 
       recorder.onerror = (ev) => {
-        console.error('[AudioRecorder] recorder.onerror:', ev);
+        appLog('error', 'AudioRecorder', 'MediaRecorder error', { error: scrubError(ev) });
         setError('Recording error. Please stop and try again.');
         setRecState('idle');
         cleanup();

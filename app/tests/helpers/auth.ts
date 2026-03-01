@@ -8,6 +8,7 @@ export async function createTestUser(options: {
   role?: Role;
   mustChangePassword?: boolean;
   name?: string;
+  organizationId?: string | null;
 }) {
   const passwordHash = await bcrypt.hash(options.password, 12);
 
@@ -19,6 +20,7 @@ export async function createTestUser(options: {
       mustChangePassword: options.mustChangePassword ?? false,
       name: options.name ?? `Test User (${options.email})`,
       clinicianType: 'MD',
+      organizationId: options.organizationId ?? null,
     },
   });
 
