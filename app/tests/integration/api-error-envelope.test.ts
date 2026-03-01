@@ -68,6 +68,26 @@ describe('API error envelope integration', () => {
     });
   });
 
+  it('patients POST success payload shape is backward-compatible', async () => {
+    mockAuth.mockResolvedValue({ user: { id: 'user_123', role: 'CLINICIAN' } });
+    mockPrisma.patient.create.mockResolvedValue({ id: 'p1', identifier: 'PT-001' });
+
+    const { POST } = await import('../../src/app/api/patients/route');
+    const response = await POST(new NextRequest('http://localhost/api/patients', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ identifier: 'PT-001', organizationId: 'org_1' }),
+    }));
+    const body = await response.json();
+
+    expect(response.status).toBe(201);
+    expect(body).toEqual({
+      patient: { id: 'p1', identifier: 'PT-001' },
+    });
+    expect(body.success).toBeUndefined();
+    expect(body.error).toBeUndefined();
+  });
+
   it('patients GET success payload shape is backward-compatible', async () => {
     mockAuth.mockResolvedValue({ user: { id: 'user_123', role: 'CLINICIAN' } });
     mockPrisma.user.findUnique.mockResolvedValue({ organizationId: 'org_1' });
@@ -115,6 +135,26 @@ describe('API error envelope integration', () => {
     });
   });
 
+  it('visits POST success payload shape is backward-compatible', async () => {
+    mockAuth.mockResolvedValue({ user: { id: 'user_123', role: 'CLINICIAN' } });
+    mockPrisma.visit.create.mockResolvedValue({ id: 'v1', patientId: 'p1', frameworkId: 'soap-md-general' });
+
+    const { POST } = await import('../../src/app/api/visits/route');
+    const response = await POST(new NextRequest('http://localhost/api/visits', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ patientId: 'p1', frameworkId: 'soap-md-general' }),
+    }));
+    const body = await response.json();
+
+    expect(response.status).toBe(201);
+    expect(body).toEqual({
+      visit: { id: 'v1', patientId: 'p1', frameworkId: 'soap-md-general' },
+    });
+    expect(body.success).toBeUndefined();
+    expect(body.error).toBeUndefined();
+  });
+
   it('visits GET success payload shape is backward-compatible', async () => {
     mockAuth.mockResolvedValue({ user: { id: 'user_123', role: 'CLINICIAN' } });
     mockPrisma.visit.findMany.mockResolvedValue([{ id: 'v1', patientId: 'p1' }]);
@@ -157,6 +197,32 @@ describe('API error envelope integration', () => {
       code: 'TEMPLATE_VALIDATION_FAILED',
       message: 'Name is required',
     });
+  });
+
+  it('templates POST success payload shape is backward-compatible', async () => {
+    mockAuth.mockResolvedValue({ user: { id: 'user_123', role: 'CLINICIAN' } });
+    mockPrisma.user.findUnique.mockResolvedValue({ organizationId: 'org_1' });
+    mockPrisma.noteTemplate.create.mockResolvedValue({ id: 't1', name: 'My Template' });
+
+    const { POST } = await import('../../src/app/api/templates/route');
+    const response = await POST(new NextRequest('http://localhost/api/templates', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        name: 'My Template',
+        domain: 'medical',
+        noteFormat: 'SOAP',
+        sourceFrameworkId: 'soap-md-general',
+      }),
+    }));
+    const body = await response.json();
+
+    expect(response.status).toBe(201);
+    expect(body).toEqual({
+      template: { id: 't1', name: 'My Template' },
+    });
+    expect(body.success).toBeUndefined();
+    expect(body.error).toBeUndefined();
   });
 
   it('templates GET success payload shape is backward-compatible', async () => {
