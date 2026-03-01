@@ -1,5 +1,6 @@
 import { auth } from "@/lib/auth";
 import { auditLog } from "@/lib/audit";
+import { fail } from "@/lib/api-contract";
 import { prisma } from "@/lib/db";
 import { NextRequest, NextResponse } from "next/server";
 import { appLog, scrubError } from "@/lib/logger";
@@ -7,7 +8,7 @@ import { appLog, scrubError } from "@/lib/logger";
 // GET /api/patients — list/search patients (scoped to user's organization)
 export async function GET(req: NextRequest) {
   const session = await auth();
-  if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!session?.user) return fail("AUTH_UNAUTHORIZED", "Unauthorized", 401);
 
   try {
     const search = req.nextUrl.searchParams.get("q") || "";
@@ -57,20 +58,20 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ patients });
   } catch (error) {
     appLog('error', 'GET /api/patients', scrubError(error));
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return fail("INTERNAL_ERROR", "Internal server error", 500);
   }
 }
 
 // POST /api/patients — create patient
 export async function POST(req: NextRequest) {
   const session = await auth();
-  if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!session?.user) return fail("AUTH_UNAUTHORIZED", "Unauthorized", 401);
 
   try {
     const data = await req.json();
 
     if (!data.identifier?.trim()) {
-      return NextResponse.json({ error: "Patient identifier is required" }, { status: 400 });
+      return fail("PATIENT_VALIDATION_FAILED", "Patient identifier is required", 400);
     }
 
     // Link patient to user's organization if available
@@ -123,6 +124,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ patient }, { status: 201 });
   } catch (error) {
     appLog('error', 'POST /api/patients', scrubError(error));
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return fail("INTERNAL_ERROR", "Internal server error", 500);
   }
 }
