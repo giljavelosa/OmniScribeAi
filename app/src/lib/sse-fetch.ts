@@ -1,3 +1,5 @@
+import { appLog } from '@/lib/logger';
+
 // Fetch generate-note via SSE with retry on connection drop
 export async function fetchNoteSSE(
   body: Record<string, unknown>,
@@ -7,6 +9,7 @@ export async function fetchNoteSSE(
   onWarnings?: (warnings: string[], compliance: { score: number; grade: string }) => void,
 ): Promise<Record<string, unknown>> {
   let lastAttempt = 0;
+  const idempotencyKey = (globalThis.crypto?.randomUUID?.() ?? `idem-${Date.now()}-${Math.random().toString(36).slice(2)}`);
 
   for (let attempt = 1; attempt <= maxRetries + 1; attempt++) {
     if (signal?.aborted) throw new Error('Aborted');
@@ -15,7 +18,7 @@ export async function fetchNoteSSE(
     try {
       const res = await fetch('/api/generate-note', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'x-idempotency-key': idempotencyKey },
         body: JSON.stringify(body),
         signal,
       });
@@ -71,9 +74,13 @@ export async function fetchNoteSSE(
             // Critical events must parse — rethrow so caller sees the failure
             if (eventType === 'error' || eventType === 'result') throw parseErr;
             if (eventType === 'warnings') {
-              console.warn('[SSE] Malformed warnings event — skipping', part.substring(0, 100));
+              appLog('warn', 'SSE', 'Malformed warnings event skipped', {
+                snippet: part.substring(0, 100),
+              });
             } else {
-              console.warn('[SSE] Malformed event skipped:', part.substring(0, 100));
+              appLog('warn', 'SSE', 'Malformed SSE event skipped', {
+                snippet: part.substring(0, 100),
+              });
             }
           }
         }
@@ -83,7 +90,10 @@ export async function fetchNoteSSE(
 
       // Stream ended with no result — retry if attempts remain
       if (attempt <= maxRetries) {
-        console.warn(`[SSE] Stream closed without result (attempt ${attempt}/${maxRetries + 1}), retrying...`);
+        appLog('warn', 'SSE', 'Stream closed without result, retrying', {
+          attempt,
+          maxAttempts: maxRetries + 1,
+        });
         if (onProgress) onProgress(0, 6, `Connection dropped — retrying (${attempt}/${maxRetries})...`);
         await new Promise(r => setTimeout(r, 2000 * attempt));
         continue;
@@ -97,7 +107,7 @@ export async function fetchNoteSSE(
       // Retry on network errors but not on explicit API errors
       const isRetryable = !msg.includes('HTTP 4') && !msg.includes('Aborted') && !msg.includes('Unauthorized');
       if (isRetryable && attempt <= maxRetries) {
-        console.warn(`[SSE] Attempt ${attempt} failed: ${msg}. Retrying...`);
+        appLog('warn', 'SSE', 'Retryable SSE attempt failed', { attempt, error: msg.slice(0, 200) });
         if (onProgress) onProgress(0, 6, `Connection error — retrying (${attempt}/${maxRetries})...`);
         await new Promise(r => setTimeout(r, 2000 * attempt));
         continue;

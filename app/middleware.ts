@@ -82,9 +82,15 @@ export default auth((req) => {
         originOk = refererHost === host;
       } catch { /* invalid referer */ }
     }
-    // No Origin and no Referer — reject (likely cross-site or curl without headers)
-    // Exception: allow requests with no origin only if they have a valid session (server-to-server)
-    if (!originOk && (origin || referer)) {
+    // Require same-origin browser headers for state-changing requests.
+    if (!origin && !referer) {
+      return new NextResponse(
+        JSON.stringify({ error: "CSRF validation failed" }),
+        { status: 403, headers: { "Content-Type": "application/json" } },
+      );
+    }
+
+    if (!originOk) {
       return new NextResponse(
         JSON.stringify({ error: "CSRF validation failed" }),
         { status: 403, headers: { "Content-Type": "application/json" } },
@@ -126,6 +132,6 @@ export default auth((req) => {
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|api/auth|api/transcribe|api/ocr).*)",
+    "/((?!_next/static|_next/image|favicon.ico|api/auth).*)",
   ],
 };

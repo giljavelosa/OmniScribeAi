@@ -1573,5 +1573,186 @@ The codebase passed `npm run build` and 71/71 tests but had 14 paths where runti
 
 ---
 
+## FIX-52: Guardrails compliance pass — no raw console logs, no silent JSON fallback ✅ RESOLVED
+**Date:** 2026-02-28
+**Files changed:**
+- `app/src/lib/auth.ts` (MODIFIED) — replaced `console.error` in credentials authorize catch with `appLog(..., { error: scrubError(error) })`
+- `app/src/lib/sse-fetch.ts` (MODIFIED) — replaced `console.warn` retry/parse warnings with structured `appLog` events
+- `app/src/components/MiniRecorder.tsx` (MODIFIED) — replaced `console.error` for mic/transcription failures with `appLog` + `scrubError`
+- `app/src/components/AudioRecorder.tsx` (MODIFIED) — replaced all runtime `console.log/warn/error` with PHI-safe `appLog` metadata
+- `app/src/app/visit/[id]/page.tsx` (MODIFIED) — replaced regeneration `console.error` calls with `appLog`; removed `res.json().catch(() => ({}))` silent fallback in regeneration error handling
+- `app/src/app/visit/new/page.tsx` (MODIFIED) — replaced `response.json().catch(() => ({}))` patterns with explicit JSON parse attempt + status fallback
+- `app/src/app/api/templates/[id]/clone/route.ts` (MODIFIED) — replaced `req.json().catch(() => ({}))` with explicit invalid-JSON `400` response
+- `app/src/lib/phi-storage.ts` (MODIFIED) — replaced `console.warn` with structured `appLog` warning on localStorage write failures
+
+**What it does:**
+- Removes direct runtime `console.*` calls from app code paths (outside logger internals) to align with PHI-safe logging guardrails
+- Converts silent body/error parse fallbacks into explicit handling so malformed JSON does not masquerade as empty data
+- Preserves existing user-facing behavior while making failures visible and traceable through structured logs
+
+**What could break:**
+- Client logs are now JSON-structured via `appLog`, so ad-hoc text matching in browser console will differ
+- `POST /api/templates/:id/clone` now returns `400` for malformed JSON instead of silently treating body as empty
+
+**Build:** ✅ `npm run build` passes
+**Tests:** ⚠️ `npm run test` fails in local environment due to missing PostgreSQL at `127.0.0.1:5432` (all suites skipped/failed at setup connection stage)
+
+---
+
+## FIX-53: HIPAA-safe hybrid organization note sharing ✅ RESOLVED
+**Date:** 2026-02-28
+**Files changed:**
+- `app/prisma/schema.prisma` (MODIFIED) — added `Visit.visibility`, `Visit.organizationId`, `VisitShareGrant` model, related enums/indexes/relations
+- `app/prisma/migrations/migration_lock.toml` (NEW) — initialized Prisma migrations provider lock
+- `app/prisma/migrations/20260228_visit_sharing/migration.sql` (NEW) — migration SQL for visibility + grant table + backfill
+- `app/src/lib/visit-access.ts` (NEW) — centralized visit access policy (`canViewVisit`, `canEditVisit`, `canManageSharing`) + share audit action constants
+- `app/src/lib/auth.ts` (MODIFIED), `app/src/lib/auth.config.ts` (MODIFIED), `app/src/types/next-auth.d.ts` (MODIFIED) — session/JWT org context (`organizationId`)
+- `app/src/app/api/visits/route.ts` (MODIFIED) — hybrid list access (owner + org shared + restricted grants), visit create visibility/org fields
+- `app/src/app/api/visits/[id]/route.ts` (MODIFIED) — centralized read/edit policy checks, deny/share audit hooks, no-store on PHI response
+- `app/src/app/api/visits/[id]/amend/route.ts` (MODIFIED) — centralized edit policy check + no-store response
+- `app/src/app/api/visits/[id]/share/route.ts` (NEW) — GET/POST sharing config endpoint
+- `app/src/app/api/visits/[id]/share/[grantId]/route.ts` (NEW) — DELETE grant revoke endpoint
+- `app/src/app/api/search/route.ts` (MODIFIED) — visit search now honors shared-visit visibility model
+- `app/src/app/api/generate-note/route.ts` (MODIFIED), `app/src/app/api/regenerate-note/route.ts` (MODIFIED) — snapshot persistence uses centralized edit policy
+- `app/src/app/dashboard/page.tsx` (MODIFIED) — shared-note badges and creator attribution in recent notes
+- `app/src/app/visit/[id]/page.tsx` (MODIFIED) — in-page sharing controls (visibility + restricted grantees + revoke)
+- `app/tests/integration/visit-sharing.test.ts` (NEW) — access matrix, grant/revoke behavior, edit-escalation guard, share audit events
+- `app/tests/helpers/auth.ts` (MODIFIED), `app/tests/helpers/db.ts` (MODIFIED) — test helpers updated for org + share cleanup
+
+**What it does:**
+- Implements hybrid sharing model:
+  - `private`: owner/admin only
+  - `organization`: same-org read access
+  - `restricted`: active per-user share grants required
+- Keeps write/amend/generation snapshot mutations owner/admin only (no rights escalation through sharing)
+- Adds explicit sharing APIs with PHI-safe logging, share-specific audit actions, and `Cache-Control: no-store` on sharing PHI responses
+- Makes visit lists/search respect shared visibility to support organization subscription collaboration
+
+**What could break:**
+- Existing clients assuming visits are owner-only in list/search will now see authorized shared visits
+- New schema requires applying migration before runtime features can function
+- Test suite remains blocked locally when PostgreSQL is not available at `127.0.0.1:5432`
+
+**Build:** ✅ `npm run build` passes
+**Tests:** ⚠️ `npm run test` fails in local environment due to missing PostgreSQL at `127.0.0.1:5432`
+
+---
+
+## FIX-54: Critical access + CSRF + finalized-immutability hardening ✅ RESOLVED
+**Date:** 2026-03-01
+**Files changed:**
+- `app/src/lib/patient-access.ts` (NEW) — centralized patient object-level access policy helper
+- `app/src/app/api/patients/[id]/route.ts` (MODIFIED) — enforced patient access checks before read/update, deny audits, `Cache-Control: no-store`
+- `app/src/app/api/patients/[id]/medical/route.ts` (MODIFIED) — enforced patient access checks for add/remove medical records, deny audits, `Cache-Control: no-store`
+- `app/src/app/api/visits/[id]/route.ts` (MODIFIED) — blocks direct PATCH mutations after finalization (409; amendment workflow required)
+- `app/middleware.ts` (MODIFIED) — fixed CSRF logic to reject missing Origin+Referer on state-changing API calls and included `/api/transcribe*` + `/api/ocr*` under middleware protections by updating matcher
+
+**What it does:**
+- Closes patient-level IDOR/BOLA paths by enforcing policy checks on direct patient read/write routes
+- Adds explicit deny audit events with safe reason metadata for blocked patient operations
+- Prevents non-amendment edits to finalized visits to preserve medico-legal traceability
+- Aligns middleware behavior with strict CSRF expectation and restores centralized controls for high-cost PHI routes
+
+**What could break:**
+- Non-browser POST/PUT/PATCH/DELETE calls to API routes without `Origin`/`Referer` are now rejected with 403
+- Users who previously accessed patient records only by guessed IDs (without org/relationship authorization) will now receive 403
+- Existing automation that PATCHes finalized visits directly must switch to `/api/visits/:id/amend`
+
+**Build:** ✅ `npm run build` passes
+**Tests:** ⚠️ `npm run test` fails in local environment due to missing PostgreSQL at `127.0.0.1:5432`
+
+---
+
+## FIX-55: Strict LLM schema validation for note generation ✅ RESOLVED
+**Date:** 2026-03-01
+**Files changed:**
+- `app/src/lib/llm-schemas.ts` (NEW) — centralized Zod contracts for note sections and audit payloads
+- `app/src/app/api/generate-note/route.ts` (MODIFIED) — pass-1 note output now schema-validated; audit JSON now schema-validated with explicit failure signaling
+- `app/src/app/api/regenerate-note/route.ts` (MODIFIED) — regenerated note output now schema-validated; permissive formatting fallback removed
+
+**What it does:**
+- Enforces strict structure on LLM note arrays (`title`, `content`) before any downstream persistence/response
+- Converts malformed/invalid note JSON from silent partial-success behavior into explicit failures
+- Validates pass-2 audit payload shape (`audit.clean`, `audit.issues`, `summary`) before trust/use
+- Centralizes these contracts in one reusable module for future stage adoption
+
+**What could break:**
+- Previously tolerated malformed note JSON now fails fast instead of returning warning placeholder sections
+- Prompt changes that drift from expected JSON contract will immediately surface as generation/regeneration errors
+
+**Build:** ✅ `npm run build` passes
+**Tests:** ⚠️ `npm run test` fails in local environment due to missing PostgreSQL at `127.0.0.1:5432`
+
+---
+
+## FIX-56: Wave 3 clinical trust gates (finalization + amendment integrity) ✅ RESOLVED
+**Date:** 2026-03-01
+**Files changed:**
+- `app/src/app/api/visits/[id]/route.ts` (MODIFIED) — server-side finalization blockers for missing note content, unresolved critical compliance gaps, low documented facts, and low evidence coverage
+- `app/src/app/api/visits/[id]/amend/route.ts` (MODIFIED) — strict amendment payload validation (section existence, non-empty content, bounded change count)
+- `app/src/app/visit/[id]/page.tsx` (MODIFIED) — finalize call now sends compliance/validation metadata to server gate and rolls UI state back on API rejection
+
+**What it does:**
+- Prevents finalization when clinical completeness signals are below threshold
+- Enforces amendment workflow integrity so finalized chart edits are structured and auditable
+- Removes client-side “looks finalized” drift when server rejects finalization
+
+**What could break:**
+- Older finalize calls that do not send compliance/validation metadata will now be rejected with explicit finalize error codes
+- Amendments targeting non-existent sections or empty content are now rejected instead of being silently ignored
+
+**Build:** ✅ `npm run build` passes
+**Tests:** ⚠️ `npm run test` fails in local environment due to missing PostgreSQL at `127.0.0.1:5432`
+
+---
+
+## FIX-57: Wave 4 collaboration + interoperability starter ✅ RESOLVED
+**Date:** 2026-03-01
+**Files changed:**
+- `app/src/app/api/visits/[id]/share/route.ts` (MODIFIED) — sharing payload now supports grant-level permissions (`view`/`comment`) with backward compatibility for legacy string grant arrays
+- `app/src/lib/visit-access.ts` (MODIFIED) — added `hasCommentGrant` and `canCommentVisit` helpers for collaboration-safe permission checks
+- `app/src/app/api/visits/[id]/fhir/route.ts` (NEW) — read-only FHIR bundle export endpoint for authorized users with `application/fhir+json`
+- `app/src/app/api/visits/[id]/route.ts` (MODIFIED), `app/src/app/api/visits/[id]/fhir/route.ts` (MODIFIED) — include share grant permission in view-authorization probes
+
+**What it does:**
+- Upgrades sharing controls from “all grants = view” to explicit per-grantee permission intent while preserving no edit-right escalation
+- Introduces first interoperability endpoint (`GET /api/visits/:id/fhir`) with access control, audit logging, and no-store headers
+
+**What could break:**
+- Clients assuming grants are always string arrays still work, but mixed invalid grant objects are now normalized/dropped
+- FHIR export currently ships a starter bundle (Patient/Practitioner/Encounter/Composition) and is not a full profile implementation
+
+**Build:** ✅ `npm run build` passes
+**Tests:** ⚠️ `npm run test` fails in local environment due to missing PostgreSQL at `127.0.0.1:5432`
+
+---
+
+## FIX-58: Wave 5 idempotency + AI budget controls ✅ RESOLVED
+**Date:** 2026-03-01
+**Files changed:**
+- `app/src/lib/idempotency.ts` (NEW) — in-memory idempotency guard with in-progress/completed states and TTL
+- `app/src/lib/ai-budget.ts` (NEW) — in-memory AI budget guardrails (calls/minute, hourly tokens, daily tokens)
+- `app/src/app/api/generate-note/route.ts` (MODIFIED) — idempotency handling (`x-idempotency-key`) + budget enforcement + token usage recording + explicit fail codes
+- `app/src/app/api/regenerate-note/route.ts` (MODIFIED) — same idempotency and budget controls for regeneration path
+- `app/src/lib/sse-fetch.ts` (MODIFIED) — stable idempotency key per generation attempt/retry sequence
+- `app/src/app/visit/[id]/page.tsx` (MODIFIED) — regeneration requests now send idempotency key
+- `app/src/lib/rate-limiter.ts` (MODIFIED) — `regenerate-note` mapped to AI tier limits
+- `app/src/lib/ai-provider.ts` (MODIFIED) — token-request clamp for safety (`128..12000`)
+
+**What it does:**
+- Prevents duplicate expensive generation/regeneration runs caused by retries/re-clicks
+- Adds explicit AI budget exhaustion behavior with stable error codes
+- Adds bounded token request safety in provider abstraction
+
+**What could break:**
+- Reused idempotency keys during an active run now return `409 IDEMPOTENCY_IN_PROGRESS`
+- Heavy users may receive budget-exhausted errors if limits are hit and must retry after window reset
+- Budget/idempotency stores are process-local (single-instance semantics)
+
+**Build:** ✅ `npm run build` passes
+**Tests:** ⚠️ `npm run test` fails in local environment due to missing PostgreSQL at `127.0.0.1:5432`
+
+---
+
 ## Remaining Items (not yet implemented)
 - **Infrastructure**: Configure staging/dev droplets

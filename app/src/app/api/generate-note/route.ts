@@ -4,6 +4,9 @@ import { assertProductionApiKey } from "@/lib/phi-boundaries";
 import { callAI, getActiveProvider } from "@/lib/ai-provider";
 import { appLog, scrubError, errorCode } from "@/lib/logger";
 import { sanitizeForPrompt, sanitizeSectionTitle, sanitizeItemName, safeJsonKey } from "@/lib/prompt-sanitizer";
+import { NoteAuditSchema, NoteSectionsSchema, type NoteSections } from "@/lib/llm-schemas";
+import { checkAIBudget, recordAICallStart, recordAITokenUsage } from "@/lib/ai-budget";
+import { beginIdempotentRequest, completeIdempotentRequest, failIdempotentRequest } from "@/lib/idempotency";
 import { NextRequest } from "next/server";
 
 export const maxDuration = 300;
@@ -13,6 +16,7 @@ import { validateEncounterState } from "@/lib/encounter-validator";
 import { createInitialEncounterState, serializeFactsForPrompt, formatTranscriptForNoteGeneration, type EncounterState, type ClinicalFact } from "@/lib/encounter-state";
 import { resolveTemplate, effectiveFrameworkId, buildSnapshot, TemplateResolutionError } from "@/lib/template-resolver";
 import { prisma } from "@/lib/db";
+import { canEditVisit } from "@/lib/visit-access";
 
 // Validate API key tier on module load
 assertProductionApiKey();
@@ -23,7 +27,7 @@ function stripFences(raw: string): string {
 }
 
 
-function parseJsonArray(raw: string): { title: string; content: string }[] {
+function parseJsonArray(raw: string): NoteSections {
   try {
     const trimmed = stripFences(raw);
     let arr: unknown[];
@@ -35,53 +39,51 @@ function parseJsonArray(raw: string): { title: string; content: string }[] {
       arr = Array.isArray(parsed) ? parsed : parsed.sections || parsed.note || [parsed];
     }
 
-    if (!Array.isArray(arr) || arr.length === 0) {
-      appLog('warn', 'GenNote', 'parseJsonArray: empty or non-array result', { rawLength: raw.length });
-      return [{
-        title: "\u26a0 Formatting Error",
-        content: "The note returned no sections. Please regenerate.\n\n---\n\n" + raw.substring(0, 2000),
-      }];
-    }
-
-    // Validate each section has title + content; drop malformed entries with warning
-    const valid: { title: string; content: string }[] = [];
-    let dropped = 0;
-    for (const item of arr) {
-      if (item && typeof item === 'object' && 'title' in item && 'content' in item) {
-        const s = item as { title: string; content: string };
-        if (typeof s.title === 'string' && typeof s.content === 'string') {
-          valid.push(s);
-          continue;
-        }
-      }
-      dropped++;
-    }
-
-    if (dropped > 0) {
-      appLog('warn', 'GenNote', 'parseJsonArray: dropped malformed sections', { dropped, total: arr.length });
-      valid.push({
-        title: "\u26a0 Data Warning",
-        content: `${dropped} section(s) had missing or malformed data and were omitted. Please review and regenerate if needed.`,
+    const parsed = NoteSectionsSchema.safeParse(arr);
+    if (!parsed.success) {
+      appLog('error', 'GenNote', 'Note schema validation failed', {
+        issueCount: parsed.error.issues.length,
+        rawLength: raw.length,
       });
+      throw new Error("Generated note failed schema validation");
     }
-
-    return valid.length > 0 ? valid : [{
-      title: "\u26a0 Formatting Error",
-      content: "All sections were malformed. Please regenerate.\n\n---\n\n" + raw.substring(0, 2000),
-    }];
+    return parsed.data;
   } catch (e) {
     appLog('error', 'GenNote', 'JSON parse failed in parseJsonArray', { error: scrubError(e), rawLength: raw.length });
-    return [{
-      title: "\u26a0 Formatting Error",
-      content: "The note could not be formatted correctly. The raw output is shown below \u2014 please regenerate.\n\n---\n\n" + raw.substring(0, 2000),
-    }];
+    throw new Error("Generated note could not be parsed");
   }
+}
+
+function enforceAIBudget(userId: string): { ok: true } | { ok: false; error: string; code: string } {
+  const budget = checkAIBudget(userId);
+  if (!budget.allowed) {
+    return { ok: false, error: budget.error, code: budget.code };
+  }
+  recordAICallStart(userId);
+  return { ok: true };
 }
 
 export async function POST(request: NextRequest) {
   const session = await auth();
   if (!session?.user) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { "content-type": "application/json" } });
+  }
+
+  const idempotencyKey = request.headers.get("x-idempotency-key")?.trim() || null;
+  if (idempotencyKey) {
+    const gate = beginIdempotentRequest(session.user.id, "generate-note", idempotencyKey);
+    if (!gate.allowed && gate.inProgress) {
+      return new Response(
+        JSON.stringify({ success: false, error: "A generation run with this key is already in progress.", code: "IDEMPOTENCY_IN_PROGRESS" }),
+        { status: 409, headers: { "Content-Type": "application/json", "Cache-Control": "no-store" } },
+      );
+    }
+    if (!gate.allowed && gate.completedResult) {
+      return new Response(
+        JSON.stringify(gate.completedResult),
+        { status: 200, headers: { "Content-Type": "application/json", "Cache-Control": "no-store" } },
+      );
+    }
   }
 
   const body = await request.json();
@@ -97,14 +99,18 @@ export async function POST(request: NextRequest) {
     };
     const noteKey = FRAMEWORK_TO_MOCK[mockFrameworkId] ?? mockFrameworkId;
     const note = mockNotes[noteKey] ?? mockNotes['pt-eval'];
-    return new Response(JSON.stringify({
+    const mockResult = {
       success: true,
       parsedData: note,
       clinicalNote: note,
       summary: "Mock-generated clinical note.",
       generationTime: 0.5,
       source: "mock",
-    }), { headers: { "Content-Type": "application/json" } });
+    };
+    if (idempotencyKey) {
+      completeIdempotentRequest(session.user.id, "generate-note", idempotencyKey, mockResult);
+    }
+    return new Response(JSON.stringify(mockResult), { headers: { "Content-Type": "application/json" } });
   }
 
   // ═══════════════════════════════════════════════════════════════
@@ -131,9 +137,19 @@ export async function POST(request: NextRequest) {
     });
   } catch (err) {
     if (err instanceof TemplateResolutionError) {
+      if (idempotencyKey) {
+        failIdempotentRequest(session.user.id, "generate-note", idempotencyKey);
+      }
       return new Response(JSON.stringify({ success: false, error: err.message, code: err.code }), { status: 400, headers: { "Content-Type": "application/json" } });
     }
-    throw err;
+    if (idempotencyKey) {
+      failIdempotentRequest(session.user.id, "generate-note", idempotencyKey);
+    }
+    appLog("error", "GenNote", "Template resolution failed", { error: scrubError(err) });
+    return new Response(
+      JSON.stringify({ success: false, error: "Template resolution failed", code: "TEMPLATE_RESOLUTION_FAILED" }),
+      { status: 500, headers: { "Content-Type": "application/json" } },
+    );
   }
 
   // Build a framework-compatible object from the resolved template
@@ -158,7 +174,7 @@ export async function POST(request: NextRequest) {
       templateSnapshot,
       frameworkSections: resolved.frameworkSections,
       visitId,
-    });
+    }, idempotencyKey);
   }
 
   // ═══════════════════════════════════════════════════════════════
@@ -168,6 +184,9 @@ export async function POST(request: NextRequest) {
   // ═══════════════════════════════════════════════════════════════
   const transcriptText = regenerateFrom || transcript;
   if (!transcriptText || transcriptText.trim().length === 0) {
+    if (idempotencyKey) {
+      failIdempotentRequest(session.user.id, "generate-note", idempotencyKey);
+    }
     return new Response(JSON.stringify({ success: false, error: "No transcript provided" }), { status: 400, headers: { "Content-Type": "application/json" } });
   }
 
@@ -176,12 +195,23 @@ export async function POST(request: NextRequest) {
     transcriptLength: transcriptText.length,
   });
 
-  const builtState = await buildEncounterStateFromTranscript(transcriptText, framework);
-  return handleEncounterStateMode(builtState, framework, resolvedFrameworkId, session, {
-    templateSnapshot,
-    frameworkSections: resolved.frameworkSections,
-    visitId,
-  });
+  try {
+    const builtState = await buildEncounterStateFromTranscript(transcriptText, framework, session.user.id);
+    return handleEncounterStateMode(builtState, framework, resolvedFrameworkId, session, {
+      templateSnapshot,
+      frameworkSections: resolved.frameworkSections,
+      visitId,
+    }, idempotencyKey);
+  } catch (error) {
+    if (idempotencyKey) {
+      failIdempotentRequest(session.user.id, "generate-note", idempotencyKey);
+    }
+    appLog("error", "GenNote", "Failed during transcript-mode pre-processing", { error: scrubError(error) });
+    return new Response(
+      JSON.stringify({ success: false, error: "Note generation failed before pipeline start", code: "PREPIPELINE_ERROR" }),
+      { status: 500, headers: { "Content-Type": "application/json" } },
+    );
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -194,6 +224,7 @@ export async function POST(request: NextRequest) {
 async function buildEncounterStateFromTranscript(
   transcript: string,
   framework: { id: string; name: string; domain: string; type: string; subtype: string; sections: Array<{ id: string; title: string; items: string[]; required: boolean }>; itemCount: number },
+  userId: string,
 ): Promise<EncounterState> {
   const state = createInitialEncounterState(framework.sections);
 
@@ -245,7 +276,12 @@ ${transcript}
 
 Return null and "not_documented" for anything not explicitly stated.`;
 
+  const extractionBudget = enforceAIBudget(userId);
+  if (!extractionBudget.ok) {
+    throw new Error(`${extractionBudget.code}:${extractionBudget.error}`);
+  }
   const result = await callAI(extractSystem, extractUser, 4000);
+  recordAITokenUsage(userId, result.usage.input_tokens + result.usage.output_tokens);
 
   if (result.truncated) {
     appLog('warn', 'GenNote', 'Transcript extraction LLM output truncated — EncounterState will be sparse', {
@@ -352,6 +388,7 @@ async function handleEncounterStateMode(
     frameworkSections?: Array<{ id: string; title: string; items: string[]; required: boolean }>;
     visitId?: string;
   },
+  idempotencyKey?: string | null,
 ) {
   const encoder = new TextEncoder();
   const stream = new ReadableStream({
@@ -383,6 +420,9 @@ async function handleEncounterStateMode(
         });
 
         if (!validation.valid) {
+          if (idempotencyKey) {
+            failIdempotentRequest(session.user.id, "generate-note", idempotencyKey);
+          }
           send("error", {
             success: false,
             error: validation.errors.join('; '),
@@ -488,7 +528,17 @@ ${factsJson}
 
 Write the clinical note using the structured facts. Omit sections with no documented facts.`;
 
+        const noteBudget = enforceAIBudget(session.user.id);
+        if (!noteBudget.ok) {
+          if (idempotencyKey) {
+            failIdempotentRequest(session.user.id, "generate-note", idempotencyKey);
+          }
+          send("error", { success: false, error: noteBudget.error, code: noteBudget.code });
+          controller.close();
+          return;
+        }
         const noteResult = await callAI(noteSystem, noteUser, 8000);
+        recordAITokenUsage(session.user.id, noteResult.usage.input_tokens + noteResult.usage.output_tokens);
         totalTokens += noteResult.usage.input_tokens + noteResult.usage.output_tokens;
 
         if (noteResult.truncated) {
@@ -499,7 +549,11 @@ Write the clinical note using the structured facts. Omit sections with no docume
           send("error", {
             success: false,
             error: "Note generation was truncated (output too long). Please try again — if this persists, use a simpler framework.",
+            code: "LLM_OUTPUT_TRUNCATED",
           });
+          if (idempotencyKey) {
+            failIdempotentRequest(session.user.id, "generate-note", idempotencyKey);
+          }
           controller.close();
           return;
         }
@@ -556,11 +610,16 @@ Return ONLY valid JSON:
             ? `STRUCTURED FACTS JSON:\n${factsJson}\n\nENCOUNTER TRANSCRIPT:\n${transcriptText}\n\nCLINICAL NOTE:\n${JSON.stringify(clinicalNote)}`
             : `ENCOUNTERSTATE FACTS:\n${factsJson}\n\nCLINICAL NOTE:\n${JSON.stringify(clinicalNote)}`;
 
+          const auditBudget = enforceAIBudget(session.user.id);
+          if (!auditBudget.ok) {
+            throw new Error(`${auditBudget.code}:${auditBudget.error}`);
+          }
           const auditResult = await callAI(
             auditSystem,
             auditUser,
             800,
           );
+          recordAITokenUsage(session.user.id, auditResult.usage.input_tokens + auditResult.usage.output_tokens);
           totalTokens += auditResult.usage.input_tokens + auditResult.usage.output_tokens;
 
           if (auditResult.truncated) {
@@ -573,13 +632,19 @@ Return ONLY valid JSON:
             auditIssues = ['Hallucination audit output was truncated — please review the note manually'];
           } else {
             try {
-              const auditJson = JSON.parse(stripFences(auditResult.content));
-              if (auditJson.audit) {
-                auditClean = auditJson.audit.clean !== false;
-                auditIssues = auditJson.audit.issues || [];
-              }
-              if (auditJson.summary) {
-                summary = auditJson.summary;
+              const rawAudit = JSON.parse(stripFences(auditResult.content));
+              const parsedAudit = NoteAuditSchema.safeParse(rawAudit);
+              if (!parsedAudit.success) {
+                appLog('warn', 'GenNote', 'Audit schema validation failed', {
+                  issueCount: parsedAudit.error.issues.length,
+                });
+                auditClean = false;
+                auditFailed = true;
+                auditIssues = ['Hallucination audit returned invalid structure — please review the note manually'];
+              } else {
+                auditClean = parsedAudit.data.audit.clean !== false;
+                auditIssues = parsedAudit.data.audit.issues || [];
+                summary = parsedAudit.data.summary;
               }
             } catch (auditParseErr) {
               appLog('warn', 'GenNote', 'Audit JSON parse failed — marking audit as not completed', {
@@ -634,10 +699,10 @@ Return ONLY valid JSON:
         let snapshotError: string | undefined;
         if (templateOptions?.visitId && templateOptions?.templateSnapshot) {
           try {
-            // Ownership check: verify visit belongs to the authenticated user
+            // Edit check: only owner/admin can mutate visit snapshot metadata.
             const visitRecord = await prisma.visit.findUnique({
               where: { id: templateOptions.visitId },
-              select: { id: true, userId: true },
+              select: { id: true, userId: true, organizationId: true, visibility: true },
             });
             if (!visitRecord) {
               snapshotPersisted = false;
@@ -645,7 +710,14 @@ Return ONLY valid JSON:
               appLog('warn', 'GenNote', 'Snapshot persistence skipped — visit not found', {
                 visitId: templateOptions.visitId,
               });
-            } else if (visitRecord.userId !== session.user.id) {
+            } else if (!canEditVisit(
+              visitRecord,
+              {
+                id: session.user.id,
+                role: (session.user as { role?: string }).role ?? "CLINICIAN",
+                organizationId: (session.user as { organizationId?: string | null }).organizationId ?? null,
+              },
+            ).allowed) {
               snapshotPersisted = false;
               snapshotError = 'Forbidden visit access';
               appLog('warn', 'GenNote', 'Snapshot persistence denied — visit belongs to another user', {
@@ -668,8 +740,7 @@ Return ONLY valid JSON:
           }
         }
 
-        // Send final result
-        send("result", {
+        const resultPayload = {
           success: true,
           clinicalNote,
           parsedData: clinicalNote, // Same format — for backward compat with UI
@@ -689,10 +760,17 @@ Return ONLY valid JSON:
           mode: 'encounter-state',
           templateSnapshot: templateOptions?.templateSnapshot || undefined,
           ...(snapshotPersisted !== undefined ? { snapshotPersisted, snapshotError } : {}),
-        });
+        };
+        if (idempotencyKey) {
+          completeIdempotentRequest(session.user.id, "generate-note", idempotencyKey, resultPayload);
+        }
+        send("result", resultPayload);
       } catch (error) {
         const code = errorCode();
         appLog('error', 'GenNote', 'Pipeline error', { code, error: scrubError(error) });
+        if (idempotencyKey) {
+          failIdempotentRequest(session.user.id, "generate-note", idempotencyKey);
+        }
         send("error", { success: false, error: "Note generation failed", code });
       } finally {
         controller.close();

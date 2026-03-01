@@ -3,6 +3,7 @@ import { auditLog } from "@/lib/audit";
 import { prisma } from "@/lib/db";
 import { NextRequest, NextResponse } from "next/server";
 import { appLog, scrubError } from "@/lib/logger";
+import { canAccessPatient } from "@/lib/patient-access";
 
 // POST /api/patients/:id/medical — add allergy, medication, condition, or coverage
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -11,6 +12,31 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
   try {
     const { id } = await params;
+    const accessProbe = await prisma.patient.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        organizationId: true,
+        visits: { where: { userId: session.user.id }, select: { userId: true }, take: 1 },
+      },
+    });
+    if (!accessProbe) return NextResponse.json({ error: "Patient not found" }, { status: 404 });
+
+    const decision = canAccessPatient(accessProbe, {
+      id: session.user.id,
+      role: session.user.role,
+      organizationId: session.user.organizationId,
+    });
+    if (!decision.allowed) {
+      await auditLog({
+        userId: session.user.id,
+        action: "UPDATE_PATIENT_DENIED",
+        resource: `patient:${id}`,
+        details: { reason: decision.reason, operation: "add_medical_record" },
+      });
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
     const { type, ...data } = await req.json();
 
     let result;
@@ -35,9 +61,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       userId: session.user.id,
       action: `ADD_${type.toUpperCase()}`,
       resource: `patient:${id}`,
+      details: { reason: decision.reason },
     });
 
-    return NextResponse.json({ result }, { status: 201 });
+    return NextResponse.json({ result }, { status: 201, headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     appLog('error', 'POST /api/patients/:id/medical', scrubError(error));
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
@@ -51,6 +78,31 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
 
   try {
     const { id } = await params;
+    const accessProbe = await prisma.patient.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        organizationId: true,
+        visits: { where: { userId: session.user.id }, select: { userId: true }, take: 1 },
+      },
+    });
+    if (!accessProbe) return NextResponse.json({ error: "Patient not found" }, { status: 404 });
+
+    const decision = canAccessPatient(accessProbe, {
+      id: session.user.id,
+      role: session.user.role,
+      organizationId: session.user.organizationId,
+    });
+    if (!decision.allowed) {
+      await auditLog({
+        userId: session.user.id,
+        action: "UPDATE_PATIENT_DENIED",
+        resource: `patient:${id}`,
+        details: { reason: decision.reason, operation: "remove_medical_record" },
+      });
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
     const { type, itemId } = await req.json();
 
     switch (type) {
@@ -65,9 +117,10 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
       userId: session.user.id,
       action: `REMOVE_${type.toUpperCase()}`,
       resource: `patient:${id}`,
+      details: { reason: decision.reason },
     });
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     appLog('error', 'DELETE /api/patients/:id/medical', scrubError(error));
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });

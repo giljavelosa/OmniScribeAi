@@ -3,25 +3,53 @@ import { auditLog } from "@/lib/audit";
 import { callAI } from "@/lib/ai-provider";
 import { appLog, scrubError, errorCode } from "@/lib/logger";
 import { sanitizeForPrompt, sanitizeSectionTitle, sanitizeItemName } from "@/lib/prompt-sanitizer";
+import { NoteSectionsSchema, type NoteSections } from "@/lib/llm-schemas";
+import { checkAIBudget, recordAICallStart, recordAITokenUsage } from "@/lib/ai-budget";
+import { beginIdempotentRequest, completeIdempotentRequest, failIdempotentRequest } from "@/lib/idempotency";
 import { NextRequest } from "next/server";
 import { resolveTemplate, effectiveFrameworkId, buildSnapshot, TemplateResolutionError } from "@/lib/template-resolver";
 import { prisma } from "@/lib/db";
+import { canEditVisit } from "@/lib/visit-access";
 
 export const maxDuration = 300;
+
+function enforceAIBudget(userId: string): { ok: true } | { ok: false; error: string; code: string } {
+  const budget = checkAIBudget(userId);
+  if (!budget.allowed) {
+    return { ok: false, error: budget.error, code: budget.code };
+  }
+  recordAICallStart(userId);
+  return { ok: true };
+}
 
 function stripFences(raw: string): string {
   return raw.replace(/^```(?:json)?\s*/gm, '').replace(/^```\s*/gm, '').trim();
 }
 
-function parseJsonArray(raw: string): { title: string; content: string }[] {
+function parseJsonArray(raw: string): NoteSections {
   try {
     const trimmed = stripFences(raw);
     const jsonMatch = trimmed.match(/\[[\s\S]*\]/);
-    if (jsonMatch) return JSON.parse(jsonMatch[0]);
+    if (jsonMatch) {
+      const parsed = NoteSectionsSchema.safeParse(JSON.parse(jsonMatch[0]));
+      if (!parsed.success) {
+        throw new Error("Regenerated note failed schema validation");
+      }
+      return parsed.data;
+    }
     const parsed = JSON.parse(trimmed);
-    return Array.isArray(parsed) ? parsed : parsed.sections || parsed.note || [parsed];
-  } catch {
-    return [{ title: "\u26a0 Formatting Error", content: "Note could not be formatted \u2014 please regenerate.\n\n" + raw.substring(0, 2000) }];
+    const normalized = Array.isArray(parsed) ? parsed : parsed.sections || parsed.note || [parsed];
+    const validated = NoteSectionsSchema.safeParse(normalized);
+    if (!validated.success) {
+      throw new Error("Regenerated note failed schema validation");
+    }
+    return validated.data;
+  } catch (error) {
+    appLog("error", "RegenNote", "Failed to parse/validate regenerated note", {
+      error: scrubError(error),
+      rawLength: raw.length,
+    });
+    throw new Error("Note regeneration returned invalid JSON structure");
   }
 }
 
@@ -31,14 +59,33 @@ export async function POST(request: NextRequest) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { "content-type": "application/json" } });
   }
 
+  const idempotencyKey = request.headers.get("x-idempotency-key")?.trim() || null;
+  if (idempotencyKey) {
+    const gate = beginIdempotentRequest(session.user.id, "regenerate-note", idempotencyKey);
+    if (!gate.allowed && gate.inProgress) {
+      return new Response(
+        JSON.stringify({ success: false, error: "A regeneration run with this key is already in progress.", code: "IDEMPOTENCY_IN_PROGRESS" }),
+        { status: 409, headers: { "Content-Type": "application/json", "Cache-Control": "no-store" } },
+      );
+    }
+    if (!gate.allowed && gate.completedResult) {
+      return new Response(JSON.stringify(gate.completedResult), {
+        status: 200,
+        headers: { "Content-Type": "application/json", "Cache-Control": "no-store" },
+      });
+    }
+  }
+
   const body = await request.json();
   const { parsedData, clinicalSynthesis, frameworkId, templateId, visitId } = body;
 
   if (!parsedData || !clinicalSynthesis) {
+    if (idempotencyKey) failIdempotentRequest(session.user.id, "regenerate-note", idempotencyKey);
     return new Response(JSON.stringify({ success: false, error: "Missing required fields: parsedData and clinicalSynthesis" }), { status: 400, headers: { "Content-Type": "application/json" } });
   }
 
   if (!templateId && !frameworkId) {
+    if (idempotencyKey) failIdempotentRequest(session.user.id, "regenerate-note", idempotencyKey);
     return new Response(JSON.stringify({ success: false, error: "Either templateId or frameworkId is required" }), { status: 400, headers: { "Content-Type": "application/json" } });
   }
 
@@ -62,9 +109,15 @@ export async function POST(request: NextRequest) {
     });
   } catch (err) {
     if (err instanceof TemplateResolutionError) {
+      if (idempotencyKey) failIdempotentRequest(session.user.id, "regenerate-note", idempotencyKey);
       return new Response(JSON.stringify({ success: false, error: err.message, code: err.code }), { status: 400, headers: { "Content-Type": "application/json" } });
     }
-    throw err;
+    if (idempotencyKey) failIdempotentRequest(session.user.id, "regenerate-note", idempotencyKey);
+    appLog("error", "RegenNote", "Template resolution failed", { error: scrubError(err) });
+    return new Response(
+      JSON.stringify({ success: false, error: "Template resolution failed", code: "TEMPLATE_RESOLUTION_FAILED" }),
+      { status: 500, headers: { "Content-Type": "application/json" } },
+    );
   }
 
   const framework = {
@@ -125,7 +178,17 @@ ${JSON.stringify(clinicalSynthesis, null, 2)}
 
 Write the final clinical note. Merge the parsed data and clinical reasoning into a cohesive, professional clinical document.`;
 
+    const budget = enforceAIBudget(session.user.id);
+    if (!budget.ok) {
+      if (idempotencyKey) failIdempotentRequest(session.user.id, "regenerate-note", idempotencyKey);
+      return new Response(JSON.stringify({ success: false, error: budget.error, code: budget.code }), {
+        status: 429,
+        headers: { "Content-Type": "application/json", "Cache-Control": "no-store" },
+      });
+    }
+
     const result = await callAI(clinicalNoteSystem, clinicalNoteUser, 8000);
+    recordAITokenUsage(session.user.id, result.usage.input_tokens + result.usage.output_tokens);
     const clinicalNote = parseJsonArray(result.content);
     const generationTime = (Date.now() - startTime) / 1000;
 
@@ -137,16 +200,18 @@ Write the final clinical note. Merge the parsed data and clinical reasoning into
         resource: `framework:${resolvedFrameworkId}`,
         details: { frameworkId: resolvedFrameworkId, templateId: templateId || undefined, generationTime },
       });
-    } catch { /* non-critical */ }
+    } catch (auditErr) {
+      appLog('warn', 'RegenNote', 'Audit log failed (non-blocking)', { error: scrubError(auditErr) });
+    }
 
     // ─── Snapshot persistence (if visitId provided) ────────
     let snapshotPersisted: boolean | undefined;
     let snapshotError: string | undefined;
     if (visitId && templateSnapshot) {
-      // Ownership check: verify visit belongs to the authenticated user
+      // Edit check: only owner/admin can mutate visit snapshot metadata.
       const visitRecord = await prisma.visit.findUnique({
         where: { id: visitId },
-        select: { id: true, userId: true },
+        select: { id: true, userId: true, organizationId: true, visibility: true },
       });
 
       if (!visitRecord) {
@@ -155,7 +220,14 @@ Write the final clinical note. Merge the parsed data and clinical reasoning into
         });
       }
 
-      if (visitRecord.userId !== session.user.id) {
+      if (!canEditVisit(
+        visitRecord,
+        {
+          id: session.user.id,
+          role: (session.user as { role?: string }).role ?? "CLINICIAN",
+          organizationId: (session.user as { organizationId?: string | null }).organizationId ?? null,
+        },
+      ).allowed) {
         return new Response(JSON.stringify({ success: false, error: "Forbidden" }), {
           status: 403, headers: { "Content-Type": "application/json" },
         });
@@ -180,15 +252,20 @@ Write the final clinical note. Merge the parsed data and clinical reasoning into
       }
     }
 
-    return new Response(JSON.stringify({
+    const responsePayload = {
       success: true,
       clinicalNote,
       generationTime: Math.round(generationTime * 10) / 10,
       templateSnapshot,
       ...(snapshotPersisted !== undefined ? { snapshotPersisted, snapshotError } : {}),
-    }), { headers: { "Content-Type": "application/json", "Cache-Control": "no-store, no-cache, must-revalidate", "Pragma": "no-cache" } });
+    };
+    if (idempotencyKey) {
+      completeIdempotentRequest(session.user.id, "regenerate-note", idempotencyKey, responsePayload);
+    }
+    return new Response(JSON.stringify(responsePayload), { headers: { "Content-Type": "application/json", "Cache-Control": "no-store, no-cache, must-revalidate", "Pragma": "no-cache" } });
 
   } catch (error) {
+    if (idempotencyKey) failIdempotentRequest(session.user.id, "regenerate-note", idempotencyKey);
     const code = errorCode();
     appLog('error', 'RegenNote', 'Error', { code, error: scrubError(error) });
     return new Response(JSON.stringify({ success: false, error: "Note regeneration failed", code }), {

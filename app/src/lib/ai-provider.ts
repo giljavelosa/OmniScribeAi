@@ -271,7 +271,8 @@ export async function callAI(
   const config = PROVIDERS[provider];
   const apiKey = getApiKey(provider);
   const model = getModel(provider);
-  const body = buildTextBody(provider, model, system, user, maxTokens);
+  const boundedMaxTokens = Math.min(Math.max(128, maxTokens), 12_000);
+  const body = buildTextBody(provider, model, system, user, boundedMaxTokens);
   return fetchWithRetry(provider, config, body, apiKey);
 }
 
@@ -288,7 +289,8 @@ export async function callAIVision(
   const config = PROVIDERS[provider];
   const apiKey = getApiKey(provider);
   const model = getModel(provider);
-  const body = buildVisionBody(provider, model, messages, maxTokens);
+  const boundedMaxTokens = Math.min(Math.max(128, maxTokens), 12_000);
+  const body = buildVisionBody(provider, model, messages, boundedMaxTokens);
   return fetchWithRetry(provider, config, body, apiKey);
 }
 

@@ -112,6 +112,7 @@ export function getTierForPath(pathname: string): string {
   if (pathname.startsWith('/api/auth/callback')) return 'login';
   if (
     pathname.startsWith('/api/generate-note') ||
+    pathname.startsWith('/api/regenerate-note') ||
     pathname.startsWith('/api/transcribe') ||
     pathname.startsWith('/api/extract-chunk') ||
     pathname.startsWith('/api/ocr')

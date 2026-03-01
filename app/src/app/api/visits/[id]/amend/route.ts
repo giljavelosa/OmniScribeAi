@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { NextRequest, NextResponse } from "next/server";
 import { appLog, scrubError } from "@/lib/logger";
 import { Prisma } from "@prisma/client";
+import { canEditVisit } from "@/lib/visit-access";
 
 interface NoteDataSection {
   title: string;
@@ -28,15 +29,33 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     if (!reason?.trim()) {
       return NextResponse.json({ error: "Amendment reason is required" }, { status: 400 });
     }
-    if (!changes || changes.length === 0) {
+    if (!Array.isArray(changes) || changes.length === 0) {
       return NextResponse.json({ error: "At least one change is required" }, { status: 400 });
+    }
+    if (changes.length > 50) {
+      return NextResponse.json({ error: "Too many changes in a single amendment" }, { status: 400 });
     }
 
     // Fetch current visit
-    const visit = await prisma.visit.findUnique({ where: { id } });
+    const visit = await prisma.visit.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        userId: true,
+        organizationId: true,
+        visibility: true,
+        finalizedAt: true,
+        amendments: true,
+        noteData: true,
+      },
+    });
     if (!visit) return NextResponse.json({ error: "Visit not found" }, { status: 404 });
 
-    if (visit.userId !== session.user.id && session.user.role !== "ADMIN") {
+    const editDecision = canEditVisit(
+      visit,
+      { id: session.user.id, role: session.user.role, organizationId: session.user.organizationId },
+    );
+    if (!editDecision.allowed) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
@@ -46,6 +65,29 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
     const userName = session.user.name || session.user.email || "Unknown";
     const userId = session.user.id;
+
+    const existingSections = Array.isArray(visit.noteData)
+      ? ((visit.noteData as Prisma.JsonArray) as unknown as NoteDataSection[])
+      : [];
+    const existingTitles = new Set(existingSections.map((section) => section.title));
+
+    for (const change of changes as AmendmentChange[]) {
+      if (!change || typeof change.section !== "string" || typeof change.newContent !== "string") {
+        return NextResponse.json({ error: "Invalid amendment change payload" }, { status: 400 });
+      }
+      if (!existingTitles.has(change.section)) {
+        return NextResponse.json(
+          { error: `Section "${change.section}" does not exist in the finalized note` },
+          { status: 400 },
+        );
+      }
+      if (change.newContent.trim().length === 0) {
+        return NextResponse.json(
+          { error: `Section "${change.section}" cannot be set to empty content` },
+          { status: 400 },
+        );
+      }
+    }
 
     // Build amendment record
     const amendment = {
@@ -62,8 +104,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const updatedAmendments = [...existingAmendments, amendment as unknown as Prisma.JsonValue];
 
     // Apply changes to noteData
-    let updatedNoteData = ((visit.noteData as Prisma.JsonArray) || []) as unknown as NoteDataSection[];
-    for (const change of changes) {
+    let updatedNoteData = existingSections;
+    for (const change of changes as AmendmentChange[]) {
       updatedNoteData = updatedNoteData.map((section: NoteDataSection) => {
         if (section.title === change.section) {
           return { ...section, content: change.newContent };
@@ -89,7 +131,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       details: { amendmentId: amendment.id, reason: amendment.reason, sectionsChanged: changes.map((c: AmendmentChange) => c.section) },
     });
 
-    return NextResponse.json({ success: true, amendment, visit: updatedVisit });
+    return NextResponse.json(
+      { success: true, amendment, visit: updatedVisit },
+      { headers: { "Cache-Control": "no-store" } },
+    );
   } catch (error) {
     appLog('error', 'POST /api/visits/:id/amend', scrubError(error));
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
