@@ -1,8 +1,8 @@
 import { auth } from "@/lib/auth";
 import { auditLog } from "@/lib/audit";
-import { fail } from "@/lib/api-contract";
+import { fail, ok } from "@/lib/api-contract";
 import { prisma } from "@/lib/db";
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { appLog, scrubError } from "@/lib/logger";
 
 // GET /api/patients — list/search patients (scoped to user's organization)
@@ -55,7 +55,7 @@ export async function GET(req: NextRequest) {
       },
     });
 
-    return NextResponse.json({ patients });
+    return ok({ patients });
   } catch (error) {
     appLog('error', 'GET /api/patients', scrubError(error));
     return fail("INTERNAL_ERROR", "Internal server error", 500);
@@ -121,7 +121,7 @@ export async function POST(req: NextRequest) {
       resource: `patient:${patient.id}`,
     });
 
-    return NextResponse.json({ patient }, { status: 201 });
+    return ok({ patient }, { status: 201 });
   } catch (error) {
     appLog('error', 'POST /api/patients', scrubError(error));
     return fail("INTERNAL_ERROR", "Internal server error", 500);

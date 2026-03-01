@@ -1,9 +1,9 @@
 import { auth } from "@/lib/auth";
 import { auditLog } from "@/lib/audit";
-import { fail } from "@/lib/api-contract";
+import { fail, ok } from "@/lib/api-contract";
 import { prisma } from "@/lib/db";
 import { frameworks } from "@/lib/frameworks";
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { appLog, scrubError } from "@/lib/logger";
 
 // GET /api/visits — list visits for current user
@@ -27,7 +27,7 @@ export async function GET(req: NextRequest) {
       },
     });
 
-    return NextResponse.json({ visits });
+    return ok({ visits });
   } catch (error) {
     appLog('error', 'GET /api/visits', scrubError(error));
     return fail("INTERNAL_ERROR", "Internal server error", 500);
@@ -84,7 +84,7 @@ export async function POST(req: NextRequest) {
       details: { frameworkId: data.frameworkId, patientId: data.patientId, templateId: data.templateId || undefined },
     });
 
-    return NextResponse.json({ visit }, { status: 201 });
+    return ok({ visit }, { status: 201 });
   } catch (error) {
     appLog('error', 'POST /api/visits', scrubError(error));
     return fail("INTERNAL_ERROR", "Internal server error", 500);
