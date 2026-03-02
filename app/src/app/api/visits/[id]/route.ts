@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { NextRequest, NextResponse } from "next/server";
 import { appLog, scrubError } from "@/lib/logger";
 import { canEditVisit, canViewVisit, SHARE_AUDIT_ACTIONS } from "@/lib/visit-access";
+import { deriveSectionEditEvents, recordStyleFeedbackEventsBatch } from "@/lib/style-learning";
 
 const MIN_DOCUMENTED_FACTS = 3;
 const MIN_EVIDENCE_COVERAGE = 0.3;
@@ -98,7 +99,15 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
     const existing = await prisma.visit.findUnique({
       where: { id },
-      select: { userId: true, organizationId: true, visibility: true, finalizedAt: true, status: true },
+      select: {
+        userId: true,
+        organizationId: true,
+        visibility: true,
+        finalizedAt: true,
+        status: true,
+        noteData: true,
+        templateId: true,
+      },
     });
     if (!existing) return NextResponse.json({ error: "Visit not found" }, { status: 404 });
 
@@ -111,6 +120,14 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     }
 
     const data = await req.json();
+
+    // Finalized charts must only be changed through amendment flow for traceability.
+    if (existing.finalizedAt) {
+      return NextResponse.json(
+        { error: "Finalized visits are read-only. Use the amendment workflow." },
+        { status: 409 },
+      );
+    }
 
     const isFinalizing = data.status === "FINALIZED" || Boolean(data.finalizedAt);
     if (isFinalizing) {
@@ -174,14 +191,6 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       }
     }
 
-    // Finalized charts must only be changed through amendment flow for traceability.
-    if (existing.finalizedAt) {
-      return NextResponse.json(
-        { error: "Finalized visits are read-only. Use the amendment workflow." },
-        { status: 409 },
-      );
-    }
-
     // Allowlist: only permit clinical update fields
     const ALLOWED_FIELDS = [
       'status', 'transcript', 'transcriptSource', 'transcriptConfidence',
@@ -204,6 +213,17 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       resource: `visit:${visit.id}`,
       details: { fields: Object.keys(allowed) },
     });
+
+    if (data.noteData !== undefined) {
+      const styleEvents = deriveSectionEditEvents({
+        userId: session.user.id,
+        visitId: id,
+        templateId: existing.templateId,
+        previousNoteData: existing.noteData,
+        nextNoteData: data.noteData,
+      });
+      await recordStyleFeedbackEventsBatch(styleEvents);
+    }
 
     return NextResponse.json(
       { visit },

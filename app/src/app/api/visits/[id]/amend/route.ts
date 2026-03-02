@@ -3,8 +3,9 @@ import { auditLog } from "@/lib/audit";
 import { prisma } from "@/lib/db";
 import { NextRequest, NextResponse } from "next/server";
 import { appLog, scrubError } from "@/lib/logger";
-import { Prisma } from "@prisma/client";
+import { ClinicianStyleEventType, Prisma } from "@prisma/client";
 import { canEditVisit } from "@/lib/visit-access";
+import { recordStyleFeedbackEventsBatch } from "@/lib/style-learning";
 
 interface NoteDataSection {
   title: string;
@@ -130,6 +131,23 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       resource: "visit:" + visit.id,
       details: { amendmentId: amendment.id, reason: amendment.reason, sectionsChanged: changes.map((c: AmendmentChange) => c.section) },
     });
+
+    await recordStyleFeedbackEventsBatch(
+      (changes as AmendmentChange[]).map((change) => ({
+        userId,
+        visitId: visit.id,
+        eventType: ClinicianStyleEventType.amendment,
+        sectionKey: change.section,
+        sectionTitle: change.section,
+        snippetBefore: change.oldContent,
+        snippetAfter: change.newContent,
+        metadata: {
+          source: "amendment",
+          reason: reason.trim(),
+          amendmentId: amendment.id,
+        },
+      })),
+    );
 
     return NextResponse.json(
       { success: true, amendment, visit: updatedVisit },
