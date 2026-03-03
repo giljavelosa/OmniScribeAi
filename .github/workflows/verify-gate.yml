@@ -6,6 +6,7 @@ on:
     branches:
       - main
       - master
+      - ci/no-regression-gate
 
 jobs:
   verify-gate:
