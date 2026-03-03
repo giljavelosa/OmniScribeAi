@@ -5,6 +5,7 @@ import { frameworks } from "@/lib/frameworks";
 import { NextRequest, NextResponse } from "next/server";
 import { appLog, scrubError } from "@/lib/logger";
 import type { Prisma, VisitVisibility } from "@prisma/client";
+import { isOfficeStaffRole, isPrivilegedAdminRole } from "@/lib/auth/role-permissions";
 
 // GET /api/visits — list visits for current user
 export async function GET(req: NextRequest) {
@@ -14,7 +15,7 @@ export async function GET(req: NextRequest) {
   try {
     const patientId = req.nextUrl.searchParams.get("patientId");
     const limit = Math.min(parseInt(req.nextUrl.searchParams.get("limit") || "50") || 50, 100);
-    const isAdmin = session.user.role === "ADMIN";
+    const isAdmin = isPrivilegedAdminRole(session.user.role);
 
     const filters: Prisma.VisitWhereInput[] = [];
     if (patientId) filters.push({ patientId });
@@ -68,6 +69,12 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (isOfficeStaffRole(session.user.role)) {
+    return NextResponse.json(
+      { error: "Office staff users cannot create clinical visits" },
+      { status: 403 },
+    );
+  }
 
   try {
     const data = await req.json();

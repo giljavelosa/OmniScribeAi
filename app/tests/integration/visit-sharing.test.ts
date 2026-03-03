@@ -120,7 +120,7 @@ describe('Visit sharing policy integration', () => {
         userId: true,
         organizationId: true,
         visibility: true,
-        shareGrants: { select: { granteeUserId: true, revokedAt: true } },
+        shareGrants: { select: { granteeUserId: true, revokedAt: true, permission: true } },
       },
     });
 
@@ -143,7 +143,7 @@ describe('Visit sharing policy integration', () => {
         userId: true,
         organizationId: true,
         visibility: true,
-        shareGrants: { select: { granteeUserId: true, revokedAt: true } },
+        shareGrants: { select: { granteeUserId: true, revokedAt: true, permission: true } },
       },
     });
 

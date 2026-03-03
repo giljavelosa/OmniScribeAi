@@ -2,6 +2,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { NextRequest, NextResponse } from "next/server";
 import { appLog, scrubError } from "@/lib/logger";
+import { isPrivilegedAdminRole } from "@/lib/auth/role-permissions";
 
 // GET /api/search?q=<query> — unified search across patients + visits
 export async function GET(req: NextRequest) {
@@ -15,7 +16,7 @@ export async function GET(req: NextRequest) {
 
   try {
     // Build ownership filter (mirrors /api/patients scoping)
-    const isAdmin = session.user.role === "ADMIN";
+    const isAdmin = isPrivilegedAdminRole(session.user.role);
     let ownershipFilter = {};
 
     if (!isAdmin) {

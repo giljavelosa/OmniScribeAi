@@ -10,6 +10,10 @@ import { NextRequest } from "next/server";
 import { resolveTemplate, effectiveFrameworkId, buildSnapshot, TemplateResolutionError } from "@/lib/template-resolver";
 import { prisma } from "@/lib/db";
 import { canEditVisit } from "@/lib/visit-access";
+import { getEntitlementSnapshot, enforceFeature, enforceQuota } from "@/lib/billing/entitlements";
+import { fail, ok } from "@/lib/api-envelope";
+import { AppError, unauthorized } from "@/lib/errors";
+import { wrapRoute } from "@/lib/wrap-route";
 
 export const maxDuration = 300;
 
@@ -49,30 +53,40 @@ function parseJsonArray(raw: string): NoteSections {
       error: scrubError(error),
       rawLength: raw.length,
     });
-    throw new Error("Note regeneration returned invalid JSON structure");
+    throw new AppError("LLM_JSON_INVALID", "Note regeneration returned invalid JSON structure", 502);
   }
 }
 
-export async function POST(request: NextRequest) {
+export const POST = wrapRoute(async (request: NextRequest, _ctx, requestId) => {
   const session = await auth();
   if (!session?.user) {
-    return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { "content-type": "application/json" } });
+    throw unauthorized();
+  }
+
+  const entitlements = await getEntitlementSnapshot(session.user.id);
+  const featureCheck = enforceFeature(entitlements, "regenerate_note");
+  if (!featureCheck.allowed) {
+    return fail(featureCheck.code, featureCheck.message, requestId, 403, {
+      headers: { "Cache-Control": "no-store" },
+    });
+  }
+  const quotaCheck = enforceQuota(entitlements, "monthly_notes", 1);
+  if (!quotaCheck.allowed) {
+    return fail(quotaCheck.code, quotaCheck.message, requestId, 429, {
+      headers: { "Cache-Control": "no-store" },
+    });
   }
 
   const idempotencyKey = request.headers.get("x-idempotency-key")?.trim() || null;
   if (idempotencyKey) {
     const gate = beginIdempotentRequest(session.user.id, "regenerate-note", idempotencyKey);
     if (!gate.allowed && gate.inProgress) {
-      return new Response(
-        JSON.stringify({ success: false, error: "A regeneration run with this key is already in progress.", code: "IDEMPOTENCY_IN_PROGRESS" }),
-        { status: 409, headers: { "Content-Type": "application/json", "Cache-Control": "no-store" } },
-      );
+      return fail("IDEMPOTENCY_IN_PROGRESS", "A regeneration run with this key is already in progress.", requestId, 409, {
+        headers: { "Cache-Control": "no-store" },
+      });
     }
     if (!gate.allowed && gate.completedResult) {
-      return new Response(JSON.stringify(gate.completedResult), {
-        status: 200,
-        headers: { "Content-Type": "application/json", "Cache-Control": "no-store" },
-      });
+      return ok(gate.completedResult, { headers: { "Cache-Control": "no-store" } }, requestId);
     }
   }
 
@@ -81,12 +95,12 @@ export async function POST(request: NextRequest) {
 
   if (!parsedData || !clinicalSynthesis) {
     if (idempotencyKey) failIdempotentRequest(session.user.id, "regenerate-note", idempotencyKey);
-    return new Response(JSON.stringify({ success: false, error: "Missing required fields: parsedData and clinicalSynthesis" }), { status: 400, headers: { "Content-Type": "application/json" } });
+    return fail("VALIDATION_ERROR", "Missing required fields: parsedData and clinicalSynthesis", requestId, 400);
   }
 
   if (!templateId && !frameworkId) {
     if (idempotencyKey) failIdempotentRequest(session.user.id, "regenerate-note", idempotencyKey);
-    return new Response(JSON.stringify({ success: false, error: "Either templateId or frameworkId is required" }), { status: 400, headers: { "Content-Type": "application/json" } });
+    return fail("VALIDATION_ERROR", "Either templateId or frameworkId is required", requestId, 400);
   }
 
   // ═══ Template Resolution — templateId takes priority over frameworkId ═══
@@ -110,14 +124,11 @@ export async function POST(request: NextRequest) {
   } catch (err) {
     if (err instanceof TemplateResolutionError) {
       if (idempotencyKey) failIdempotentRequest(session.user.id, "regenerate-note", idempotencyKey);
-      return new Response(JSON.stringify({ success: false, error: err.message, code: err.code }), { status: 400, headers: { "Content-Type": "application/json" } });
+      return fail(err.code, err.message, requestId, 400);
     }
     if (idempotencyKey) failIdempotentRequest(session.user.id, "regenerate-note", idempotencyKey);
     appLog("error", "RegenNote", "Template resolution failed", { error: scrubError(err) });
-    return new Response(
-      JSON.stringify({ success: false, error: "Template resolution failed", code: "TEMPLATE_RESOLUTION_FAILED" }),
-      { status: 500, headers: { "Content-Type": "application/json" } },
-    );
+    return fail("TEMPLATE_RESOLUTION_FAILED", "Template resolution failed", requestId, 500);
   }
 
   const framework = {
@@ -181,9 +192,8 @@ Write the final clinical note. Merge the parsed data and clinical reasoning into
     const budget = enforceAIBudget(session.user.id);
     if (!budget.ok) {
       if (idempotencyKey) failIdempotentRequest(session.user.id, "regenerate-note", idempotencyKey);
-      return new Response(JSON.stringify({ success: false, error: budget.error, code: budget.code }), {
-        status: 429,
-        headers: { "Content-Type": "application/json", "Cache-Control": "no-store" },
+      return fail(budget.code, budget.error, requestId, 429, {
+        headers: { "Cache-Control": "no-store" },
       });
     }
 
@@ -215,9 +225,7 @@ Write the final clinical note. Merge the parsed data and clinical reasoning into
       });
 
       if (!visitRecord) {
-        return new Response(JSON.stringify({ success: false, error: "Visit not found" }), {
-          status: 404, headers: { "Content-Type": "application/json" },
-        });
+        return fail("NOT_FOUND", "Visit not found", requestId, 404);
       }
 
       if (!canEditVisit(
@@ -228,9 +236,7 @@ Write the final clinical note. Merge the parsed data and clinical reasoning into
           organizationId: (session.user as { organizationId?: string | null }).organizationId ?? null,
         },
       ).allowed) {
-        return new Response(JSON.stringify({ success: false, error: "Forbidden" }), {
-          status: 403, headers: { "Content-Type": "application/json" },
-        });
+        return fail("FORBIDDEN", "Forbidden", requestId, 403);
       }
 
       try {
@@ -262,15 +268,23 @@ Write the final clinical note. Merge the parsed data and clinical reasoning into
     if (idempotencyKey) {
       completeIdempotentRequest(session.user.id, "regenerate-note", idempotencyKey, responsePayload);
     }
-    return new Response(JSON.stringify(responsePayload), { headers: { "Content-Type": "application/json", "Cache-Control": "no-store, no-cache, must-revalidate", "Pragma": "no-cache" } });
+    return ok(
+      responsePayload,
+      { headers: { "Cache-Control": "no-store, no-cache, must-revalidate", "Pragma": "no-cache" } },
+      requestId,
+    );
 
   } catch (error) {
     if (idempotencyKey) failIdempotentRequest(session.user.id, "regenerate-note", idempotencyKey);
+    if (error instanceof AppError) {
+      return fail(error.code, error.message, requestId, error.status, {
+        headers: { "Cache-Control": "no-store" },
+      });
+    }
     const code = errorCode();
     appLog('error', 'RegenNote', 'Error', { code, error: scrubError(error) });
-    return new Response(JSON.stringify({ success: false, error: "Note regeneration failed", code }), {
-      status: 500,
-      headers: { "Content-Type": "application/json", "Cache-Control": "no-store" },
+    return fail(code, "Note regeneration failed", requestId, 500, {
+      headers: { "Cache-Control": "no-store" },
     });
   }
-}
+});

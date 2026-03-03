@@ -1,18 +1,28 @@
 import NextAuth from "next-auth";
 import { authConfig } from "@/lib/auth.config";
 import { NextResponse } from "next/server";
-import { checkRateLimit, getTierForPath } from "@/lib/rate-limiter";
+import { checkRateLimit } from "@/lib/rate-limiter";
+import { enforceApiRateLimit, evaluateCsrf, evaluateOfficeStaffRestrictions } from "@/lib/request-guards";
+import { fail } from "@/lib/api-envelope";
+import { getOrCreateRequestId, withRequestIdHeader } from "@/lib/request-id";
 
 // Use Edge-compatible auth config (no DB adapter, no Node.js crypto)
 const { auth } = NextAuth(authConfig);
 
 export default auth((req) => {
   const { pathname } = req.nextUrl;
+  const requestId = getOrCreateRequestId(req.headers);
 
   // Always-public routes
   if (
     pathname.startsWith("/login") ||
+    pathname.startsWith("/signup") ||
+    pathname.startsWith("/pricing") ||
     pathname.startsWith("/api/auth") ||
+    pathname.startsWith("/api/signup") ||
+    pathname.startsWith("/api/auth/signup") ||
+    pathname.startsWith("/api/billing/pricing") ||
+    pathname.startsWith("/api/billing/webhook/stripe") ||
     pathname === "/" ||
     pathname.startsWith("/_next") ||
     pathname.startsWith("/favicon")
@@ -22,12 +32,13 @@ export default auth((req) => {
       const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || req.headers.get("x-real-ip") || "unknown";
       const result = checkRateLimit("login", ip);
       if (!result.allowed) {
-        return new NextResponse(
-          JSON.stringify({ error: "Too many login attempts. Please try again later." }),
+        return fail(
+          "RATE_LIMITED",
+          "Too many login attempts. Please try again later.",
+          requestId,
+          429,
           {
-            status: 429,
             headers: {
-              "Content-Type": "application/json",
               "Retry-After": String(Math.ceil(result.resetMs / 1000)),
               "X-RateLimit-Limit": String(result.limit),
               "X-RateLimit-Remaining": "0",
@@ -37,7 +48,12 @@ export default auth((req) => {
         );
       }
     }
-    return NextResponse.next();
+    return withRequestIdHeader(NextResponse.next(), requestId);
+  }
+
+  // Admin API routes must never redirect on auth failure.
+  if (pathname.startsWith("/api/admin") && !req.auth) {
+    return fail("UNAUTHORIZED", "Unauthorized", requestId, 401);
   }
 
   // Not logged in — redirect to login with validated callbackUrl
@@ -47,7 +63,19 @@ export default auth((req) => {
     if (pathname.startsWith("/") && !pathname.startsWith("//")) {
       loginUrl.searchParams.set("callbackUrl", pathname);
     }
-    return NextResponse.redirect(loginUrl);
+    return withRequestIdHeader(NextResponse.redirect(loginUrl), requestId);
+  }
+
+  const officeStaffAccess = evaluateOfficeStaffRestrictions({
+    pathname,
+    method: req.method,
+    role: req.auth.user?.role,
+  });
+  if (!officeStaffAccess.allowed) {
+    if (pathname.startsWith("/api/")) {
+      return fail("FORBIDDEN", "Insufficient permissions for office staff role", requestId, 403);
+    }
+    return withRequestIdHeader(NextResponse.redirect(new URL("/dashboard", req.url)), requestId);
   }
 
   // Logged in but must change password — force to /change-password
@@ -56,78 +84,43 @@ export default auth((req) => {
     !pathname.startsWith("/change-password") &&
     !pathname.startsWith("/api/")
   ) {
-    return NextResponse.redirect(new URL("/change-password", req.url));
+    return withRequestIdHeader(NextResponse.redirect(new URL("/change-password", req.url)), requestId);
   }
 
-  // CSRF protection: verify Origin on state-changing API requests
-  if (
-    pathname.startsWith("/api/") &&
-    ["POST", "PUT", "PATCH", "DELETE"].includes(req.method)
-  ) {
-    const origin = req.headers.get("origin");
-    const referer = req.headers.get("referer");
-    const host = req.headers.get("host");
-
-    // Accept if Origin matches host
-    let originOk = false;
-    if (origin) {
-      try {
-        const originHost = new URL(origin).host;
-        originOk = originHost === host;
-      } catch { /* invalid origin */ }
-    } else if (referer) {
-      // Fallback to Referer if no Origin (some older browsers)
-      try {
-        const refererHost = new URL(referer).host;
-        originOk = refererHost === host;
-      } catch { /* invalid referer */ }
-    }
-    // Require same-origin browser headers for state-changing requests.
-    if (!origin && !referer) {
-      return new NextResponse(
-        JSON.stringify({ error: "CSRF validation failed" }),
-        { status: 403, headers: { "Content-Type": "application/json" } },
-      );
-    }
-
-    if (!originOk) {
-      return new NextResponse(
-        JSON.stringify({ error: "CSRF validation failed" }),
-        { status: 403, headers: { "Content-Type": "application/json" } },
-      );
-    }
+  const csrf = evaluateCsrf({
+    pathname,
+    method: req.method,
+    origin: req.headers.get("origin"),
+    referer: req.headers.get("referer"),
+    host: req.headers.get("host"),
+  });
+  if (!csrf.allowed) {
+    return fail("CSRF_FAILED", "CSRF validation failed", requestId, 403);
   }
 
   // Rate limit API routes for authenticated users
   if (pathname.startsWith("/api/")) {
     const userId = req.auth.user?.id || "anonymous";
-    const tier = getTierForPath(pathname);
-    const result = checkRateLimit(tier, userId);
+    const result = enforceApiRateLimit(pathname, userId);
     if (!result.allowed) {
-      return new NextResponse(
-        JSON.stringify({ success: false, error: "Rate limit exceeded. Please slow down." }),
-        {
-          status: 429,
-          headers: {
-            "Content-Type": "application/json",
-            "Retry-After": String(Math.ceil(result.resetMs / 1000)),
-            "X-RateLimit-Limit": String(result.limit),
-            "X-RateLimit-Remaining": "0",
-            "X-RateLimit-Reset": String(Math.ceil(result.resetMs / 1000)),
-          },
+      return fail("RATE_LIMITED", "Rate limit exceeded. Please slow down.", requestId, 429, {
+        headers: {
+          "Retry-After": String(Math.ceil(result.resetMs / 1000)),
+          "X-RateLimit-Limit": String(result.limit),
+          "X-RateLimit-Remaining": "0",
+          "X-RateLimit-Reset": String(Math.ceil(result.resetMs / 1000)),
         },
-      );
+      });
     }
 
-    // Attach rate limit headers to successful responses
-    const response = NextResponse.next();
+    const response = withRequestIdHeader(NextResponse.next(), requestId);
     response.headers.set("X-RateLimit-Limit", String(result.limit));
     response.headers.set("X-RateLimit-Remaining", String(result.remaining));
     response.headers.set("X-RateLimit-Reset", String(Math.ceil(result.resetMs / 1000)));
     return response;
   }
 
-  return NextResponse.next();
+  return withRequestIdHeader(NextResponse.next(), requestId);
 });
 
 export const config = {

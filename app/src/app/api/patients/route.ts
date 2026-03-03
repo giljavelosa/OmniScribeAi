@@ -3,6 +3,7 @@ import { auditLog } from "@/lib/audit";
 import { prisma } from "@/lib/db";
 import { NextRequest, NextResponse } from "next/server";
 import { appLog, scrubError } from "@/lib/logger";
+import { isPrivilegedAdminRole } from "@/lib/auth/role-permissions";
 
 // GET /api/patients — list/search patients (scoped to user's organization)
 export async function GET(req: NextRequest) {
@@ -17,7 +18,7 @@ export async function GET(req: NextRequest) {
     // - Admins see all patients
     // - If user has an org, scope to that org's patients
     // - Otherwise, scope to patients the user has visits with
-    const isAdmin = session.user.role === "ADMIN";
+    const isAdmin = isPrivilegedAdminRole(session.user.role);
     let ownershipFilter = {};
 
     if (!isAdmin) {

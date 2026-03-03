@@ -23,6 +23,8 @@ interface RateLimitConfig {
 const RATE_LIMITS: Record<string, RateLimitConfig> = {
   // Login: 10 attempts per 15 minutes per IP
   login: { windowMs: 15 * 60 * 1000, maxRequests: 10 },
+  // Signup: 5 attempts per hour per IP (abuse prevention)
+  signup: { windowMs: 60 * 60 * 1000, maxRequests: 5 },
   // Expensive AI endpoints: 30 requests per minute per user
   ai: { windowMs: 60 * 1000, maxRequests: 30 },
   // General API: 120 requests per minute per user
@@ -110,6 +112,7 @@ export function checkRateLimit(tier: string, identifier: string): RateLimitResul
  */
 export function getTierForPath(pathname: string): string {
   if (pathname.startsWith('/api/auth/callback')) return 'login';
+  if (pathname.startsWith('/api/signup') || pathname.startsWith('/api/auth/signup')) return 'signup';
   if (
     pathname.startsWith('/api/generate-note') ||
     pathname.startsWith('/api/regenerate-note') ||

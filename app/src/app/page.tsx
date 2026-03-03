@@ -56,13 +56,16 @@ export default function LandingPage() {
           <span className="text-xl font-bold text-[#1e3a5f]">OmniScribe</span>
         </div>
         <div className="flex items-center gap-3">
+          <Link href="/pricing" className="text-sm font-medium text-gray-600 hover:text-gray-900 px-3 py-2 transition-colors">
+            Pricing
+          </Link>
           <Link href="/frameworks" className="text-sm font-medium text-gray-600 hover:text-gray-900 px-3 py-2 transition-colors">
             Frameworks
           </Link>
-          <Link href="/dashboard" className="text-sm font-medium text-gray-600 hover:text-gray-900 px-3 py-2 transition-colors">
+          <Link href="/login" className="text-sm font-medium text-gray-600 hover:text-gray-900 px-3 py-2 transition-colors">
             Log In
           </Link>
-          <Link href="/dashboard" className="bg-[#0d9488] hover:bg-[#0f766e] text-white text-sm font-medium px-5 py-2.5 rounded-lg transition-colors">
+          <Link href="/signup" className="bg-[#0d9488] hover:bg-[#0f766e] text-white text-sm font-medium px-5 py-2.5 rounded-lg transition-colors">
             Get Started
           </Link>
         </div>
@@ -83,7 +86,7 @@ export default function LandingPage() {
           DSM-5-TR criteria, and more.
         </p>
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-          <Link href="/visit/new" className="bg-[#0d9488] hover:bg-[#0f766e] text-white font-semibold px-8 py-3.5 rounded-xl text-lg transition-colors shadow-lg hover:shadow-xl">
+          <Link href="/signup" className="bg-[#0d9488] hover:bg-[#0f766e] text-white font-semibold px-8 py-3.5 rounded-xl text-lg transition-colors shadow-lg hover:shadow-xl">
             Start Recording — Free
           </Link>
           <Link href="/frameworks" className="text-[#1e3a5f] font-semibold px-8 py-3.5 rounded-xl text-lg border-2 border-[#1e3a5f]/20 hover:border-[#1e3a5f]/40 transition-colors">
@@ -160,7 +163,7 @@ export default function LandingPage() {
         <p className="text-gray-600 mb-8 max-w-lg mx-auto">
           Stop spending hours on notes. Start spending minutes — with the depth and compliance your practice demands.
         </p>
-        <Link href="/dashboard" className="inline-block bg-[#0d9488] hover:bg-[#0f766e] text-white font-semibold px-8 py-3.5 rounded-xl text-lg transition-colors shadow-lg">
+        <Link href="/signup" className="inline-block bg-[#0d9488] hover:bg-[#0f766e] text-white font-semibold px-8 py-3.5 rounded-xl text-lg transition-colors shadow-lg">
           Get Started Free
         </Link>
       </section>

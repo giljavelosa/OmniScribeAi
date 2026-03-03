@@ -97,27 +97,32 @@ model Organization {
 }
 
 model Subscription {
-  id                     String             @id @default(cuid())
-  planCode               PlanCode
-  status                 SubscriptionStatus @default(trialing)
-  billingInterval        BillingInterval    @default(monthly)
-  provider               String?            // stripe, manual, sandbox
-  externalCustomerId     String?
-  externalSubscriptionId String?            @unique
-  organizationId         String?
-  organization           Organization?      @relation("OrganizationSubscriptions", fields: [organizationId], references: [id])
-  userId                 String?
-  user                   User?              @relation("UserSubscriptions", fields: [userId], references: [id])
-  seatsIncluded          Int                @default(1)
-  seatsUsed              Int                @default(1)
-  quotaOverrides         Json?
-  featureOverrides       Json?
-  periodStart            DateTime?
-  periodEnd              DateTime?
-  cancelAtPeriodEnd      Boolean            @default(false)
-  cancelledAt            DateTime?
-  createdAt              DateTime           @default(now())
-  updatedAt              DateTime           @updatedAt
+  id                        String             @id @default(cuid())
+  planCode                  PlanCode
+  status                    SubscriptionStatus @default(trialing)
+  billingInterval           BillingInterval    @default(monthly)
+  provider                  String?            // stripe, manual, sandbox
+  externalCustomerId        String?
+  externalSubscriptionId    String?            @unique
+  organizationId            String?
+  organization              Organization?      @relation("OrganizationSubscriptions", fields: [organizationId], references: [id])
+  userId                    String?
+  user                      User?              @relation("UserSubscriptions", fields: [userId], references: [id])
+  seatsIncluded             Int                @default(1)
+  seatsUsed                 Int                @default(1)
+  quotaOverrides            Json?
+  featureOverrides          Json?
+  periodStart               DateTime?
+  periodEnd                 DateTime?
+  cancelAtPeriodEnd         Boolean            @default(false)
+  cancelledAt               DateTime?
+  trialEndsAt               DateTime?
+  trialPlanCode             PlanCode?
+  trialEndedAt              DateTime?
+  postTrialDiscountPercent  Int?
+  postTrialDiscountMonths   Int?
+  createdAt                 DateTime           @default(now())
+  updatedAt                 DateTime           @updatedAt
 
   usageEvents UsageLedger[]
 
@@ -141,6 +146,42 @@ model UsageLedger {
   @@index([userId, occurredAt])
   @@index([organizationId, occurredAt])
   @@index([metric, occurredAt])
+}
+
+// ─── Billing Config (Admin-editable prices & discounts) ───
+
+model PriceConfig {
+  id              String          @id @default(cuid())
+  planCode        PlanCode
+  billingInterval BillingInterval
+  amountCents     Int
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  @@unique([planCode, billingInterval])
+}
+
+model DiscountCode {
+  id              String    @id @default(cuid())
+  code            String    @unique
+  type            String    // percent | fixed_cents
+  value           Int
+  validFrom       DateTime  @default(now())
+  validTo         DateTime?
+  maxRedemptions  Int?
+  redemptionCount Int      @default(0)
+  metadata        Json?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([code, validFrom, validTo])
+}
+
+model BillingConfig {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String   @db.Text
+  updatedAt DateTime @updatedAt
 }
 
 // ─── FHIR-Aligned Patient ────────────────────────────────
@@ -452,6 +493,7 @@ enum Role {
   ENTERPRISE_ADMIN
   CLINICIAN
   SUPERVISOR
+  OFFICE_STAFF
 }
 
 enum VisitStatus {
@@ -483,6 +525,7 @@ enum VisitSharePermission {
 }
 
 enum PlanCode {
+  free
   starter
   professional
   practice

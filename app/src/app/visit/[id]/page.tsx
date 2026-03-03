@@ -3,6 +3,7 @@ import { getPhiItem, setPhiItem, sweepExpiredPhiItems } from '@/lib/phi-storage'
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
+import { useSession } from 'next-auth/react';
 import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
 import NoteEditor from '@/components/NoteEditor';
@@ -12,6 +13,7 @@ import { NoteSection } from "@/lib/types";
 import MiniRecorder from '@/components/MiniRecorder';
 import ClinicalSynthesis from '@/components/ClinicalSynthesis';
 import { appLog, scrubError } from '@/lib/logger';
+import { useBillingEntitlements } from '@/lib/billing/client';
 
 function escapeHtml(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -165,6 +167,11 @@ export default function VisitDetailPage() {
   const [shareGrants, setShareGrants] = useState<ShareGrant[]>([]);
   const [shareVisibility, setShareVisibility] = useState<'private' | 'organization' | 'restricted'>('private');
   const [selectedGranteeIds, setSelectedGranteeIds] = useState<string[]>([]);
+  const { snapshot: billingSnapshot, loading: billingLoading } = useBillingEntitlements();
+  const canUseSharing = billingSnapshot?.features.organization_sharing === true;
+  const { data: session } = useSession();
+  const userRole = session?.user?.role || "CLINICIAN";
+  const isOfficeStaff = userRole === "OFFICE_STAFF";
 
   useEffect(() => {
     sweepExpiredPhiItems(); // clean up stale PHI on page load
@@ -228,13 +235,13 @@ export default function VisitDetailPage() {
 
   useEffect(() => {
     const isClientId = visitId.startsWith('visit-') || visitId.startsWith('mock-');
-    if (isClientId) return;
+    if (isClientId || billingLoading || !canUseSharing) return;
 
     fetch(`/api/visits/${visitId}/share`)
       .then(async (res) => {
         if (!res.ok) return null;
         const data = await res.json();
-        return data?.sharing ?? null;
+        return data?.data?.sharing ?? data?.sharing ?? null;
       })
       .then((sharing) => {
         if (!sharing) return;
@@ -247,7 +254,7 @@ export default function VisitDetailPage() {
       .catch(() => {
         // Sharing controls are best-effort in UI; API still enforces authz.
       });
-  }, [visitId]);
+  }, [visitId, billingLoading, canUseSharing]);
 
   const mockVisit = mockVisits.find(v => v.id === visitId);
 
@@ -638,14 +645,19 @@ ${compLine}
       });
 
       const data = await res.json();
+      const payload = data?.data ?? data;
       if (!res.ok || !data.success) {
-        throw new Error(data.error || `HTTP ${res.status}`);
+        const message =
+          typeof data?.error === 'string'
+            ? data.error
+            : data?.error?.message || `HTTP ${res.status}`;
+        throw new Error(message);
       }
 
-      const grants = Array.isArray(data.sharing?.grants) ? data.sharing.grants : [];
+      const grants = Array.isArray(payload?.sharing?.grants) ? payload.sharing.grants : [];
       setShareGrants(grants);
       if (visitData) {
-        setVisitData({ ...visitData, visibility: data.sharing?.visibility || shareVisibility });
+        setVisitData({ ...visitData, visibility: payload?.sharing?.visibility || shareVisibility });
       }
       setSaveStatus('Saved');
     } catch (err: unknown) {
@@ -662,7 +674,11 @@ ${compLine}
       const res = await fetch(`/api/visits/${visitId}/share/${grantId}`, { method: 'DELETE' });
       const data = await res.json();
       if (!res.ok || !data.success) {
-        throw new Error(data.error || `HTTP ${res.status}`);
+        const message =
+          typeof data?.error === 'string'
+            ? data.error
+            : data?.error?.message || `HTTP ${res.status}`;
+        throw new Error(message);
       }
       const nextGrants = shareGrants.filter((grant) => grant.id !== grantId);
       setShareGrants(nextGrants);
@@ -672,6 +688,26 @@ ${compLine}
       setShareError(err instanceof Error ? err.message : 'Failed to revoke access');
     } finally {
       setShareLoading(false);
+    }
+  };
+
+  const handleRequestDeletion = async () => {
+    const reason = window.prompt("Describe why this note/file should be deleted:");
+    if (!reason || !reason.trim()) return;
+
+    try {
+      const res = await fetch(`/api/visits/${visitId}/deletion-request`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reason: reason.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || `HTTP ${res.status}`);
+      }
+      alert("Deletion request submitted for admin review.");
+    } catch (err: unknown) {
+      alert(`Deletion request failed: ${err instanceof Error ? err.message : "unknown error"}`);
     }
   };
 
@@ -750,14 +786,22 @@ ${compLine}
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
                   Export / Print
                 </button>
-                {!visitData?.finalized && (
+                {isOfficeStaff && (
+                  <button
+                    onClick={handleRequestDeletion}
+                    className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 transition-colors"
+                  >
+                    Request Deletion
+                  </button>
+                )}
+                {!isOfficeStaff && !visitData?.finalized && (
                   <button onClick={handleFinalize}
                     className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 transition-colors">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
                     Finalize Note
                   </button>
                 )}
-                {visitData?.finalized && (
+                {!isOfficeStaff && visitData?.finalized && (
                   <>
                     <div className="flex items-center gap-2 px-4 py-2 bg-green-50 border border-green-200 rounded-lg text-sm font-medium text-green-700">
                       &#10003; Finalized {visitData?.finalizedAt ? new Date(visitData.finalizedAt).toLocaleString() : ''}
@@ -772,7 +816,15 @@ ${compLine}
               </div>
 
               {/* Sharing controls (owner/admin only; API enforces authz) */}
-              {(shareMembers.length > 0 || shareGrants.length > 0 || visitData?.visibility) && (
+              {!isOfficeStaff && !billingLoading && !canUseSharing && (
+                <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6">
+                  <h3 className="text-sm font-semibold text-amber-900">Organization Sharing</h3>
+                  <p className="text-xs text-amber-800 mt-1">
+                    This feature is available on the Practice tier and above.
+                  </p>
+                </div>
+              )}
+              {!isOfficeStaff && canUseSharing && (shareMembers.length > 0 || shareGrants.length > 0 || visitData?.visibility) && (
                 <div className="bg-white border border-gray-200 rounded-xl p-4 mb-6">
                   <div className="flex items-center justify-between gap-3 mb-3">
                     <div>
@@ -1044,7 +1096,7 @@ ${compLine}
 
               {/* Content */}
               {tab === 'clinicalNote' ? (
-                <NoteEditor sections={clinicalNote} onUpdate={handleUpdate} missingItems={compliance?.missing} visitMeta={{
+                <NoteEditor sections={clinicalNote} onUpdate={handleUpdate} readOnly={isOfficeStaff} missingItems={compliance?.missing} visitMeta={{
                   patientName,
                   date: createdAt,
                   providerType,
@@ -1136,7 +1188,7 @@ ${compLine}
                     </div>
                   )}
 
-                  <NoteEditor sections={parsedData} onUpdate={handleUpdate} missingItems={compliance?.missing} visitMeta={{
+                  <NoteEditor sections={parsedData} onUpdate={handleUpdate} readOnly={isOfficeStaff} missingItems={compliance?.missing} visitMeta={{
                     patientName,
                     date: createdAt,
                     providerType,
@@ -1145,7 +1197,8 @@ ${compLine}
                   }} onSaveStatus={setSaveStatus} />
 
                   {/* Action buttons */}
-                  <div className="mt-4 space-y-3">
+                  {!isOfficeStaff && (
+                    <div className="mt-4 space-y-3">
                     <div className="flex gap-3 flex-wrap">
                       <MiniRecorder 
                         onTranscript={handleDictationTranscript} 
@@ -1253,7 +1306,8 @@ ${compLine}
                         </div>
                       </div>
                     )}
-                  </div>
+                    </div>
+                  )}
                 </div>
               ) : tab === 'reasoning' ? (
                 clinicalSynthesis ? (

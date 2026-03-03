@@ -4,11 +4,18 @@ import { prisma } from "@/lib/db";
 import { NextRequest, NextResponse } from "next/server";
 import { appLog, scrubError } from "@/lib/logger";
 import { canAccessPatient } from "@/lib/patient-access";
+import { isOfficeStaffRole } from "@/lib/auth/role-permissions";
 
 // POST /api/patients/:id/medical — add allergy, medication, condition, or coverage
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (isOfficeStaffRole(session.user.role)) {
+    return NextResponse.json(
+      { error: "Office staff users cannot modify clinical medical records" },
+      { status: 403 },
+    );
+  }
 
   try {
     const { id } = await params;
@@ -75,6 +82,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (isOfficeStaffRole(session.user.role)) {
+    return NextResponse.json(
+      { error: "Office staff users cannot modify clinical medical records" },
+      { status: 403 },
+    );
+  }
 
   try {
     const { id } = await params;

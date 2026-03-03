@@ -1,4 +1,5 @@
 import type { Role, VisitVisibility, VisitShareGrant } from "@prisma/client";
+import { isOfficeStaffRole, isPrivilegedAdminRole } from "@/lib/auth/role-permissions";
 
 export type VisitActor = {
   id: string;
@@ -35,7 +36,8 @@ export const SHARE_AUDIT_ACTIONS = {
 } as const;
 
 export function canEditVisit(visit: VisitAuthShape, actor: VisitActor): VisitAccessResult {
-  if (actor.role === "ADMIN") return { allowed: true, reason: "admin" };
+  if (isOfficeStaffRole(actor.role)) return { allowed: false, reason: "no_matching_policy" };
+  if (isPrivilegedAdminRole(actor.role)) return { allowed: true, reason: "admin" };
   if (visit.userId === actor.id) return { allowed: true, reason: "owner" };
   return { allowed: false, reason: "no_matching_policy" };
 }
@@ -64,7 +66,7 @@ export function canViewVisit(
   actor: VisitActor,
   grants?: GrantAuthShape[],
 ): VisitAccessResult {
-  if (actor.role === "ADMIN") return { allowed: true, reason: "admin" };
+  if (isPrivilegedAdminRole(actor.role)) return { allowed: true, reason: "admin" };
   if (visit.userId === actor.id) return { allowed: true, reason: "owner" };
 
   if (
@@ -88,7 +90,8 @@ export function canCommentVisit(
   actor: VisitActor,
   grants?: GrantAuthShape[],
 ): VisitAccessResult {
-  if (actor.role === "ADMIN") return { allowed: true, reason: "admin" };
+  if (isOfficeStaffRole(actor.role)) return { allowed: false, reason: "no_matching_policy" };
+  if (isPrivilegedAdminRole(actor.role)) return { allowed: true, reason: "admin" };
   if (visit.userId === actor.id) return { allowed: true, reason: "owner" };
   if (visit.visibility === "organization" && visit.organizationId && actor.organizationId && visit.organizationId === actor.organizationId) {
     return { allowed: true, reason: "organization_visibility" };

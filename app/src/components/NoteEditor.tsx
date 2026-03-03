@@ -55,13 +55,21 @@ function CopyButton({ text }: { text: string }) {
   );
 }
 
-function FeedbackButtons({ feedback, onChange }: { feedback?: 'up' | 'down' | null; onChange: (val: 'up' | 'down' | null) => void }) {
+function FeedbackButtons({
+  feedback,
+  onChange,
+  disabled,
+}: {
+  feedback?: "up" | "down" | null;
+  onChange: (val: "up" | "down" | null) => void;
+  disabled?: boolean;
+}) {
   return (
     <div className="flex items-center gap-1">
-      <button onClick={() => onChange(feedback === 'up' ? null : 'up')} className={`p-1 rounded transition-colors ${feedback === 'up' ? 'text-[#0d9488]' : 'text-gray-300 hover:text-gray-500'}`} title="Good output">
+      <button disabled={disabled} onClick={() => onChange(feedback === 'up' ? null : 'up')} className={`p-1 rounded transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${feedback === 'up' ? 'text-[#0d9488]' : 'text-gray-300 hover:text-gray-500'}`} title="Good output">
         <svg width="14" height="14" viewBox="0 0 24 24" fill={feedback === 'up' ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3" /></svg>
       </button>
-      <button onClick={() => onChange(feedback === 'down' ? null : 'down')} className={`p-1 rounded transition-colors ${feedback === 'down' ? 'text-red-500' : 'text-gray-300 hover:text-gray-500'}`} title="Needs improvement">
+      <button disabled={disabled} onClick={() => onChange(feedback === 'down' ? null : 'down')} className={`p-1 rounded transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${feedback === 'down' ? 'text-red-500' : 'text-gray-300 hover:text-gray-500'}`} title="Needs improvement">
         <svg width="14" height="14" viewBox="0 0 24 24" fill={feedback === 'down' ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2"><path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3zm7-13h2.67A2.31 2.31 0 0 1 22 4v7a2.31 2.31 0 0 1-2.33 2H17" /></svg>
       </button>
     </div>
@@ -441,7 +449,7 @@ export default function NoteEditor({ sections, onUpdate, readOnly, missingItems,
                 )}
               </div>
             <div className="flex items-center gap-2">
-              <FeedbackButtons feedback={section.feedback} onChange={(val) => handleFeedback(section.id, val)} />
+              <FeedbackButtons feedback={section.feedback} disabled={readOnly} onChange={(val) => handleFeedback(section.id, val)} />
               <div className="w-px h-4 bg-gray-200" />
               <CopyButton text={`${section.title}\n${section.content}`} />
             </div>
