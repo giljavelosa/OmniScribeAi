@@ -8,13 +8,19 @@
  * and Credentials provider (which need Node.js runtime).
  */
 import type { NextAuthConfig } from "next-auth";
+import { validateAuthRuntimeEnv } from "./auth-env";
+
+validateAuthRuntimeEnv({ trustHostConfigured: true });
 
 export const authConfig: NextAuthConfig = {
+  // Required behind reverse proxies (e.g., Nginx/systemd on staging) to
+  // prevent Auth.js from rejecting requests with UntrustedHost.
+  trustHost: true,
   session: { strategy: "jwt", maxAge: 4 * 60 * 60 }, // 4 hours absolute max
   pages: { signIn: "/login" },
   providers: [], // Credentials provider added in auth.ts (needs Node.js)
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger, session }) {
       if (user) {
         token.id = user.id!;
         token.role = user.role ?? "CLINICIAN";
@@ -22,6 +28,15 @@ export const authConfig: NextAuthConfig = {
         token.clinicianType = user.clinicianType ?? null;
         token.mustChangePassword = user.mustChangePassword ?? false;
         token.extendedSessionAcknowledged = user.extendedSessionAcknowledged ?? false;
+      }
+      // Allow client-side `update()` calls to refresh this flag without forcing re-login.
+      if (
+        trigger === "update" &&
+        session &&
+        "extendedSessionAcknowledged" in session &&
+        typeof session.extendedSessionAcknowledged === "boolean"
+      ) {
+        token.extendedSessionAcknowledged = session.extendedSessionAcknowledged;
       }
       return token;
     },

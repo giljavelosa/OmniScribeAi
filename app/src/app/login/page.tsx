@@ -1,6 +1,7 @@
 "use client";
 
 import { Suspense, useState } from "react";
+import Link from "next/link";
 import { signIn } from "next-auth/react";
 import { useSearchParams } from "next/navigation";
 
@@ -10,6 +11,7 @@ function LoginForm() {
   const rawCallback = searchParams.get("callbackUrl") || "/dashboard";
   const callbackUrl = rawCallback.startsWith("/") && !rawCallback.startsWith("//") ? rawCallback : "/dashboard";
   const passwordChanged = searchParams.get("changed") === "1";
+  const registered = searchParams.get("registered") === "1";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -43,7 +45,12 @@ function LoginForm() {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="mt-8 space-y-6">
+    <form onSubmit={handleSubmit} className="mt-8 space-y-6" data-testid="login-form">
+      {registered && (
+        <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg text-sm">
+          Account created successfully. Please sign in.
+        </div>
+      )}
       {passwordChanged && (
         <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg text-sm">
           ✅ Password changed successfully. Please log in with your new password.
@@ -58,16 +65,18 @@ function LoginForm() {
         <div>
           <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">Email</label>
           <input id="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)}
+            data-testid="login-email-input"
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             placeholder="clinician@example.com" />
         </div>
         <div>
           <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">Password</label>
           <input id="password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)}
+            data-testid="login-password-input"
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
         </div>
       </div>
-      <button type="submit" disabled={loading}
+      <button type="submit" disabled={loading} data-testid="login-submit-button"
         className="w-full py-2 px-4 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
         {loading ? "Signing in..." : "Sign In"}
       </button>
@@ -91,7 +100,17 @@ export default function LoginPage() {
         <Suspense fallback={<div className="text-center text-gray-400">Loading...</div>}>
           <LoginForm />
         </Suspense>
-        <p className="text-center text-xs text-gray-400 mt-4">
+        <p className="text-center text-sm text-gray-500 mt-4">
+          Don&apos;t have an account?{" "}
+          <Link href="/signup" className="text-blue-600 hover:underline">
+            Sign up
+          </Link>
+          {" · "}
+          <Link href="/pricing" className="text-blue-600 hover:underline">
+            Pricing
+          </Link>
+        </p>
+        <p className="text-center text-xs text-gray-400 mt-2">
           HIPAA-compliant clinical documentation platform
         </p>
       </div>

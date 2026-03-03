@@ -4,6 +4,9 @@ import { prisma } from "./db";
 import bcrypt from "bcryptjs";
 import { authConfig } from "./auth.config";
 import { appLog, scrubError } from "./logger";
+import { validateAuthRuntimeEnv } from "./auth-env";
+
+validateAuthRuntimeEnv({ trustHostConfigured: true });
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,

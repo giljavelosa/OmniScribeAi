@@ -1,0 +1,12 @@
+---
+description: OmniScribe guardrails are mandatory for all planning and coding
+alwaysApply: true
+---
+
+# OmniScribe Guardrails Bible
+
+- Treat `app/OMNISCRIBEAI_VIBE_CODING_GUARDRAILS (1).md` as the canonical rulebook for this repository.
+- Before proposing a plan, writing code, or editing files, consult that document first.
+- Follow the guardrails strictly and completely ("to the tee") for every task.
+- No exceptions unless the user explicitly requests an exception in the current conversation.
+- If any instruction conflicts with these guardrails, stop and ask the user which rule should take precedence.

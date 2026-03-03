@@ -1,17 +1,27 @@
-import { NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { auditLog } from "@/lib/audit";
 import { appLog, errorCode, scrubError } from "@/lib/logger";
 import { canManageSharing, SHARE_AUDIT_ACTIONS } from "@/lib/visit-access";
+import { getEntitlementSnapshot, enforceFeature } from "@/lib/billing/entitlements";
+import { getRequestIdFromRequest } from "@/lib/request-id";
+import { fail, ok } from "@/lib/api-envelope";
 
 export async function DELETE(
-  _req: Request,
+  _req: NextRequest,
   { params }: { params: Promise<{ id: string; grantId: string }> },
 ) {
+  const requestId = getRequestIdFromRequest(_req);
   const session = await auth();
   if (!session?.user) {
-    return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+    return fail("UNAUTHORIZED", "Unauthorized", requestId, 401);
+  }
+
+  const entitlements = await getEntitlementSnapshot(session.user.id);
+  const featureCheck = enforceFeature(entitlements, "organization_sharing");
+  if (!featureCheck.allowed) {
+    return fail(featureCheck.code, featureCheck.message, requestId, 403);
   }
 
   try {
@@ -22,7 +32,7 @@ export async function DELETE(
     });
 
     if (!visit) {
-      return NextResponse.json({ success: false, error: "Visit not found" }, { status: 404 });
+      return fail("NOT_FOUND", "Visit not found", requestId, 404);
     }
 
     const decision = canManageSharing(
@@ -36,7 +46,7 @@ export async function DELETE(
         resource: `visit:${visit.id}`,
         details: { reason: decision.reason, operation: "revoke_grant" },
       });
-      return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
+      return fail("FORBIDDEN", "Forbidden", requestId, 403);
     }
 
     const grant = await prisma.visitShareGrant.findUnique({
@@ -45,7 +55,7 @@ export async function DELETE(
     });
 
     if (!grant || grant.visitId !== visit.id) {
-      return NextResponse.json({ success: false, error: "Grant not found" }, { status: 404 });
+      return fail("NOT_FOUND", "Grant not found", requestId, 404);
     }
 
     await prisma.visitShareGrant.update({
@@ -60,14 +70,11 @@ export async function DELETE(
       details: { granteeUserId: grant.granteeUserId, grantId: grant.id },
     });
 
-    return NextResponse.json(
-      { success: true },
-      { headers: { "Cache-Control": "no-store" } },
-    );
+    return ok({}, { headers: { "Cache-Control": "no-store" }, status: 200 }, requestId);
   } catch (error) {
     const code = errorCode();
     appLog("error", "VisitShare", "Failed to revoke share grant", { code, error: scrubError(error) });
-    return NextResponse.json({ success: false, error: "Internal server error", code }, { status: 500 });
+    return fail("INTERNAL_ERROR", "Internal server error", requestId, 500);
   }
 }
 

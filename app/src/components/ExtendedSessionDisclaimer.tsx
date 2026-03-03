@@ -18,9 +18,11 @@ export default function ExtendedSessionDisclaimer() {
     try {
       const res = await fetch("/api/auth/acknowledge-disclaimer", { method: "POST" });
       if (res.ok) {
-        await update(); // refresh session token
-        window.location.reload();
+        await update({ extendedSessionAcknowledged: true }); // refresh session token
+        setSubmitting(false);
+        return;
       }
+      setSubmitting(false);
     } catch {
       setSubmitting(false);
     }

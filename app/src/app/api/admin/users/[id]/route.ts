@@ -1,17 +1,20 @@
-import { auth } from "@/lib/auth";
 import { auditLog } from "@/lib/audit";
+import { requireSuperAdminWithMfa } from "@/lib/auth/current-user";
+import { isAuthzError } from "@/lib/auth/errors";
 import { prisma } from "@/lib/db";
 import { NextRequest, NextResponse } from "next/server";
 import { appLog, scrubError } from "@/lib/logger";
+import { fail, ok } from "@/lib/api-envelope";
+import { wrapRoute } from "@/lib/wrap-route";
 
-// PATCH /api/admin/users/:id — update user (admin only)
-export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const session = await auth();
-  if (!session?.user || session.user.role !== "ADMIN") {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
-
+// PATCH /api/admin/users/:id — compatibility endpoint (SUPER_ADMIN + MFA)
+export const PATCH = wrapRoute(async (
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+  requestId: string,
+) => {
   try {
+    const actor = await requireSuperAdminWithMfa();
     const { id } = await params;
     const data = await req.json();
 
@@ -25,16 +28,33 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
     const user = await prisma.user.update({ where: { id }, data: allowed });
 
-    await auditLog({
-      userId: session.user.id,
-      action: "UPDATE_USER",
-      resource: `user:${id}`,
-      details: { fields: Object.keys(allowed) },
-    });
+    try {
+      await auditLog({
+        userId: actor.id,
+        adminId: actor.id,
+        action: "UPDATE_USER",
+        targetType: "User",
+        targetId: id,
+        metadata: { fields: Object.keys(allowed) },
+        resource: `user:${id}`,
+        details: { fields: Object.keys(allowed) },
+        ip: req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? undefined,
+        userAgent: req.headers.get("user-agent") ?? undefined,
+      });
+    } catch (auditError) {
+      appLog("warn", "AdminUserByIdRoute", "Audit logging failed", { error: scrubError(auditError) });
+    }
 
-    return NextResponse.json({ user: { id: user.id, email: user.email, name: user.name, role: user.role, isActive: user.isActive } });
+    return ok(
+      { user: { id: user.id, email: user.email, name: user.name, role: user.role, isActive: user.isActive } },
+      undefined,
+      requestId,
+    );
   } catch (error) {
-    appLog('error', 'PATCH /api/admin/users/:id', scrubError(error));
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    if (isAuthzError(error)) {
+      return fail(error.code, error.message, requestId, error.status);
+    }
+    appLog("error", "AdminUserByIdRoute", "PATCH admin user by id failed", { error: scrubError(error) });
+    return fail("INTERNAL_ERROR", "Internal server error", requestId, 500);
   }
-}
+});

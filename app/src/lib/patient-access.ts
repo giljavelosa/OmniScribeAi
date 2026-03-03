@@ -1,4 +1,5 @@
 import type { Role } from "@prisma/client";
+import { isPrivilegedAdminRole } from "@/lib/auth/role-permissions";
 
 export type PatientActor = {
   id: string;
@@ -18,7 +19,7 @@ export type PatientAccessResult = {
 };
 
 export function canAccessPatient(patient: PatientRecord, actor: PatientActor): PatientAccessResult {
-  if (actor.role === "ADMIN") return { allowed: true, reason: "admin" };
+  if (isPrivilegedAdminRole(actor.role)) return { allowed: true, reason: "admin" };
 
   if (
     patient.organizationId &&

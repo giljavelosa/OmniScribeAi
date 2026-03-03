@@ -5,6 +5,9 @@ import { prisma } from "@/lib/db";
 import { auditLog } from "@/lib/audit";
 import { appLog, errorCode, scrubError } from "@/lib/logger";
 import { canManageSharing, SHARE_AUDIT_ACTIONS } from "@/lib/visit-access";
+import { getEntitlementSnapshot, enforceFeature } from "@/lib/billing/entitlements";
+import { getRequestIdFromRequest } from "@/lib/request-id";
+import { fail, ok } from "@/lib/api-envelope";
 
 const NO_STORE_HEADERS = { "Cache-Control": "no-store" };
 
@@ -52,9 +55,16 @@ function normalizeRequestedGrants(input: unknown): RequestedGrant[] {
 }
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const requestId = getRequestIdFromRequest(_req);
   const session = await auth();
   if (!session?.user) {
-    return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+    return fail("UNAUTHORIZED", "Unauthorized", requestId, 401);
+  }
+
+  const entitlements = await getEntitlementSnapshot(session.user.id);
+  const featureCheck = enforceFeature(entitlements, "organization_sharing");
+  if (!featureCheck.allowed) {
+    return fail(featureCheck.code, featureCheck.message, requestId, 403);
   }
 
   try {
@@ -71,7 +81,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     });
 
     if (!visit) {
-      return NextResponse.json({ success: false, error: "Visit not found" }, { status: 404 });
+      return fail("NOT_FOUND", "Visit not found", requestId, 404);
     }
 
     const decision = canManageSharing(
@@ -85,7 +95,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
         resource: `visit:${visit.id}`,
         details: { reason: decision.reason, operation: "read_share_config" },
       });
-      return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
+      return fail("FORBIDDEN", "Forbidden", requestId, 403);
     }
 
     const orgUsers = visit.organizationId
@@ -96,9 +106,8 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
         })
       : [];
 
-    return NextResponse.json(
+    return ok(
       {
-        success: true,
         sharing: {
           visitId: visit.id,
           visibility: visit.visibility,
@@ -114,7 +123,8 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
           members: orgUsers,
         },
       },
-      { headers: NO_STORE_HEADERS },
+      { headers: NO_STORE_HEADERS, status: 200 },
+      requestId,
     );
   } catch (error) {
     const code = errorCode();
@@ -122,14 +132,21 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
       code,
       error: scrubError(error),
     });
-    return NextResponse.json({ success: false, error: "Internal server error", code }, { status: 500 });
+    return fail("INTERNAL_ERROR", "Internal server error", requestId, 500);
   }
 }
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const requestId = getRequestIdFromRequest(req);
   const session = await auth();
   if (!session?.user) {
-    return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+    return fail("UNAUTHORIZED", "Unauthorized", requestId, 401);
+  }
+
+  const entitlements = await getEntitlementSnapshot(session.user.id);
+  const featureCheck = enforceFeature(entitlements, "organization_sharing");
+  if (!featureCheck.allowed) {
+    return fail(featureCheck.code, featureCheck.message, requestId, 403);
   }
 
   try {
@@ -141,7 +158,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
     const nextVisibility = parseVisibility(body.visibility);
     if (!nextVisibility) {
-      return NextResponse.json({ success: false, error: "Invalid visibility" }, { status: 400 });
+      return fail("VALIDATION_ERROR", "Invalid visibility", requestId, 400);
     }
 
     const requestedGrantSpecs = normalizeRequestedGrants(body.grants);
@@ -152,7 +169,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       include: { shareGrants: true },
     });
     if (!visit) {
-      return NextResponse.json({ success: false, error: "Visit not found" }, { status: 404 });
+      return fail("NOT_FOUND", "Visit not found", requestId, 404);
     }
 
     const decision = canManageSharing(
@@ -166,20 +183,24 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         resource: `visit:${visit.id}`,
         details: { reason: decision.reason, operation: "update_share_config" },
       });
-      return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
+      return fail("FORBIDDEN", "Forbidden", requestId, 403);
     }
 
     if ((nextVisibility === "organization" || nextVisibility === "restricted") && !visit.organizationId) {
-      return NextResponse.json(
-        { success: false, error: "Visit must belong to an organization before sharing" },
-        { status: 400 },
+      return fail(
+        "VALIDATION_ERROR",
+        "Visit must belong to an organization before sharing",
+        requestId,
+        400,
       );
     }
 
     if (nextVisibility === "restricted" && requestedGrantSpecs.length === 0) {
-      return NextResponse.json(
-        { success: false, error: "Restricted visibility requires at least one grantee" },
-        { status: 400 },
+      return fail(
+        "VALIDATION_ERROR",
+        "Restricted visibility requires at least one grantee",
+        requestId,
+        400,
       );
     }
 
@@ -288,9 +309,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       },
     });
 
-    return NextResponse.json(
+    return ok(
       {
-        success: true,
         sharing: {
           visibility: updated?.visibility ?? nextVisibility,
           grants:
@@ -304,7 +324,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
             })) ?? [],
         },
       },
-      { headers: NO_STORE_HEADERS },
+      { headers: NO_STORE_HEADERS, status: 200 },
+      requestId,
     );
   } catch (error) {
     const code = errorCode();
@@ -312,7 +333,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       code,
       error: scrubError(error),
     });
-    return NextResponse.json({ success: false, error: "Internal server error", code }, { status: 500 });
+    return fail("INTERNAL_ERROR", "Internal server error", requestId, 500);
   }
 }
 

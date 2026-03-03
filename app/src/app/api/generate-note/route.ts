@@ -17,6 +17,10 @@ import { createInitialEncounterState, serializeFactsForPrompt, formatTranscriptF
 import { resolveTemplate, effectiveFrameworkId, buildSnapshot, TemplateResolutionError } from "@/lib/template-resolver";
 import { prisma } from "@/lib/db";
 import { canEditVisit } from "@/lib/visit-access";
+import { getEntitlementSnapshot, enforceFeature, enforceQuota } from "@/lib/billing/entitlements";
+import { fail, ok } from "@/lib/api-envelope";
+import { AppError, unauthorized } from "@/lib/errors";
+import { wrapRoute } from "@/lib/wrap-route";
 
 // Validate API key tier on module load
 assertProductionApiKey();
@@ -63,26 +67,36 @@ function enforceAIBudget(userId: string): { ok: true } | { ok: false; error: str
   return { ok: true };
 }
 
-export async function POST(request: NextRequest) {
+export const POST = wrapRoute(async (request: NextRequest, _ctx, requestId) => {
   const session = await auth();
   if (!session?.user) {
-    return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { "content-type": "application/json" } });
+    throw unauthorized();
+  }
+
+  const entitlements = await getEntitlementSnapshot(session.user.id);
+  const featureCheck = enforceFeature(entitlements, "generate_note");
+  if (!featureCheck.allowed) {
+    return fail(featureCheck.code, featureCheck.message, requestId, 403, {
+      headers: { "Cache-Control": "no-store" },
+    });
+  }
+  const quotaCheck = enforceQuota(entitlements, "monthly_notes", 1);
+  if (!quotaCheck.allowed) {
+    return fail(quotaCheck.code, quotaCheck.message, requestId, 429, {
+      headers: { "Cache-Control": "no-store" },
+    });
   }
 
   const idempotencyKey = request.headers.get("x-idempotency-key")?.trim() || null;
   if (idempotencyKey) {
     const gate = beginIdempotentRequest(session.user.id, "generate-note", idempotencyKey);
     if (!gate.allowed && gate.inProgress) {
-      return new Response(
-        JSON.stringify({ success: false, error: "A generation run with this key is already in progress.", code: "IDEMPOTENCY_IN_PROGRESS" }),
-        { status: 409, headers: { "Content-Type": "application/json", "Cache-Control": "no-store" } },
-      );
+      return fail("IDEMPOTENCY_IN_PROGRESS", "A generation run with this key is already in progress.", requestId, 409, {
+        headers: { "Cache-Control": "no-store" },
+      });
     }
     if (!gate.allowed && gate.completedResult) {
-      return new Response(
-        JSON.stringify(gate.completedResult),
-        { status: 200, headers: { "Content-Type": "application/json", "Cache-Control": "no-store" } },
-      );
+      return ok(gate.completedResult, { headers: { "Cache-Control": "no-store" } }, requestId);
     }
   }
 
@@ -110,7 +124,7 @@ export async function POST(request: NextRequest) {
     if (idempotencyKey) {
       completeIdempotentRequest(session.user.id, "generate-note", idempotencyKey, mockResult);
     }
-    return new Response(JSON.stringify(mockResult), { headers: { "Content-Type": "application/json" } });
+    return ok(mockResult, { headers: { "Cache-Control": "no-store" } }, requestId);
   }
 
   // ═══════════════════════════════════════════════════════════════
@@ -140,16 +154,13 @@ export async function POST(request: NextRequest) {
       if (idempotencyKey) {
         failIdempotentRequest(session.user.id, "generate-note", idempotencyKey);
       }
-      return new Response(JSON.stringify({ success: false, error: err.message, code: err.code }), { status: 400, headers: { "Content-Type": "application/json" } });
+      return fail(err.code, err.message, requestId, 400);
     }
     if (idempotencyKey) {
       failIdempotentRequest(session.user.id, "generate-note", idempotencyKey);
     }
     appLog("error", "GenNote", "Template resolution failed", { error: scrubError(err) });
-    return new Response(
-      JSON.stringify({ success: false, error: "Template resolution failed", code: "TEMPLATE_RESOLUTION_FAILED" }),
-      { status: 500, headers: { "Content-Type": "application/json" } },
-    );
+    return fail("TEMPLATE_RESOLUTION_FAILED", "Template resolution failed", requestId, 500);
   }
 
   // Build a framework-compatible object from the resolved template
@@ -174,7 +185,7 @@ export async function POST(request: NextRequest) {
       templateSnapshot,
       frameworkSections: resolved.frameworkSections,
       visitId,
-    }, idempotencyKey);
+    }, idempotencyKey, requestId);
   }
 
   // ═══════════════════════════════════════════════════════════════
@@ -187,7 +198,7 @@ export async function POST(request: NextRequest) {
     if (idempotencyKey) {
       failIdempotentRequest(session.user.id, "generate-note", idempotencyKey);
     }
-    return new Response(JSON.stringify({ success: false, error: "No transcript provided" }), { status: 400, headers: { "Content-Type": "application/json" } });
+    return fail("VALIDATION_ERROR", "No transcript provided", requestId, 400);
   }
 
   appLog('info', 'GenNote', 'Transcript mode — building EncounterState from full transcript', {
@@ -201,18 +212,18 @@ export async function POST(request: NextRequest) {
       templateSnapshot,
       frameworkSections: resolved.frameworkSections,
       visitId,
-    }, idempotencyKey);
+    }, idempotencyKey, requestId);
   } catch (error) {
     if (idempotencyKey) {
       failIdempotentRequest(session.user.id, "generate-note", idempotencyKey);
     }
     appLog("error", "GenNote", "Failed during transcript-mode pre-processing", { error: scrubError(error) });
-    return new Response(
-      JSON.stringify({ success: false, error: "Note generation failed before pipeline start", code: "PREPIPELINE_ERROR" }),
-      { status: 500, headers: { "Content-Type": "application/json" } },
-    );
+    if (error instanceof AppError) {
+      return fail(error.code, error.message, requestId, error.status);
+    }
+    return fail("PREPIPELINE_ERROR", "Note generation failed before pipeline start", requestId, 500);
   }
-}
+});
 
 // ═══════════════════════════════════════════════════════════════
 // BUILD ENCOUNTERSTATE FROM FULL TRANSCRIPT (1 LLM call)
@@ -284,22 +295,11 @@ Return null and "not_documented" for anything not explicitly stated.`;
   recordAITokenUsage(userId, result.usage.input_tokens + result.usage.output_tokens);
 
   if (result.truncated) {
-    appLog('warn', 'GenNote', 'Transcript extraction LLM output truncated — EncounterState will be sparse', {
+    appLog('error', 'GenNote', 'Transcript extraction LLM output truncated', {
       outputTokens: result.usage.output_tokens,
       maxTokens: 4000,
     });
-    // Don't attempt to parse truncated JSON — return sparse state with transcript fallback
-    state.chunk_count = 1;
-    state.last_updated = Date.now();
-    if (transcript.trim().length > 0) {
-      state.diarized_transcript = [{
-        speaker: 'UNKNOWN' as const,
-        text: transcript.trim(),
-        t0: 0,
-        t1: 0,
-      }];
-    }
-    return state;
+    throw new AppError("LLM_OUTPUT_TRUNCATED", "Transcript extraction was truncated", 502);
   }
 
   const raw = stripFences(result.content);
@@ -349,10 +349,11 @@ Return null and "not_documented" for anything not explicitly stated.`;
       ),
     });
   } catch (parseErr) {
-    appLog('warn', 'GenNote', 'Transcript fact extraction parse failed — EncounterState will be sparse', {
+    appLog('error', 'GenNote', 'Transcript fact extraction parse failed', {
       error: scrubError(parseErr),
       rawLength: raw.length,
     });
+    throw new AppError("LLM_JSON_INVALID", "Transcript extraction returned invalid JSON", 502);
   }
 
   state.chunk_count = 1;
@@ -389,6 +390,7 @@ async function handleEncounterStateMode(
     visitId?: string;
   },
   idempotencyKey?: string | null,
+  requestId?: string,
 ) {
   const encoder = new TextEncoder();
   const stream = new ReadableStream({
@@ -425,8 +427,11 @@ async function handleEncounterStateMode(
           }
           send("error", {
             success: false,
-            error: validation.errors.join('; '),
-            validation,
+            error: {
+              code: "VALIDATION_ERROR",
+              message: validation.errors.join("; "),
+              requestId: requestId ?? "unknown",
+            },
           });
           controller.close();
           return;
@@ -533,7 +538,14 @@ Write the clinical note using the structured facts. Omit sections with no docume
           if (idempotencyKey) {
             failIdempotentRequest(session.user.id, "generate-note", idempotencyKey);
           }
-          send("error", { success: false, error: noteBudget.error, code: noteBudget.code });
+          send("error", {
+            success: false,
+            error: {
+              code: noteBudget.code,
+              message: noteBudget.error,
+              requestId: requestId ?? "unknown",
+            },
+          });
           controller.close();
           return;
         }
@@ -548,8 +560,11 @@ Write the clinical note using the structured facts. Omit sections with no docume
           });
           send("error", {
             success: false,
-            error: "Note generation was truncated (output too long). Please try again — if this persists, use a simpler framework.",
-            code: "LLM_OUTPUT_TRUNCATED",
+            error: {
+              code: "LLM_OUTPUT_TRUNCATED",
+              message: "Note generation was truncated (output too long). Please try again — if this persists, use a simpler framework.",
+              requestId: requestId ?? "unknown",
+            },
           });
           if (idempotencyKey) {
             failIdempotentRequest(session.user.id, "generate-note", idempotencyKey);
@@ -667,6 +682,22 @@ Return ONLY valid JSON:
           issueCount: auditIssues.length,
         });
 
+        if (auditFailed) {
+          if (idempotencyKey) {
+            failIdempotentRequest(session.user.id, "generate-note", idempotencyKey);
+          }
+          send("error", {
+            success: false,
+            error: {
+              code: "NOTE_AUDIT_STAGE_FAILED",
+              message: auditIssues[0] ?? "Hallucination audit failed to run",
+              requestId: requestId ?? "unknown",
+            },
+          });
+          controller.close();
+          return;
+        }
+
         const generationTime = (Date.now() - startTime) / 1000;
         appLog('info', 'GenNote', '2-pass pipeline complete', {
           generationTime,
@@ -771,7 +802,14 @@ Return ONLY valid JSON:
         if (idempotencyKey) {
           failIdempotentRequest(session.user.id, "generate-note", idempotencyKey);
         }
-        send("error", { success: false, error: "Note generation failed", code });
+        send("error", {
+          success: false,
+          error: {
+            code,
+            message: "Note generation failed",
+            requestId: requestId ?? "unknown",
+          },
+        });
       } finally {
         controller.close();
       }

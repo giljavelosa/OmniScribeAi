@@ -11,10 +11,20 @@ import {
   type Discipline,
 } from "@/lib/template-schema";
 import { NextRequest, NextResponse } from "next/server";
+import { getEntitlementSnapshot, enforceFeature } from "@/lib/billing/entitlements";
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const entitlements = await getEntitlementSnapshot(session.user.id);
+  const featureCheck = enforceFeature(entitlements, "custom_templates");
+  if (!featureCheck.allowed) {
+    return NextResponse.json(
+      { success: false, error: featureCheck.message, code: featureCheck.code, requiredPlan: featureCheck.requiredPlan },
+      { status: 403 },
+    );
+  }
 
   try {
     const { id } = await params;

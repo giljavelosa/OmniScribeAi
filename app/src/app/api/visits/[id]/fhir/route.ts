@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { auditLog } from "@/lib/audit";
 import { appLog, errorCode, scrubError } from "@/lib/logger";
 import { canViewVisit, SHARE_AUDIT_ACTIONS } from "@/lib/visit-access";
+import { getEntitlementSnapshot, enforceFeature } from "@/lib/billing/entitlements";
 
 const NO_STORE_HEADERS = {
   "Cache-Control": "no-store",
@@ -30,6 +31,15 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   const session = await auth();
   if (!session?.user) {
     return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+  }
+
+  const entitlements = await getEntitlementSnapshot(session.user.id);
+  const featureCheck = enforceFeature(entitlements, "fhir_export");
+  if (!featureCheck.allowed) {
+    return NextResponse.json(
+      { success: false, error: featureCheck.message, code: featureCheck.code, requiredPlan: featureCheck.requiredPlan },
+      { status: 403 },
+    );
   }
 
   try {
