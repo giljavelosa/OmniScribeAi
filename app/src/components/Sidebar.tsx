@@ -86,8 +86,10 @@ export default function Sidebar() {
 
   // Close when route changes
   useEffect(() => {
-    closeMobile();
-  }, [pathname, closeMobile]);
+    if (!mobileOpen) return;
+    const timer = window.setTimeout(() => closeMobile(), 0);
+    return () => window.clearTimeout(timer);
+  }, [pathname, mobileOpen, closeMobile]);
 
   return (
     <>

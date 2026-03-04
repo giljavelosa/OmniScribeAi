@@ -1,0 +1,6 @@
+
+> app@0.1.0 server:test:start
+> bash scripts/start-test-server.sh
+
+Starting test server on http://127.0.0.1:3301
+Test server ready at http://127.0.0.1:3301 (pid=99122)

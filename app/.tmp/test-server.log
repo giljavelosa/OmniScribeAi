@@ -1,0 +1,92 @@
+
+> app@0.1.0 dev:local
+> NODE_OPTIONS=--max-old-space-size=6144 next dev
+
+▲ Next.js 16.1.6 (Turbopack)
+- Local:         http://localhost:3301
+- Network:       http://192.168.1.233:3301
+- Environments: .env.test, .env
+- Experiments (use with caution):
+  · proxyClientMaxBodySize: "200mb"
+
+✓ Starting...
+⨯ Unable to acquire lock at /Users/giljrjavelosa/omniscribeai_3/app/.next/dev/lock, is another instance of next dev running?
+  Suggestion: If you intended to restart next dev, terminate the other process, and then try again.
+[?25h
+
+> app@0.1.0 start
+> next start
+
+▲ Next.js 16.1.6
+- Local:         http://localhost:3301
+- Network:       http://192.168.1.233:3301
+
+✓ Starting...
+✓ Ready in 3.2s
+{"ts":"2026-03-02T23:59:25.314Z","level":"warn","component":"PHI","message":"ANTHROPIC_API_KEY is not set"}
+
+> app@0.1.0 start
+> next start
+
+▲ Next.js 16.1.6
+- Local:         http://localhost:3301
+- Network:       http://192.168.1.233:3301
+
+✓ Starting...
+✓ Ready in 1155ms
+{"ts":"2026-03-03T00:01:05.993Z","level":"warn","component":"PHI","message":"ANTHROPIC_API_KEY is not set"}
+
+> app@0.1.0 start
+> next start
+
+▲ Next.js 16.1.6
+- Local:         http://localhost:3301
+- Network:       http://192.168.0.210:3301
+
+✓ Starting...
+✓ Ready in 1024ms
+{"ts":"2026-03-03T05:24:14.040Z","level":"warn","component":"PHI","message":"ANTHROPIC_API_KEY is not set"}
+
+> app@0.1.0 start
+> next start
+
+▲ Next.js 16.1.6
+- Local:         http://localhost:3301
+- Network:       http://192.168.0.210:3301
+
+✓ Starting...
+✓ Ready in 738ms
+{"ts":"2026-03-03T05:27:38.194Z","level":"warn","component":"PHI","message":"ANTHROPIC_API_KEY is not set"}
+
+> app@0.1.0 start
+> next start
+
+▲ Next.js 16.1.6
+- Local:         http://localhost:3301
+- Network:       http://192.168.0.210:3301
+
+✓ Starting...
+✓ Ready in 402ms
+{"ts":"2026-03-03T05:43:44.480Z","level":"warn","component":"PHI","message":"ANTHROPIC_API_KEY is not set"}
+
+> app@0.1.0 start
+> next start
+
+▲ Next.js 16.1.6
+- Local:         http://localhost:3301
+- Network:       http://192.168.0.210:3301
+
+✓ Starting...
+✓ Ready in 605ms
+{"ts":"2026-03-03T06:25:28.419Z","level":"warn","component":"PHI","message":"ANTHROPIC_API_KEY is not set"}
+
+> app@0.1.0 start
+> next start
+
+▲ Next.js 16.1.6
+- Local:         http://localhost:3301
+- Network:       http://192.168.0.210:3301
+
+✓ Starting...
+✓ Ready in 488ms
+{"ts":"2026-03-03T06:47:52.228Z","level":"warn","component":"PHI","message":"ANTHROPIC_API_KEY is not set"}

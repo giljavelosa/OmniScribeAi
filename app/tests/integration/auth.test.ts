@@ -2,12 +2,23 @@ import { describe, it, expect, afterEach } from 'vitest';
 import { prisma } from '../../src/lib/db';
 import bcrypt from 'bcryptjs';
 import { createTestUser, cleanupTestUsers } from '../helpers/auth';
+import { authenticateCredentials } from '../../src/lib/credentials-auth';
 
 describe('Auth Integration Tests', () => {
   const testEmail = 'test-auth@omniscribe.test';
+  const mixedCaseEmail = 'Case.User@omniscribe.test';
+  const mixedCaseEmailLower = 'case.user@omniscribe.test';
+  const collisionEmailA = 'Collision.User@omniscribe.test';
+  const collisionEmailB = 'collision.user@omniscribe.test';
 
   afterEach(async () => {
-    await cleanupTestUsers([testEmail]);
+    await cleanupTestUsers([
+      testEmail,
+      mixedCaseEmail,
+      mixedCaseEmailLower,
+      collisionEmailA,
+      collisionEmailB,
+    ]);
   });
 
   it('should verify correct password with bcrypt', async () => {
@@ -28,14 +39,44 @@ describe('Auth Integration Tests', () => {
     expect(valid).toBe(false);
   });
 
-  it('should enforce mustChangePassword flag on seeded users', async () => {
+  it('should authenticate with case-insensitive trimmed email', async () => {
+    const { user } = await createTestUser({
+      email: mixedCaseEmail,
+      password: 'CorrectPassword123!',
+    });
+
+    const authenticated = await authenticateCredentials({
+      email: `  ${mixedCaseEmailLower}  `,
+      password: 'CorrectPassword123!',
+    });
+
+    expect(authenticated).toBeTruthy();
+    expect(authenticated!.id).toBe(user.id);
+
+    const updated = await prisma.user.findUnique({ where: { id: user.id } });
+    expect(updated!.lastLoginAt).toBeTruthy();
+  });
+
+  it('should reject credentials when multiple accounts match email ignoring case', async () => {
+    await createTestUser({ email: collisionEmailA, password: 'CollisionPass123!' });
+    await createTestUser({ email: collisionEmailB, password: 'CollisionPass123!' });
+
+    const authenticated = await authenticateCredentials({
+      email: 'COLLISION.USER@omniscribe.test',
+      password: 'CollisionPass123!',
+    });
+
+    expect(authenticated).toBeNull();
+  });
+
+  it('should enforce mustChangePassword for seeded privileged users only', async () => {
     const admin = await prisma.user.findUnique({ where: { email: 'admin@omniscribe.ai' } });
     expect(admin).toBeTruthy();
     expect(admin!.mustChangePassword).toBe(true);
 
     const demo = await prisma.user.findUnique({ where: { email: 'demo@omniscribe.ai' } });
     expect(demo).toBeTruthy();
-    expect(demo!.mustChangePassword).toBe(true);
+    expect(demo!.mustChangePassword).toBe(false);
   });
 
   it('should change password and clear mustChangePassword flag', async () => {

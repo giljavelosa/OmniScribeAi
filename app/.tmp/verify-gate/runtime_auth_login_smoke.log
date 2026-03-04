@@ -1,0 +1,7 @@
+
+> app@0.1.0 smoke:auth
+> bash scripts/smoke-auth.sh
+
+Smoke: http://127.0.0.1:3301/login
+Smoke: http://127.0.0.1:3301/api/auth/session
+Smoke checks passed.

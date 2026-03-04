@@ -1,0 +1,10 @@
+
+ RUN  v4.0.18 /Users/giljrjavelosa/omniscribeai_3/app
+
+ ✓ tests/unit/visit-finalization-guards.test.ts (3 tests) 10ms
+
+ Test Files  1 passed (1)
+      Tests  3 passed (3)
+   Start at  22:47:49
+   Duration  786ms (transform 220ms, setup 0ms, import 402ms, tests 10ms, environment 0ms)
+

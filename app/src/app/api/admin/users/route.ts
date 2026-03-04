@@ -5,7 +5,7 @@ import {
 } from "@/lib/auth/current-user";
 import { isAuthzError } from "@/lib/auth/errors";
 import { prisma } from "@/lib/db";
-import { NextRequest, NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
 import { appLog, scrubError } from "@/lib/logger";
 import bcrypt from "bcryptjs";
 import { fail, ok } from "@/lib/api-envelope";
@@ -181,19 +181,29 @@ export const POST = wrapRoute(async (req: NextRequest, _ctx, requestId) => {
   try {
     const actor = await requireSuperAdminWithMfa();
     const data = await req.json();
-    if (!data.email || !data.password) {
+    const email = typeof data.email === "string" ? data.email.trim().toLowerCase() : "";
+    const password = typeof data.password === "string" ? data.password : "";
+    if (!email || !password) {
       throw validationError("Email and password required");
     }
 
-    const existing = await prisma.user.findUnique({ where: { email: data.email } });
+    const existing = await prisma.user.findFirst({
+      where: {
+        email: {
+          equals: email,
+          mode: "insensitive",
+        },
+      },
+      select: { id: true },
+    });
     if (existing) {
       throw new AppError("CONFLICT", "Email already in use", 409);
     }
 
-    const hash = await bcrypt.hash(data.password, 12);
+    const hash = await bcrypt.hash(password, 12);
     const user = await prisma.user.create({
       data: {
-        email: data.email,
+        email,
         passwordHash: hash,
         name: data.name || null,
         role: (data.role && ALLOWED_PATCH_ROLES.has(data.role) ? data.role : Role.CLINICIAN),

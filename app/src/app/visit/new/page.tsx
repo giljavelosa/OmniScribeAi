@@ -486,21 +486,44 @@ function NewVisitContent() {
     try {
       // Step 1: Transcribe
       setProgress(10);
-      const formData = new FormData();
-      formData.append('audio', audioBlob);
-      formData.append('frameworkId', frameworkId);
-
       const controller = new AbortController();
       abortRef.current = controller;
       const transcribeTimeout = setTimeout(() => controller.abort(), 600000); // 10 min (allows for large file upload + Deepgram processing)
-      const transcribeRes = await fetch('/api/transcribe', {
-        method: 'POST',
-        body: formData,
-        signal: controller.signal,
-      });
+      const requestTranscription = async (useMock: boolean) => {
+        const formData = new FormData();
+        formData.append('audio', audioBlob);
+        formData.append('frameworkId', frameworkId);
+        if (useMock) {
+          formData.append('useMock', 'true');
+        }
+        const response = await fetch('/api/transcribe', {
+          method: 'POST',
+          body: formData,
+          signal: controller.signal,
+        });
+        const data = await response.json();
+        return { response, data };
+      };
+
+      let transcribeResult = await requestTranscription(false);
+      const canUseMockFallback =
+        process.env.NODE_ENV !== 'production' &&
+        (
+          transcribeResult.data?.code === 'TRANSCRIBE_PROVIDER_UNCONFIGURED' ||
+          transcribeResult.data?.code === 'TRANSCRIBE_PROVIDER_AUTH_FAILED'
+        );
+
+      if (!transcribeResult.data?.success && canUseMockFallback) {
+        appLog('warn', 'NewVisit', 'Falling back to mock transcription in non-production', {
+          code: transcribeResult.data?.code,
+        });
+        setExtractionWarning('Using local mock transcription fallback because the transcription provider is unavailable.');
+        setProgressText('Transcription provider unavailable locally — using mock transcript fallback...');
+        transcribeResult = await requestTranscription(true);
+      }
       clearTimeout(transcribeTimeout);
 
-      const transcribeData = await transcribeRes.json();
+      const transcribeData = transcribeResult.data;
       if (!transcribeData.success) {
         throw new Error(transcribeData.error || 'Transcription failed');
       }
@@ -650,12 +673,21 @@ function NewVisitContent() {
     // FIX-42: Block if too many extraction failures
     if (encounterState?.failedExtractions && encounterState?.totalExtractions) {
       const total = encounterState.totalExtractions;
+      const successful = encounterState.chunk_count || 0;
       if (encounterState.failedExtractions > total * 0.5) {
-        setErrorMsg(`Too many chunks failed (${encounterState.failedExtractions}/${total}). Please re-record or upload the audio file.`);
-        setStep('error');
-        return;
+        // If real-time extraction never produced any chunk, fall back to full-file transcription.
+        if (successful > 0) {
+          setErrorMsg(`Too many chunks failed (${encounterState.failedExtractions}/${total}). Please re-record or upload the audio file.`);
+          setStep('error');
+          return;
+        }
+        setExtractionWarning('Real-time extraction failed for this recording. Falling back to full-audio transcription.');
+        appLog('warn', 'NewVisit', 'Realtime extraction failed, falling back to legacy transcription', {
+          failed: encounterState.failedExtractions,
+          total,
+        });
       }
-      if (encounterState.failedExtractions > 0) {
+      if (encounterState.failedExtractions > 0 && successful > 0) {
         setExtractionWarning(`${encounterState.failedExtractions} of ${total} chunks had extraction errors — some clinical data may be missing.`);
       }
     }

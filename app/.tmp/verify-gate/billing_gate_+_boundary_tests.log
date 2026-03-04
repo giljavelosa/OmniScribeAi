@@ -1,0 +1,11 @@
+
+ RUN  v4.0.18 /Users/giljrjavelosa/omniscribeai_3/app
+
+ ✓ tests/unit/billing-route-enforcement.test.ts (2 tests) 12ms
+ ✓ tests/unit/billing-entitlements.test.ts (8 tests) 7ms
+
+ Test Files  2 passed (2)
+      Tests  10 passed (10)
+   Start at  22:47:47
+   Duration  1.29s (transform 439ms, setup 0ms, import 708ms, tests 20ms, environment 0ms)
+

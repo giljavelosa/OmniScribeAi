@@ -1,0 +1,17 @@
+
+> app@0.1.0 test:e2e
+> playwright test --grep @gate
+
+
+Running 3 tests using 1 worker
+
+(node:99237) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:99237) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  -  1 [firefox] › tests/e2e/gate-critical-flows.spec.ts:14:7 › @gate critical runtime journeys › login + password change @gate
+  -  2 [firefox] › tests/e2e/gate-critical-flows.spec.ts:35:7 › @gate critical runtime journeys › patient create -> visit route -> note controls visible @gate
+  ✓  3 [firefox] › tests/e2e/gate-critical-flows.spec.ts:57:7 › @gate critical runtime journeys › admin route access enforces MFA gate behavior @gate (903ms)
+
+  2 skipped
+  1 passed (10.3s)

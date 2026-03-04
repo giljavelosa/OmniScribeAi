@@ -19,6 +19,9 @@ const MEDICAL_PROMPT =
   "SSRI, benzodiazepine, psychosis, suicidal ideation, DSM-5.";
 
 const GROQ_URL = 'https://api.groq.com/openai/v1/audio/transcriptions';
+const ERR_PROVIDER_UNCONFIGURED = 'TRANSCRIBE_PROVIDER_UNCONFIGURED';
+const ERR_PROVIDER_AUTH = 'TRANSCRIBE_PROVIDER_AUTH_FAILED';
+const ERR_PROVIDER_FAILURE = 'TRANSCRIBE_PROVIDER_FAILED';
 
 export async function POST(request: NextRequest) {
   const session = await auth();
@@ -71,8 +74,12 @@ export async function POST(request: NextRequest) {
     const apiKey = process.env.GROQ_API_KEY;
     if (!apiKey) {
       return NextResponse.json(
-        { success: false, error: 'Groq API key not configured' },
-        { status: 500 }
+        {
+          success: false,
+          error: 'Transcription provider is not configured. Set GROQ_API_KEY or switch to mock mode.',
+          code: ERR_PROVIDER_UNCONFIGURED,
+        },
+        { status: 503, headers: { 'Cache-Control': 'no-store' } }
       );
     }
 
@@ -134,6 +141,7 @@ async function transcribeSingle(
   assertPhiApprovedEndpoint(GROQ_URL);
 
   let lastStatus = 0;
+  let lastProviderError = '';
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
     const groqFormData = new FormData();
     groqFormData.append('file', new Blob([audioBuffer], { type: mimeType }), fileName);
@@ -184,6 +192,27 @@ async function transcribeSingle(
         }, { headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate', 'Pragma': 'no-cache' } });
       }
 
+      const providerErrorText = await groqResponse.text();
+      lastProviderError = providerErrorText.slice(0, 200);
+
+      // Auth/config issue should fail fast with actionable detail.
+      if (groqResponse.status === 401 || groqResponse.status === 403) {
+        const code = errorCode();
+        appLog('error', 'Transcribe', 'Groq authentication failed', {
+          status: groqResponse.status,
+          code,
+        });
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'Transcription provider authentication failed. Verify GROQ_API_KEY.',
+            code: ERR_PROVIDER_AUTH,
+            requestCode: code,
+          },
+          { status: 502, headers: { 'Cache-Control': 'no-store' } },
+        );
+      }
+
       // Retry on 429 (rate limit) or 5xx (server error)
       if ((groqResponse.status === 429 || groqResponse.status >= 500) && attempt < MAX_RETRIES) {
         appLog('warn', 'Transcribe', 'Retrying Groq request', { status: groqResponse.status, attempt });
@@ -206,10 +235,19 @@ async function transcribeSingle(
   }
 
   const code = errorCode();
-  appLog('error', 'Transcribe', 'Groq Whisper request failed after retries', { status: lastStatus, code });
+  appLog('error', 'Transcribe', 'Groq Whisper request failed after retries', {
+    status: lastStatus,
+    code,
+    providerError: lastProviderError || undefined,
+  });
   return NextResponse.json(
-    { success: false, error: 'Transcription failed', code },
-    { status: 500, headers: { 'Cache-Control': 'no-store' } }
+    {
+      success: false,
+      error: 'Transcription provider failed. Please retry shortly.',
+      code: ERR_PROVIDER_FAILURE,
+      requestCode: code,
+    },
+    { status: 502, headers: { 'Cache-Control': 'no-store' } }
   );
 }
 

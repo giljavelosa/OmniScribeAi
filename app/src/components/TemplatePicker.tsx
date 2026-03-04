@@ -153,22 +153,23 @@ export default function TemplatePicker({ onSelect, selectedFrameworkId, selected
 
   // User templates state
   const [userTemplates, setUserTemplates] = useState<NoteTemplateSummary[]>([]);
-  const [loadingTemplates, setLoadingTemplates] = useState(false);
+  const [loadingTemplates, setLoadingTemplates] = useState(true);
   const [templateError, setTemplateError] = useState('');
 
   // Auto-select domain when provider type changes (suggestion, not restriction)
   useEffect(() => {
     if (suggestedDomain && !selectedFrameworkId && !selectedTemplateId && appliedSuggestionRef.current !== suggestedDomain) {
-      setSelectedDomain(suggestedDomain as Domain);
-      appliedSuggestionRef.current = suggestedDomain;
+      const timer = window.setTimeout(() => {
+        setSelectedDomain(suggestedDomain as Domain);
+        appliedSuggestionRef.current = suggestedDomain;
+      }, 0);
+      return () => window.clearTimeout(timer);
     }
   }, [suggestedDomain, selectedFrameworkId, selectedTemplateId]);
 
   // Fetch user templates (needed for My Templates tab, selected template display, and combined search)
   useEffect(() => {
     let cancelled = false;
-    setLoadingTemplates(true);
-    setTemplateError('');
 
     fetchUserTemplates()
       .then((data) => {

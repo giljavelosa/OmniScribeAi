@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db";
 import { appLog, scrubError } from "@/lib/logger";
-import { NextRequest, NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { createTrialSubscription } from "@/lib/billing/trial";
@@ -52,7 +53,15 @@ export async function POST(req: NextRequest) {
   const { email, password, name } = parsed.data;
 
   try {
-    const existing = await prisma.user.findUnique({ where: { email } });
+    const existing = await prisma.user.findFirst({
+      where: {
+        email: {
+          equals: email,
+          mode: "insensitive",
+        },
+      },
+      select: { id: true },
+    });
     if (existing) {
       return NextResponse.json(
         { success: false, error: "Email already in use", code: "EMAIL_IN_USE" },

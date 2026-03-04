@@ -1,0 +1,5 @@
+
+> app@0.1.0 server:test:stop
+> bash scripts/stop-test-server.sh
+
+Stopped test server pid=99122

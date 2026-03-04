@@ -41,37 +41,41 @@ interface ApiVisit {
 }
 
 export default function DashboardPage() {
-  const [recentFrameworks, setRecentFrameworks] = useState<RecentFramework[]>([]);
-  const [draft, setDraft] = useState<VisitDraft | null>(null);
+  const [recentFrameworks] = useState<RecentFramework[]>(() => {
+    if (typeof window === 'undefined') return [];
+    try {
+      const raw = localStorage.getItem('omniscribe-recent-frameworks');
+      if (!raw) return [];
+      const parsed = JSON.parse(raw) as RecentFramework[];
+      return parsed
+        .filter((r) => frameworks.some((f) => f.id === r.frameworkId))
+        .slice(0, 5);
+    } catch {
+      return [];
+    }
+  });
+  const [draft, setDraft] = useState<VisitDraft | null>(() => {
+    if (typeof window === 'undefined') return null;
+    try {
+      const draftRaw = localStorage.getItem('omniscribe-visit-draft');
+      if (!draftRaw) return null;
+      const parsed = JSON.parse(draftRaw) as VisitDraft;
+      const ageMs = Date.now() - (parsed.savedAt || 0);
+      if (ageMs < 24 * 60 * 60 * 1000 && (parsed.patientName || parsed.frameworkId)) {
+        return parsed;
+      }
+      localStorage.removeItem('omniscribe-visit-draft');
+    } catch {
+      // Ignore parse errors and fall back to empty draft state.
+    }
+    return null;
+  });
   const [visits, setVisits] = useState<ApiVisit[]>([]);
   const [visitsLoading, setVisitsLoading] = useState(true);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const { snapshot: billingSnapshot } = useBillingEntitlements();
 
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem('omniscribe-recent-frameworks');
-      if (raw) {
-        const parsed = JSON.parse(raw) as RecentFramework[];
-        const valid = parsed.filter(r => frameworks.some(f => f.id === r.frameworkId));
-        setRecentFrameworks(valid.slice(0, 5));
-      }
-    } catch { /* ignore parse errors */ }
-
-    // Check for saved draft (expire after 24h)
-    try {
-      const draftRaw = localStorage.getItem('omniscribe-visit-draft');
-      if (draftRaw) {
-        const parsed = JSON.parse(draftRaw) as VisitDraft;
-        const ageMs = Date.now() - (parsed.savedAt || 0);
-        if (ageMs < 24 * 60 * 60 * 1000 && (parsed.patientName || parsed.frameworkId)) {
-          setDraft(parsed);
-        } else {
-          localStorage.removeItem('omniscribe-visit-draft');
-        }
-      }
-    } catch { /* ignore parse errors */ }
-
     // Fetch real visits from API
     fetch('/api/visits?limit=20')
       .then(res => res.ok ? res.json() : Promise.reject(res.status))

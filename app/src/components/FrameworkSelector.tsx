@@ -86,8 +86,11 @@ export default function FrameworkSelector({ onSelect, selectedId, suggestedDomai
   // Auto-select domain when provider type changes (suggestion, not restriction)
   useEffect(() => {
     if (suggestedDomain && !selectedId && appliedSuggestionRef.current !== suggestedDomain) {
-      setSelectedDomain(suggestedDomain);
-      appliedSuggestionRef.current = suggestedDomain;
+      const timer = window.setTimeout(() => {
+        setSelectedDomain(suggestedDomain);
+        appliedSuggestionRef.current = suggestedDomain;
+      }, 0);
+      return () => window.clearTimeout(timer);
     }
   }, [suggestedDomain, selectedId]);
 

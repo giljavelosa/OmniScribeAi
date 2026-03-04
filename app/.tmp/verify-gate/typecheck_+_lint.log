@@ -1,0 +1,45 @@
+
+> app@0.1.0 typecheck
+> tsc --noEmit
+
+
+/Users/giljrjavelosa/omniscribeai_3/app/scripts/deploy-staging-preflight.sh
+  0:0  warning  File ignored because no matching configuration was supplied
+
+/Users/giljrjavelosa/omniscribeai_3/app/scripts/ensure-local-dev.sh
+  0:0  warning  File ignored because no matching configuration was supplied
+
+/Users/giljrjavelosa/omniscribeai_3/app/scripts/install-git-hooks.sh
+  0:0  warning  File ignored because no matching configuration was supplied
+
+/Users/giljrjavelosa/omniscribeai_3/app/scripts/smoke-auth.sh
+  0:0  warning  File ignored because no matching configuration was supplied
+
+/Users/giljrjavelosa/omniscribeai_3/app/scripts/start-test-server.sh
+  0:0  warning  File ignored because no matching configuration was supplied
+
+/Users/giljrjavelosa/omniscribeai_3/app/scripts/stop-test-server.sh
+  0:0  warning  File ignored because no matching configuration was supplied
+
+/Users/giljrjavelosa/omniscribeai_3/app/scripts/verify-fast.sh
+  0:0  warning  File ignored because no matching configuration was supplied
+
+/Users/giljrjavelosa/omniscribeai_3/app/scripts/verify-gate.sh
+  0:0  warning  File ignored because no matching configuration was supplied
+
+/Users/giljrjavelosa/omniscribeai_3/app/src/app/api/visits/[id]/share/[grantId]/route.ts
+  1:1  warning  All imports in the declaration are only used as types. Use `import type`  @typescript-eslint/consistent-type-imports
+
+/Users/giljrjavelosa/omniscribeai_3/app/src/app/api/visits/[id]/share/route.ts
+    1:1   warning  Imports "NextRequest" are only used as type                               @typescript-eslint/consistent-type-imports
+    1:23  warning  'NextResponse' is defined but never used                                  @typescript-eslint/no-unused-vars
+    2:1   warning  All imports in the declaration are only used as types. Use `import type`  @typescript-eslint/consistent-type-imports
+  336:1   warning  File has too many lines (303). Maximum allowed is 300                     max-lines
+
+/Users/giljrjavelosa/omniscribeai_3/app/src/app/visit/[id]/page.tsx
+   12:1  warning  All imports in the declaration are only used as types. Use `import type`  @typescript-eslint/consistent-type-imports
+  338:1  warning  File has too many lines (1427). Maximum allowed is 300                    max-lines
+
+✖ 15 problems (0 errors, 15 warnings)
+  0 errors and 4 warnings potentially fixable with the `--fix` option.
+

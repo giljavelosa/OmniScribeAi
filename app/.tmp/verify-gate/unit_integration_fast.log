@@ -1,0 +1,43 @@
+
+> app@0.1.0 test:critical
+> vitest run -c vitest.critical.config.ts
+
+
+ RUN  v4.0.18 /Users/giljrjavelosa/omniscribeai_3/app
+
+stderr | tests/integration/api-error-envelope.test.ts > API error envelope integration > templates GET unauthorized returns AUTH_UNAUTHORIZED envelope
+{"ts":"2026-03-03T06:47:34.599Z","level":"error","message":"Route failure","meta":{"requestId":"8c03a69e-ac57-4761-a0fe-47a634b29192","code":"UNAUTHORIZED","status":401}}
+
+stderr | tests/integration/api-error-envelope.test.ts > API error envelope integration > billing entitlements GET unauthorized returns envelope
+{"ts":"2026-03-03T06:47:34.606Z","level":"error","message":"Route failure","meta":{"requestId":"0fe05c6f-9566-4e91-a6bf-3b49ed7e6615","code":"UNAUTHORIZED","status":401}}
+
+ ✓ tests/integration/api-error-envelope.test.ts (5 tests) 21ms
+ ✓ tests/unit/style-learning-routes.test.ts (4 tests) 13ms
+stderr | tests/contracts/api-contract.test.ts > API contract envelope > unauthorized returns success:false with code and requestId
+{"ts":"2026-03-03T06:47:35.466Z","level":"error","message":"Route failure","meta":{"requestId":"43cfe262-da63-487e-8de7-5e99c0657a9e","code":"UNAUTHORIZED","status":401}}
+
+stderr | tests/contracts/api-contract.test.ts > API contract envelope > forced parse error never returns success:true
+{"ts":"2026-03-03T06:47:35.475Z","level":"error","component":"RegenNote","message":"Failed to parse/validate regenerated note","error":"Expected property name or '}' in JSON at position 1 (line 1 column 2)","rawLength":9}
+
+stderr | tests/contracts/api-contract.test.ts > API contract envelope > no-swallow: thrown stage returns success:false
+{"ts":"2026-03-03T06:47:35.477Z","level":"error","component":"BillingEntitlementsRoute","message":"Failed to fetch entitlements snapshot","error":"db down"}
+
+ ✓ tests/contracts/api-contract.test.ts (4 tests) 17ms
+ ✓ tests/unit/billing-route-enforcement.test.ts (2 tests) 8ms
+stderr | tests/contracts/core-route-contracts.test.ts > core route contracts > templates unauthorized uses strict error envelope
+{"ts":"2026-03-03T06:47:36.315Z","level":"error","message":"Route failure","meta":{"requestId":"02aed20e-2faa-4a36-b269-91e1e14a561b","code":"UNAUTHORIZED","status":401}}
+
+ ✓ tests/contracts/core-route-contracts.test.ts (4 tests) 15ms
+ ✓ tests/unit/visit-finalization-guards.test.ts (3 tests) 8ms
+ ✓ tests/unit/middleware-security.test.ts (9 tests) 10ms
+ ✓ tests/unit/billing-entitlements.test.ts (8 tests) 4ms
+ ✓ tests/unit/billing-pricing.test.ts (11 tests) 4ms
+ ✓ tests/unit/billing-trial.test.ts (6 tests) 4ms
+ ✓ tests/unit/style-learning-lib.test.ts (2 tests) 3ms
+ ✓ tests/unit/billing-client.test.ts (3 tests) 2ms
+
+ Test Files  12 passed (12)
+      Tests  61 passed (61)
+   Start at  22:47:33
+   Duration  4.28s (transform 625ms, setup 0ms, import 1.85s, tests 110ms, environment 1ms)
+
