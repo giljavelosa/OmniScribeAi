@@ -7,7 +7,7 @@ async function main() {
   const adminHash = await bcrypt.hash("OmniScribe2026!", 12);
   const admin = await prisma.user.upsert({
     where: { email: "admin@omniscribe.ai" },
-    update: {},
+    update: { mustChangePassword: true },
     create: {
       email: "admin@omniscribe.ai",
       name: "Admin",
@@ -22,7 +22,7 @@ async function main() {
   const demoHash = await bcrypt.hash("Demo2026!", 12);
   const demo = await prisma.user.upsert({
     where: { email: "demo@omniscribe.ai" },
-    update: {},
+    update: { mustChangePassword: true },
     create: {
       email: "demo@omniscribe.ai",
       name: "Dr. Sarah Chen",

@@ -326,6 +326,8 @@ model AuditLog {
 // ─── Enums ───────────────────────────────────────────────
 
 enum Role {
+  SUPER_ADMIN
+  ENTERPRISE_ADMIN
   ADMIN
   CLINICIAN
   SUPERVISOR
