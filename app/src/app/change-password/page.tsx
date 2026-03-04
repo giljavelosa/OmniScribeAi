@@ -26,9 +26,11 @@ export default function ChangePasswordPage() {
     });
     const data = await res.json();
     if (!res.ok) { setError(data.error); setLoading(false); return; }
-    // Clear PHI then sign out so the new JWT (without mustChangePassword) is issued on next login
+    // Clear PHI then sign out so the new JWT (without mustChangePassword) is issued on next login.
+    // Use absolute callback URL based on current origin to avoid host mismatches behind proxies.
     clearAllPhiItems();
-    await signOut({ callbackUrl: "/login?changed=1" });
+    const callbackUrl = window.location.origin + "/login?changed=1";
+    await signOut({ callbackUrl });
   };
 
   return (

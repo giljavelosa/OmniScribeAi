@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useSession } from 'next-auth/react';
+import { useBillingEntitlements } from '@/lib/billing/client';
 
 const nav = [
   { href: '/dashboard', label: 'Dashboard', icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1' },
@@ -14,7 +15,9 @@ const nav = [
 ];
 
 const adminNav = [
+  { href: '/admin', label: 'Overview', icon: 'M3 3h7v7H3V3zm11 0h7v4h-7V3zM3 14h7v7H3v-7zm11-3h7v10h-7V11z' },
   { href: '/admin/users', label: 'Users', icon: 'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z' },
+  { href: '/admin/orgs', label: 'Organizations', icon: 'M4 6h16M4 10h16M4 14h16M4 18h16' },
 ];
 
 function NavLinks({ isAdmin, pathname, onNavigate }: { isAdmin: boolean; pathname: string; onNavigate?: () => void }) {
@@ -57,8 +60,9 @@ function NavLinks({ isAdmin, pathname, onNavigate }: { isAdmin: boolean; pathnam
 export default function Sidebar() {
   const pathname = usePathname();
   const { data: session } = useSession();
-  const isAdmin = session?.user?.role === 'ADMIN';
+  const isAdmin = session?.user?.role === 'SUPER_ADMIN';
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { snapshot } = useBillingEntitlements();
 
   const closeMobile = useCallback(() => setMobileOpen(false), []);
 
@@ -89,6 +93,18 @@ export default function Sidebar() {
         <nav className="flex-1 px-3 py-4 space-y-1">
           <NavLinks isAdmin={isAdmin} pathname={pathname} />
         </nav>
+        {snapshot && (
+          <div className="px-3 pb-4">
+            <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2">
+              <div className="text-[10px] uppercase tracking-wide text-gray-500 font-semibold">Current Plan</div>
+              <div className="text-sm font-semibold text-gray-900">{snapshot.planLabel}</div>
+              <div className="text-[11px] text-gray-500 mt-1">
+                Notes: {snapshot.usage.monthly_notes}
+                {snapshot.quotas.monthly_notes === null ? " / Unlimited" : ` / ${snapshot.quotas.monthly_notes}`}
+              </div>
+            </div>
+          </div>
+        )}
       </aside>
 
       {/* Mobile sidebar overlay */}
@@ -101,6 +117,14 @@ export default function Sidebar() {
             <nav className="px-3 py-4 space-y-1">
               <NavLinks isAdmin={isAdmin} pathname={pathname} onNavigate={closeMobile} />
             </nav>
+            {snapshot && (
+              <div className="px-3 pb-4">
+                <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2">
+                  <div className="text-[10px] uppercase tracking-wide text-gray-500 font-semibold">Current Plan</div>
+                  <div className="text-sm font-semibold text-gray-900">{snapshot.planLabel}</div>
+                </div>
+              </div>
+            )}
           </aside>
         </div>
       )}

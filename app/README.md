@@ -52,6 +52,33 @@ Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/bui
 - `next build` ✅
 - `vitest` (129/129) ✅
 
+## Regression Safety Gates
+
+- Critical safety suite:
+  - `npm run test` (alias of `test:critical`)
+  - `npm run test:critical`
+- Full DB-backed suite:
+  - `npm run test:full`
+- Full quality gate:
+  - `npm run quality:gate`
+
+## Staging Deploy Preflight (Commit SHA)
+
+Use immutable SHA deploys with mandatory preflight checks.
+
+1. SSH to staging host.
+2. Run:
+   - `cd /home/omniscribe/omniscribeai/app`
+   - `APP_DIR=/home/omniscribe/omniscribeai/app SERVICE_NAME=omniscribe-app SMOKE_BASE_URL=http://127.0.0.1 ./scripts/deploy-staging-preflight.sh <commit-sha>`
+
+Preflight includes:
+- checkout exact commit SHA
+- dependency install + Prisma client generation
+- migration status check when Prisma files changed
+- `npm run build`
+- `npm run test:critical`
+- systemd restart + smoke checks (`/`, `/api/auth/session`, `/login`)
+
 ### Active Branch (Phase 2C)
 - `feat/template-ui-phase2c-nav-dashboard`
 

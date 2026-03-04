@@ -3,6 +3,10 @@ import Credentials from "next-auth/providers/credentials";
 import { prisma } from "./db";
 import bcrypt from "bcryptjs";
 import { authConfig } from "./auth.config";
+import { appLog, scrubError } from "./logger";
+import { validateAuthRuntimeEnv } from "./auth-env";
+
+validateAuthRuntimeEnv({ trustHostConfigured: true });
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
@@ -41,12 +45,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             email: user.email,
             name: user.name,
             role: user.role,
+            organizationId: user.organizationId,
             clinicianType: user.clinicianType,
             mustChangePassword: user.mustChangePassword,
             extendedSessionAcknowledged: user.extendedSessionAcknowledgedVersion === "1.0",
           };
         } catch (error) {
-          console.error("[AUTH] authorize error:", error);
+          appLog("error", "Auth", "Credentials authorize failed", { error: scrubError(error) });
           return null;
         }
       },

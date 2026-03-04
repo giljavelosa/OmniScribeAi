@@ -1,6 +1,5 @@
 import { auth } from "@/lib/auth";
 import { auditLog } from "@/lib/audit";
-import { fail } from "@/lib/api-contract";
 import { prisma } from "@/lib/db";
 import { frameworks } from "@/lib/frameworks";
 import { appLog, scrubError } from "@/lib/logger";
@@ -14,12 +13,18 @@ import {
   type Discipline,
 } from "@/lib/template-schema";
 import { NextRequest, NextResponse } from "next/server";
+import { getEntitlementSnapshot, enforceFeature } from "@/lib/billing/entitlements";
 
 // ─── GET /api/templates — list templates ──────────────────
 
 export async function GET(req: NextRequest) {
   const session = await auth();
-  if (!session?.user) return fail("AUTH_UNAUTHORIZED", "Unauthorized", 401);
+  if (!session?.user) {
+    return NextResponse.json(
+      { success: false, error: { code: "AUTH_UNAUTHORIZED", message: "Unauthorized" } },
+      { status: 401 },
+    );
+  }
 
   try {
     const params = req.nextUrl.searchParams;
@@ -155,7 +160,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ templates: paginated, total });
   } catch (error) {
     appLog("error", "GET /api/templates", scrubError(error));
-    return fail("INTERNAL_ERROR", "Internal server error", 500);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
 
@@ -163,37 +168,80 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   const session = await auth();
-  if (!session?.user) return fail("AUTH_UNAUTHORIZED", "Unauthorized", 401);
+  if (!session?.user) {
+    return NextResponse.json(
+      { success: false, error: { code: "AUTH_UNAUTHORIZED", message: "Unauthorized" } },
+      { status: 401 },
+    );
+  }
+
+  const entitlements = await getEntitlementSnapshot(session.user.id);
+  const featureCheck = enforceFeature(entitlements, "custom_templates");
+  if (!featureCheck.allowed) {
+    return NextResponse.json(
+      { success: false, error: featureCheck.message, code: featureCheck.code, requiredPlan: featureCheck.requiredPlan },
+      { status: 403 },
+    );
+  }
 
   try {
     const data = await req.json();
     const { name, description, domain, noteFormat, subtype, sourceFrameworkId, structureJson, visibility } = data;
 
     // Required fields
-    if (!name?.trim()) return fail("TEMPLATE_VALIDATION_FAILED", "Name is required", 400);
-    if (!domain?.trim()) return fail("TEMPLATE_VALIDATION_FAILED", "Domain is required", 400);
-    if (!noteFormat?.trim()) return fail("TEMPLATE_VALIDATION_FAILED", "Note format is required", 400);
+    if (!name?.trim()) {
+      return NextResponse.json(
+        { success: false, error: { code: "TEMPLATE_VALIDATION_FAILED", message: "Name is required" } },
+        { status: 400 },
+      );
+    }
+    if (!domain?.trim()) {
+      return NextResponse.json(
+        { success: false, error: { code: "TEMPLATE_VALIDATION_FAILED", message: "Domain is required" } },
+        { status: 400 },
+      );
+    }
+    if (!noteFormat?.trim()) {
+      return NextResponse.json(
+        { success: false, error: { code: "TEMPLATE_VALIDATION_FAILED", message: "Note format is required" } },
+        { status: 400 },
+      );
+    }
 
     // Name length
     const safeName = sanitizeForPrompt(name.trim());
-    if (safeName.length === 0) return fail("TEMPLATE_VALIDATION_FAILED", "Name is invalid after sanitization", 400);
+    if (safeName.length === 0) {
+      return NextResponse.json(
+        { success: false, error: { code: "TEMPLATE_VALIDATION_FAILED", message: "Name is invalid after sanitization" } },
+        { status: 400 },
+      );
+    }
 
     // Domain validation
     const validDomains = ["medical", "rehabilitation", "behavioral_health"];
     if (!validDomains.includes(domain)) {
-      return fail("TEMPLATE_VALIDATION_FAILED", `Invalid domain: ${domain}`, 400);
+      return NextResponse.json(
+        { success: false, error: { code: "TEMPLATE_VALIDATION_FAILED", message: `Invalid domain: ${domain}` } },
+        { status: 400 },
+      );
     }
 
     // noteFormat validation
     const validFormats = ["SOAP", "DAP", "narrative", "H&P", "eval", "custom"];
     if (!validFormats.includes(noteFormat)) {
-      return fail("TEMPLATE_VALIDATION_FAILED", `Invalid noteFormat: ${noteFormat}`, 400);
+      return NextResponse.json(
+        { success: false, error: { code: "TEMPLATE_VALIDATION_FAILED", message: `Invalid noteFormat: ${noteFormat}` } },
+        { status: 400 },
+      );
     }
 
     // Visibility validation
     const effectiveVisibility = visibility || "private";
     if (!["private", "organization"].includes(effectiveVisibility)) {
-      return fail("TEMPLATE_VALIDATION_FAILED", `Invalid visibility: ${visibility}`, 400);
+      return NextResponse.json(
+        { success: false, error: { code: "TEMPLATE_VALIDATION_FAILED", message: `Invalid visibility: ${visibility}` } },
+        { status: 400 },
+      );
     }
 
     // Get user's org for org-scoping
@@ -203,7 +251,13 @@ export async function POST(req: NextRequest) {
     });
 
     if (effectiveVisibility === "organization" && !user?.organizationId) {
-      return fail("TEMPLATE_VALIDATION_FAILED", "Cannot set visibility to 'organization' without an organization", 400);
+      return NextResponse.json(
+        {
+          success: false,
+          error: { code: "TEMPLATE_VALIDATION_FAILED", message: "Cannot set visibility to 'organization' without an organization" },
+        },
+        { status: 400 },
+      );
     }
 
     // Resolve structure: from structureJson, or clone from sourceFrameworkId
@@ -211,15 +265,26 @@ export async function POST(req: NextRequest) {
     if (structureJson) {
       const parseResult = TemplateStructureSchema.safeParse(structureJson);
       if (!parseResult.success) {
-        return fail("TEMPLATE_VALIDATION_FAILED", "Invalid template structure", 400, {
-          details: parseResult.error.issues.map(i => ({ path: i.path.join('.'), message: i.message })),
-        });
+        return NextResponse.json(
+          {
+            success: false,
+            error: {
+              code: "TEMPLATE_VALIDATION_FAILED",
+              message: "Invalid template structure",
+              details: parseResult.error.issues.map(i => ({ path: i.path.join("."), message: i.message })),
+            },
+          },
+          { status: 400 },
+        );
       }
       structure = parseResult.data;
     } else if (sourceFrameworkId) {
       const fw = frameworks.find(f => f.id === sourceFrameworkId);
       if (!fw) {
-        return fail("TEMPLATE_VALIDATION_FAILED", `Unknown source framework: ${sourceFrameworkId}`, 400);
+        return NextResponse.json(
+          { success: false, error: { code: "TEMPLATE_VALIDATION_FAILED", message: `Unknown source framework: ${sourceFrameworkId}` } },
+          { status: 400 },
+        );
       }
       structure = frameworkSectionsToTemplateStructure(
         fw.sections,
@@ -227,7 +292,10 @@ export async function POST(req: NextRequest) {
         domain as Discipline,
       );
     } else {
-      return fail("TEMPLATE_VALIDATION_FAILED", "Either structureJson or sourceFrameworkId is required", 400);
+      return NextResponse.json(
+        { success: false, error: { code: "TEMPLATE_VALIDATION_FAILED", message: "Either structureJson or sourceFrameworkId is required" } },
+        { status: 400 },
+      );
     }
 
     // Ensure formatType and discipline match
@@ -241,9 +309,17 @@ export async function POST(req: NextRequest) {
     // Deep validation
     const deepResult = validateTemplateStructure(structure);
     if (!deepResult.valid) {
-      return fail("TEMPLATE_VALIDATION_FAILED", "Template structure validation failed", 400, {
-        details: deepResult.errors,
-      });
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            code: "TEMPLATE_VALIDATION_FAILED",
+            message: "Template structure validation failed",
+            details: deepResult.errors,
+          },
+        },
+        { status: 400 },
+      );
     }
 
     const itemCount = countTemplateItems(structure);
@@ -275,6 +351,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ template }, { status: 201 });
   } catch (error) {
     appLog("error", "POST /api/templates", scrubError(error));
-    return fail("INTERNAL_ERROR", "Internal server error", 500);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

@@ -5,6 +5,7 @@ import Link from 'next/link';
 import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
 import { frameworks, getDomainColor, getDomainLabel } from '@/lib/frameworks';
+import { useBillingEntitlements } from '@/lib/billing/client';
 
 interface RecentFramework {
   frameworkId: string;
@@ -26,6 +27,11 @@ interface ApiVisit {
   date: string;
   duration: number | null;
   status: string;
+  visibility?: 'private' | 'organization' | 'restricted';
+  user?: {
+    id: string;
+    name: string | null;
+  };
   patient: {
     id: string;
     identifier: string;
@@ -39,6 +45,8 @@ export default function DashboardPage() {
   const [draft, setDraft] = useState<VisitDraft | null>(null);
   const [visits, setVisits] = useState<ApiVisit[]>([]);
   const [visitsLoading, setVisitsLoading] = useState(true);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const { snapshot: billingSnapshot } = useBillingEntitlements();
 
   useEffect(() => {
     try {
@@ -70,6 +78,11 @@ export default function DashboardPage() {
       .then(data => setVisits(data.visits || []))
       .catch(() => { /* fail silently — empty state shown */ })
       .finally(() => setVisitsLoading(false));
+
+    fetch('/api/auth/session')
+      .then(res => (res.ok ? res.json() : null))
+      .then(data => setCurrentUserId(data?.user?.id ?? null))
+      .catch(() => { /* no-op */ });
   }, []);
 
   // Resolve framework objects for display
@@ -221,6 +234,49 @@ export default function DashboardPage() {
             ))}
           </div>
 
+          {billingSnapshot && (
+            <div className="mb-8 bg-white rounded-xl border border-gray-200 p-4">
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div>
+                  <div className="text-sm font-semibold text-gray-900">
+                    {billingSnapshot.planLabel} tier usage
+                  </div>
+                  <div className="text-xs text-gray-500 mt-1">
+                    Current period: {new Date(billingSnapshot.periodStart).toLocaleDateString()} - {new Date(billingSnapshot.periodEnd).toLocaleDateString()}
+                  </div>
+                </div>
+                {!billingSnapshot.features.organization_sharing && (
+                  <div className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-1.5">
+                    Upgrade to Practice for organization sharing and FHIR export.
+                  </div>
+                )}
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-4">
+                <div className="rounded-lg border border-gray-200 p-3">
+                  <div className="text-xs text-gray-500">Monthly Notes</div>
+                  <div className="text-sm font-semibold text-gray-900">
+                    {billingSnapshot.usage.monthly_notes}
+                    {billingSnapshot.quotas.monthly_notes === null ? " / Unlimited" : ` / ${billingSnapshot.quotas.monthly_notes}`}
+                  </div>
+                </div>
+                <div className="rounded-lg border border-gray-200 p-3">
+                  <div className="text-xs text-gray-500">Audio Minutes</div>
+                  <div className="text-sm font-semibold text-gray-900">
+                    {billingSnapshot.usage.monthly_audio_minutes}
+                    {billingSnapshot.quotas.monthly_audio_minutes === null ? " / Unlimited" : ` / ${billingSnapshot.quotas.monthly_audio_minutes}`}
+                  </div>
+                </div>
+                <div className="rounded-lg border border-gray-200 p-3">
+                  <div className="text-xs text-gray-500">Seats</div>
+                  <div className="text-sm font-semibold text-gray-900">
+                    {billingSnapshot.usage.max_seats}
+                    {billingSnapshot.quotas.max_seats === null ? " / Unlimited" : ` / ${billingSnapshot.quotas.max_seats}`}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Notes list */}
           <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
             <div className="px-5 py-4 border-b border-gray-200 flex items-center justify-between">
@@ -246,6 +302,7 @@ export default function DashboardPage() {
                   const domainColor = getDomainColor(visit.domain);
                   const patientName = [visit.patient.firstName, visit.patient.lastName].filter(Boolean).join(' ') || visit.patient.identifier || 'Unknown';
                   const dateStr = new Date(visit.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                  const isShared = visit.user?.id != null && currentUserId != null && visit.user.id !== currentUserId;
                   return (
                     <Link
                       key={visit.id}
@@ -266,8 +323,16 @@ export default function DashboardPage() {
                           }`}>
                             {visit.status === 'complete' ? 'Complete' : visit.status}
                           </span>
+                          {visit.visibility && visit.visibility !== 'private' && (
+                            <span className="text-xs px-2 py-0.5 rounded-full font-medium shrink-0 bg-blue-50 text-blue-700">
+                              {visit.visibility === 'organization' ? 'Org Shared' : 'Restricted'}
+                            </span>
+                          )}
                         </div>
-                        <div className="text-sm text-gray-500 truncate mt-0.5">{fw?.name || visit.frameworkId}</div>
+                        <div className="text-sm text-gray-500 truncate mt-0.5">
+                          {fw?.name || visit.frameworkId}
+                          {isShared && visit.user?.name ? ` · Created by ${visit.user.name}` : ''}
+                        </div>
                       </div>
                       <div className="text-right shrink-0">
                         <div className="text-sm text-gray-900">{dateStr}</div>
