@@ -1,7 +1,8 @@
 import NextAuth from "next-auth";
 import { authConfig } from "@/lib/auth.config";
 import { NextResponse } from "next/server";
-import { checkRateLimit, getTierForPath } from "@/lib/rate-limiter";
+import { checkRateLimit } from "@/lib/rate-limiter";
+import { enforceApiRateLimit, evaluateCsrf } from "@/lib/request-guards";
 
 // Use Edge-compatible auth config (no DB adapter, no Node.js crypto)
 const { auth } = NextAuth(authConfig);
@@ -40,6 +41,14 @@ export default auth((req) => {
     return NextResponse.next();
   }
 
+  // Admin API routes must never redirect on auth failure.
+  if (pathname.startsWith("/api/admin") && !req.auth) {
+    return new NextResponse(
+      JSON.stringify({ success: false, error: "Unauthorized", code: "UNAUTHORIZED" }),
+      { status: 401, headers: { "Content-Type": "application/json" } },
+    );
+  }
+
   // Not logged in — redirect to login with validated callbackUrl
   if (!req.auth) {
     const loginUrl = new URL("/login", req.url);
@@ -59,44 +68,24 @@ export default auth((req) => {
     return NextResponse.redirect(new URL("/change-password", req.url));
   }
 
-  // CSRF protection: verify Origin on state-changing API requests
-  if (
-    pathname.startsWith("/api/") &&
-    ["POST", "PUT", "PATCH", "DELETE"].includes(req.method)
-  ) {
-    const origin = req.headers.get("origin");
-    const referer = req.headers.get("referer");
-    const host = req.headers.get("host");
-
-    // Accept if Origin matches host
-    let originOk = false;
-    if (origin) {
-      try {
-        const originHost = new URL(origin).host;
-        originOk = originHost === host;
-      } catch { /* invalid origin */ }
-    } else if (referer) {
-      // Fallback to Referer if no Origin (some older browsers)
-      try {
-        const refererHost = new URL(referer).host;
-        originOk = refererHost === host;
-      } catch { /* invalid referer */ }
-    }
-    // No Origin and no Referer — reject (likely cross-site or curl without headers)
-    // Exception: allow requests with no origin only if they have a valid session (server-to-server)
-    if (!originOk && (origin || referer)) {
-      return new NextResponse(
-        JSON.stringify({ error: "CSRF validation failed" }),
-        { status: 403, headers: { "Content-Type": "application/json" } },
-      );
-    }
+  const csrf = evaluateCsrf({
+    pathname,
+    method: req.method,
+    origin: req.headers.get("origin"),
+    referer: req.headers.get("referer"),
+    host: req.headers.get("host"),
+  });
+  if (!csrf.allowed) {
+    return new NextResponse(
+      JSON.stringify({ error: "CSRF validation failed" }),
+      { status: 403, headers: { "Content-Type": "application/json" } },
+    );
   }
 
   // Rate limit API routes for authenticated users
   if (pathname.startsWith("/api/")) {
     const userId = req.auth.user?.id || "anonymous";
-    const tier = getTierForPath(pathname);
-    const result = checkRateLimit(tier, userId);
+    const result = enforceApiRateLimit(pathname, userId);
     if (!result.allowed) {
       return new NextResponse(
         JSON.stringify({ success: false, error: "Rate limit exceeded. Please slow down." }),
@@ -126,6 +115,6 @@ export default auth((req) => {
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|api/auth|api/transcribe|api/ocr).*)",
+    "/((?!_next/static|_next/image|favicon.ico|api/auth).*)",
   ],
 };

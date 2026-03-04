@@ -1064,10 +1064,15 @@ function NewVisitContent() {
                         <button
                           onClick={handleUploadSubmit}
                           disabled={!canGenerate || !uploadedFile}
-                          className="w-full mt-4 px-6 py-3 bg-[#0d9488] text-white rounded-xl text-sm font-medium hover:bg-[#0f766e] transition-colors shadow-md hover:shadow-lg"
+                          className="w-full mt-4 px-6 py-3 bg-[#0d9488] text-white rounded-xl text-sm font-medium hover:bg-[#0f766e] transition-colors shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           Generate Clinical Note
                         </button>
+                        {!canGenerate && (
+                          <p className="text-xs text-gray-500 text-center mt-2">
+                            Fill in {!patientName.trim() ? 'patient name' : ''}{!patientName.trim() && !frameworkId && !templateId ? ' and ' : ''}{!frameworkId && !templateId ? 'template' : ''} above, then generate your note.
+                          </p>
+                        )}
                       </div>
                     )}
 

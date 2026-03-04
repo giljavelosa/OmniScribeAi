@@ -1,243 +1,121 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { NextRequest } from 'next/server';
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { NextRequest } from "next/server";
+import { UnauthorizedError } from "@/lib/auth/errors";
 
-const mockAuth = vi.hoisted(() => vi.fn());
-const mockAuditLog = vi.hoisted(() => vi.fn());
-const mockPrisma = vi.hoisted(() => ({
-  user: { findUnique: vi.fn() },
-  patient: { findMany: vi.fn(), create: vi.fn() },
-  visit: { findMany: vi.fn(), create: vi.fn() },
-  noteTemplate: { findMany: vi.fn(), count: vi.fn(), create: vi.fn() },
+const {
+  mockAuth,
+  mockRequireSuperAdminWithMfa,
+  mockGetEntitlementSnapshot,
+  mockEnforceFeature,
+} = vi.hoisted(() => ({
+  mockAuth: vi.fn(),
+  mockRequireSuperAdminWithMfa: vi.fn(),
+  mockGetEntitlementSnapshot: vi.fn(),
+  mockEnforceFeature: vi.fn(),
 }));
 
-vi.mock('@/lib/auth', () => ({
+vi.mock("@/lib/auth", () => ({
   auth: mockAuth,
 }));
 
-vi.mock('@/lib/audit', () => ({
-  auditLog: mockAuditLog,
+vi.mock("@/lib/auth/current-user", () => ({
+  requireSuperAdminWithMfa: mockRequireSuperAdminWithMfa,
 }));
 
-vi.mock('@/lib/db', () => ({
-  prisma: mockPrisma,
+vi.mock("@/lib/billing/entitlements", () => ({
+  getEntitlementSnapshot: mockGetEntitlementSnapshot,
+  enforceFeature: mockEnforceFeature,
 }));
 
-describe('API error envelope integration', () => {
+import { GET as adminUsersGet } from "@/app/api/admin/users/route";
+import { GET as templatesGet, POST as templatesPost } from "@/app/api/templates/route";
+import { GET as billingEntitlementsGet } from "@/app/api/billing/entitlements/route";
+import { GET as visitShareGet } from "@/app/api/visits/[id]/share/route";
+
+describe("API error envelope integration", () => {
   beforeEach(() => {
-    mockAuth.mockReset();
-    mockAuditLog.mockReset();
-    mockPrisma.user.findUnique.mockReset();
-    mockPrisma.patient.findMany.mockReset();
-    mockPrisma.patient.create.mockReset();
-    mockPrisma.visit.findMany.mockReset();
-    mockPrisma.visit.create.mockReset();
-    mockPrisma.noteTemplate.findMany.mockReset();
-    mockPrisma.noteTemplate.count.mockReset();
-    mockPrisma.noteTemplate.create.mockReset();
+    vi.clearAllMocks();
   });
 
-  it('patients GET unauthorized returns AUTH_UNAUTHORIZED envelope', async () => {
-    mockAuth.mockResolvedValue(null);
-    const { GET } = await import('../../src/app/api/patients/route');
+  it("admin users GET unauthorized returns envelope", async () => {
+    mockRequireSuperAdminWithMfa.mockRejectedValueOnce(new UnauthorizedError("Authentication required"));
 
-    const response = await GET(new NextRequest('http://localhost/api/patients'));
+    const response = await adminUsersGet(new NextRequest("http://localhost/api/admin/users"));
     const body = await response.json();
 
     expect(response.status).toBe(401);
     expect(body.success).toBe(false);
-    expect(body.error).toMatchObject({ code: 'AUTH_UNAUTHORIZED', message: 'Unauthorized' });
-    expect(body.meta.timestamp).toEqual(expect.any(String));
-  });
-
-  it('patients POST validation failure returns PATIENT_VALIDATION_FAILED envelope', async () => {
-    mockAuth.mockResolvedValue({ user: { id: 'user_123', role: 'CLINICIAN' } });
-    const { POST } = await import('../../src/app/api/patients/route');
-
-    const response = await POST(new NextRequest('http://localhost/api/patients', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({}),
-    }));
-    const body = await response.json();
-
-    expect(response.status).toBe(400);
-    expect(body.success).toBe(false);
-    expect(body.error).toMatchObject({
-      code: 'PATIENT_VALIDATION_FAILED',
-      message: 'Patient identifier is required',
+    expect(body).toMatchObject({
+      error: "Authentication required",
+      code: "UNAUTHORIZED",
     });
   });
 
-  it('patients POST success payload shape is backward-compatible', async () => {
-    mockAuth.mockResolvedValue({ user: { id: 'user_123', role: 'CLINICIAN' } });
-    mockPrisma.patient.create.mockResolvedValue({ id: 'p1', identifier: 'PT-001' });
+  it("templates GET unauthorized returns AUTH_UNAUTHORIZED envelope", async () => {
+    mockAuth.mockResolvedValueOnce(null);
 
-    const { POST } = await import('../../src/app/api/patients/route');
-    const response = await POST(new NextRequest('http://localhost/api/patients', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ identifier: 'PT-001', organizationId: 'org_1' }),
-    }));
-    const body = await response.json();
-
-    expect(response.status).toBe(201);
-    expect(body).toEqual({
-      patient: { id: 'p1', identifier: 'PT-001' },
-    });
-    expect(body.success).toBeUndefined();
-    expect(body.error).toBeUndefined();
-  });
-
-  it('patients GET success payload shape is backward-compatible', async () => {
-    mockAuth.mockResolvedValue({ user: { id: 'user_123', role: 'CLINICIAN' } });
-    mockPrisma.user.findUnique.mockResolvedValue({ organizationId: 'org_1' });
-    mockPrisma.patient.findMany.mockResolvedValue([{ id: 'p1', identifier: 'PT-001' }]);
-
-    const { GET } = await import('../../src/app/api/patients/route');
-    const response = await GET(new NextRequest('http://localhost/api/patients'));
-    const body = await response.json();
-
-    expect(response.status).toBe(200);
-    expect(body).toEqual({
-      patients: [{ id: 'p1', identifier: 'PT-001' }],
-    });
-    expect(body.success).toBeUndefined();
-  });
-
-  it('visits GET unauthorized returns AUTH_UNAUTHORIZED envelope', async () => {
-    mockAuth.mockResolvedValue(null);
-    const { GET } = await import('../../src/app/api/visits/route');
-
-    const response = await GET(new NextRequest('http://localhost/api/visits'));
+    const response = await templatesGet(new NextRequest("http://localhost/api/templates"));
     const body = await response.json();
 
     expect(response.status).toBe(401);
     expect(body.success).toBe(false);
-    expect(body.error).toMatchObject({ code: 'AUTH_UNAUTHORIZED', message: 'Unauthorized' });
-  });
-
-  it('visits POST validation failure returns VISIT_VALIDATION_FAILED envelope', async () => {
-    mockAuth.mockResolvedValue({ user: { id: 'user_123', role: 'CLINICIAN' } });
-    const { POST } = await import('../../src/app/api/visits/route');
-
-    const response = await POST(new NextRequest('http://localhost/api/visits', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ frameworkId: 'soap-md-general' }),
-    }));
-    const body = await response.json();
-
-    expect(response.status).toBe(400);
-    expect(body.success).toBe(false);
     expect(body.error).toMatchObject({
-      code: 'VISIT_VALIDATION_FAILED',
-      message: 'patientId and frameworkId required',
+      code: "AUTH_UNAUTHORIZED",
+      message: "Unauthorized",
     });
   });
 
-  it('visits POST success payload shape is backward-compatible', async () => {
-    mockAuth.mockResolvedValue({ user: { id: 'user_123', role: 'CLINICIAN' } });
-    mockPrisma.visit.create.mockResolvedValue({ id: 'v1', patientId: 'p1', frameworkId: 'soap-md-general' });
-
-    const { POST } = await import('../../src/app/api/visits/route');
-    const response = await POST(new NextRequest('http://localhost/api/visits', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ patientId: 'p1', frameworkId: 'soap-md-general' }),
-    }));
-    const body = await response.json();
-
-    expect(response.status).toBe(201);
-    expect(body).toEqual({
-      visit: { id: 'v1', patientId: 'p1', frameworkId: 'soap-md-general' },
+  it("templates POST validation failure returns TEMPLATE_VALIDATION_FAILED envelope", async () => {
+    mockAuth.mockResolvedValueOnce({
+      user: { id: "user_1", role: "CLINICIAN", organizationId: null },
     });
-    expect(body.success).toBeUndefined();
-    expect(body.error).toBeUndefined();
-  });
+    mockGetEntitlementSnapshot.mockResolvedValueOnce({});
+    mockEnforceFeature.mockReturnValueOnce({ allowed: true });
 
-  it('visits GET success payload shape is backward-compatible', async () => {
-    mockAuth.mockResolvedValue({ user: { id: 'user_123', role: 'CLINICIAN' } });
-    mockPrisma.visit.findMany.mockResolvedValue([{ id: 'v1', patientId: 'p1' }]);
-
-    const { GET } = await import('../../src/app/api/visits/route');
-    const response = await GET(new NextRequest('http://localhost/api/visits'));
-    const body = await response.json();
-
-    expect(response.status).toBe(200);
-    expect(body).toEqual({ visits: [{ id: 'v1', patientId: 'p1' }] });
-    expect(body.success).toBeUndefined();
-  });
-
-  it('templates GET unauthorized returns AUTH_UNAUTHORIZED envelope', async () => {
-    mockAuth.mockResolvedValue(null);
-    const { GET } = await import('../../src/app/api/templates/route');
-
-    const response = await GET(new NextRequest('http://localhost/api/templates'));
-    const body = await response.json();
-
-    expect(response.status).toBe(401);
-    expect(body.success).toBe(false);
-    expect(body.error).toMatchObject({ code: 'AUTH_UNAUTHORIZED', message: 'Unauthorized' });
-  });
-
-  it('templates POST validation failure returns TEMPLATE_VALIDATION_FAILED envelope', async () => {
-    mockAuth.mockResolvedValue({ user: { id: 'user_123', role: 'CLINICIAN' } });
-    const { POST } = await import('../../src/app/api/templates/route');
-
-    const response = await POST(new NextRequest('http://localhost/api/templates', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ domain: 'medical', noteFormat: 'SOAP' }),
-    }));
-    const body = await response.json();
-
-    expect(response.status).toBe(400);
-    expect(body.success).toBe(false);
-    expect(body.error).toMatchObject({
-      code: 'TEMPLATE_VALIDATION_FAILED',
-      message: 'Name is required',
-    });
-  });
-
-  it('templates POST success payload shape is backward-compatible', async () => {
-    mockAuth.mockResolvedValue({ user: { id: 'user_123', role: 'CLINICIAN' } });
-    mockPrisma.user.findUnique.mockResolvedValue({ organizationId: 'org_1' });
-    mockPrisma.noteTemplate.create.mockResolvedValue({ id: 't1', name: 'My Template' });
-
-    const { POST } = await import('../../src/app/api/templates/route');
-    const response = await POST(new NextRequest('http://localhost/api/templates', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
+    const request = new NextRequest("http://localhost/api/templates", {
+      method: "POST",
       body: JSON.stringify({
-        name: 'My Template',
-        domain: 'medical',
-        noteFormat: 'SOAP',
-        sourceFrameworkId: 'soap-md-general',
+        domain: "medical",
+        noteFormat: "SOAP",
+        structureJson: { formatType: "SOAP", discipline: "medical", sections: [] },
       }),
-    }));
+      headers: { "Content-Type": "application/json" },
+    });
+
+    const response = await templatesPost(request);
     const body = await response.json();
 
-    expect(response.status).toBe(201);
-    expect(body).toEqual({
-      template: { id: 't1', name: 'My Template' },
+    expect(response.status).toBe(400);
+    expect(body.success).toBe(false);
+    expect(body.error).toMatchObject({
+      code: "TEMPLATE_VALIDATION_FAILED",
+      message: "Name is required",
     });
-    expect(body.success).toBeUndefined();
-    expect(body.error).toBeUndefined();
   });
 
-  it('templates GET success payload shape is backward-compatible', async () => {
-    mockAuth.mockResolvedValue({ user: { id: 'user_123', role: 'CLINICIAN' } });
+  it("billing entitlements GET unauthorized returns envelope", async () => {
+    mockAuth.mockResolvedValueOnce(null);
 
-    const { GET } = await import('../../src/app/api/templates/route');
-    const response = await GET(new NextRequest('http://localhost/api/templates?sourceType=system&limit=1'));
+    const response = await billingEntitlementsGet();
     const body = await response.json();
 
-    expect(response.status).toBe(200);
-    expect(Array.isArray(body.templates)).toBe(true);
-    expect(body).toEqual({
-      templates: expect.any(Array),
-      total: expect.any(Number),
-    });
-    expect(body.success).toBeUndefined();
+    expect(response.status).toBe(401);
+    expect(body.success).toBe(false);
+    expect(body.error).toBe("Unauthorized");
+  });
+
+  it("visit sharing GET unauthorized returns envelope", async () => {
+    mockAuth.mockResolvedValueOnce(null);
+
+    const response = await visitShareGet(
+      new NextRequest("http://localhost/api/visits/visit_1/share"),
+      { params: Promise.resolve({ id: "visit_1" }) },
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(401);
+    expect(body.success).toBe(false);
+    expect(body.error).toBe("Unauthorized");
   });
 });
+

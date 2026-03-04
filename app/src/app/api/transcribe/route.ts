@@ -2,6 +2,7 @@ import { auth } from "@/lib/auth";
 import { assertPhiApprovedEndpoint } from "@/lib/phi-boundaries";
 import { appLog, scrubError, errorCode } from "@/lib/logger";
 import { isWavFile, splitWavFile } from "@/lib/audio-chunker";
+import { getEntitlementSnapshot, enforceFeature, enforceQuota } from "@/lib/billing/entitlements";
 export const maxDuration = 600;
 import { NextRequest, NextResponse } from 'next/server';
 import { mockTranscripts } from '@/lib/mock-data';
@@ -23,6 +24,22 @@ export async function POST(request: NextRequest) {
   const session = await auth();
   if (!session?.user) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { "content-type": "application/json" } });
+  }
+
+  const entitlements = await getEntitlementSnapshot(session.user.id);
+  const featureCheck = enforceFeature(entitlements, "transcribe_audio");
+  if (!featureCheck.allowed) {
+    return NextResponse.json(
+      { success: false, error: featureCheck.message, code: featureCheck.code, requiredPlan: featureCheck.requiredPlan },
+      { status: 403, headers: { "Cache-Control": "no-store" } },
+    );
+  }
+  const quotaCheck = enforceQuota(entitlements, "monthly_audio_minutes", 1);
+  if (!quotaCheck.allowed) {
+    return NextResponse.json(
+      { success: false, error: quotaCheck.message, code: quotaCheck.code, quota: { key: quotaCheck.key, current: quotaCheck.current, limit: quotaCheck.limit } },
+      { status: 429, headers: { "Cache-Control": "no-store" } },
+    );
   }
 
   try {

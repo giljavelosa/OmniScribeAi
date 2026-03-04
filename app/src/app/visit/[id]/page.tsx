@@ -11,7 +11,8 @@ import { getFrameworkById, getDomainColor, getDomainLabel } from '@/lib/framewor
 import { NoteSection } from "@/lib/types";
 import MiniRecorder from '@/components/MiniRecorder';
 import ClinicalSynthesis from '@/components/ClinicalSynthesis';
-import { appLog } from '@/lib/logger';
+import { appLog, scrubError } from '@/lib/logger';
+import { useBillingEntitlements } from '@/lib/billing/client';
 
 function escapeHtml(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -78,6 +79,9 @@ interface VisitData {
   providerType: string;
   frameworkId: string;
   templateId?: string;
+  ownerUserId?: string;
+  ownerUserName?: string | null;
+  visibility?: 'private' | 'organization' | 'restricted';
   transcript: string;
   transcriptSource: string;
   transcriptDuration: number;
@@ -103,6 +107,21 @@ interface VisitData {
   finalized?: boolean;
   finalizedAt?: string;
   amendments?: Amendment[];
+}
+
+interface ShareMember {
+  id: string;
+  name: string | null;
+  email: string;
+}
+
+interface ShareGrant {
+  id: string;
+  granteeUserId: string;
+  granteeName: string | null;
+  granteeEmail: string;
+  permission: 'view' | 'comment';
+  createdAt: string;
 }
 
 export default function VisitDetailPage() {
@@ -141,6 +160,14 @@ export default function VisitDetailPage() {
   const [amendReason, setAmendReason] = useState('');
   const [amendingSections, setAmendingSections] = useState<Record<string, string>>({});
   const [submittingAmendment, setSubmittingAmendment] = useState(false);
+  const [shareLoading, setShareLoading] = useState(false);
+  const [shareError, setShareError] = useState<string | null>(null);
+  const [shareMembers, setShareMembers] = useState<ShareMember[]>([]);
+  const [shareGrants, setShareGrants] = useState<ShareGrant[]>([]);
+  const [shareVisibility, setShareVisibility] = useState<'private' | 'organization' | 'restricted'>('private');
+  const [selectedGranteeIds, setSelectedGranteeIds] = useState<string[]>([]);
+  const { snapshot: billingSnapshot, loading: billingLoading } = useBillingEntitlements();
+  const canUseSharing = billingSnapshot?.features.organization_sharing === true;
 
   useEffect(() => {
     sweepExpiredPhiItems(); // clean up stale PHI on page load
@@ -160,6 +187,9 @@ export default function VisitDetailPage() {
             providerType: visit.user?.clinicianType || '',
             frameworkId: visit.frameworkId,
             templateId: visit.templateId || undefined,
+            ownerUserId: visit.userId,
+            ownerUserName: visit.user?.name || null,
+            visibility: visit.visibility || 'private',
             transcript: visit.transcript || '',
             transcriptSource: visit.transcriptSource || '',
             transcriptDuration: visit.duration || 0,
@@ -180,6 +210,7 @@ export default function VisitDetailPage() {
             amendments: (visit.amendments as VisitData['amendments']) || undefined,
           };
           setVisitData(mapped);
+          setShareVisibility(mapped.visibility || 'private');
           // Also cache to localStorage for offline access
           setPhiItem(`omniscribe-visit-${visitId}`, mapped);
           setLoading(false);
@@ -197,6 +228,29 @@ export default function VisitDetailPage() {
       setLoading(false);
     }
   }, [visitId]);
+
+  useEffect(() => {
+    const isClientId = visitId.startsWith('visit-') || visitId.startsWith('mock-');
+    if (isClientId || billingLoading || !canUseSharing) return;
+
+    fetch(`/api/visits/${visitId}/share`)
+      .then(async (res) => {
+        if (!res.ok) return null;
+        const data = await res.json();
+        return data?.sharing ?? null;
+      })
+      .then((sharing) => {
+        if (!sharing) return;
+        setShareVisibility(sharing.visibility || 'private');
+        setShareMembers(Array.isArray(sharing.members) ? sharing.members : []);
+        const grants = Array.isArray(sharing.grants) ? sharing.grants : [];
+        setShareGrants(grants);
+        setSelectedGranteeIds(grants.map((g: ShareGrant) => g.granteeUserId));
+      })
+      .catch(() => {
+        // Sharing controls are best-effort in UI; API still enforces authz.
+      });
+  }, [visitId, billingLoading, canUseSharing]);
 
   const mockVisit = mockVisits.find(v => v.id === visitId);
 
@@ -279,6 +333,7 @@ export default function VisitDetailPage() {
 
   const handleFinalize = async () => {
     if (!visitData) return;
+    const previousVisit = visitData;
     const confirmed = window.confirm('Finalize this note? It will be locked and timestamped as the official record. After finalization, changes require a formal amendment.');
     if (!confirmed) return;
     const now = new Date().toISOString();
@@ -295,14 +350,32 @@ export default function VisitDetailPage() {
         const res = await fetch(`/api/visits/${visitId}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ status: 'FINALIZED', noteData: finalizedVisit.clinicalNote || finalizedVisit.note, finalizedAt: now }),
+          body: JSON.stringify({
+            status: 'FINALIZED',
+            noteData: finalizedVisit.clinicalNote || finalizedVisit.note,
+            finalizedAt: now,
+            compliance: finalizedVisit.compliance || null,
+            validation: finalizedVisit.validation || null,
+          }),
         });
         if (!res.ok) {
-          appLog('warn', 'VisitDetail', 'Finalize PATCH failed', { visitId, status: res.status });
+          let apiError = `Finalize failed (HTTP ${res.status})`;
+          try {
+            const parsed = (await res.json()) as { error?: string };
+            if (typeof parsed?.error === 'string' && parsed.error) apiError = parsed.error;
+          } catch {
+            // Keep status fallback if response is non-JSON.
+          }
+          appLog('warn', 'VisitDetail', 'Finalize PATCH failed', { visitId, status: res.status, error: apiError });
+          alert(apiError);
+          setVisitData(previousVisit);
+          setPhiItem(`omniscribe-visit-${visitId}`, previousVisit);
           setSaveStatus('Finalize save failed');
           return;
         }
       } catch {
+        setVisitData(previousVisit);
+        setPhiItem(`omniscribe-visit-${visitId}`, previousVisit);
         setSaveStatus('Finalize save failed');
         return;
       }
@@ -432,7 +505,10 @@ ${compLine}
     try {
       const res = await fetch('/api/regenerate-note', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-idempotency-key': `regen-${visitId}-${Date.now()}`,
+        },
         body: JSON.stringify({
           parsedData: updatedParsedData,
           clinicalSynthesis: visitData.clinicalSynthesis || {},
@@ -443,8 +519,14 @@ ${compLine}
       });
 
       if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || `Regeneration failed (HTTP ${res.status})`);
+        let apiError = `Regeneration failed (HTTP ${res.status})`;
+        try {
+          const parsed = (await res.json()) as { error?: string };
+          if (typeof parsed?.error === 'string' && parsed.error) apiError = parsed.error;
+        } catch {
+          // Keep status-based fallback when response is not JSON.
+        }
+        throw new Error(apiError);
       }
 
       const data = await res.json();
@@ -466,7 +548,7 @@ ${compLine}
         setLastRegenTime(new Date().toLocaleTimeString());
       }
     } catch (err: unknown) {
-      console.error('Regeneration error:', err);
+      appLog('error', 'VisitDetail', 'Regeneration request failed', { error: scrubError(err) });
     } finally {
       setRegenerating(false);
     }
@@ -537,6 +619,65 @@ ${compLine}
     }
   };
 
+  const handleToggleGrantee = (granteeUserId: string) => {
+    setSelectedGranteeIds((prev) =>
+      prev.includes(granteeUserId)
+        ? prev.filter((id) => id !== granteeUserId)
+        : [...prev, granteeUserId],
+    );
+  };
+
+  const handleSaveSharing = async () => {
+    setShareLoading(true);
+    setShareError(null);
+    try {
+      const res = await fetch(`/api/visits/${visitId}/share`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          visibility: shareVisibility,
+          grants: shareVisibility === 'restricted' ? selectedGranteeIds : [],
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || `HTTP ${res.status}`);
+      }
+
+      const grants = Array.isArray(data.sharing?.grants) ? data.sharing.grants : [];
+      setShareGrants(grants);
+      if (visitData) {
+        setVisitData({ ...visitData, visibility: data.sharing?.visibility || shareVisibility });
+      }
+      setSaveStatus('Saved');
+    } catch (err: unknown) {
+      setShareError(err instanceof Error ? err.message : 'Failed to update sharing');
+    } finally {
+      setShareLoading(false);
+    }
+  };
+
+  const handleRevokeGrant = async (grantId: string) => {
+    setShareLoading(true);
+    setShareError(null);
+    try {
+      const res = await fetch(`/api/visits/${visitId}/share/${grantId}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || `HTTP ${res.status}`);
+      }
+      const nextGrants = shareGrants.filter((grant) => grant.id !== grantId);
+      setShareGrants(nextGrants);
+      setSelectedGranteeIds(nextGrants.map((grant) => grant.granteeUserId));
+      setSaveStatus('Saved');
+    } catch (err: unknown) {
+      setShareError(err instanceof Error ? err.message : 'Failed to revoke access');
+    } finally {
+      setShareLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
@@ -577,6 +718,12 @@ ${compLine}
                   {duration > 0 && <span>{Math.round(duration / 60)} min</span>}
                   <span>·</span>
                   <span className="font-medium">{providerType}</span>
+                  {visitData?.ownerUserName && (
+                    <>
+                      <span>·</span>
+                      <span>Created by {visitData.ownerUserName}</span>
+                    </>
+                  )}
                   {framework && (
                     <>
                       <span>·</span>
@@ -584,6 +731,11 @@ ${compLine}
                         {framework.name}
                       </span>
                     </>
+                  )}
+                  {visitData?.visibility && visitData.visibility !== 'private' && (
+                    <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
+                      {visitData.visibility === 'organization' ? 'Shared in organization' : 'Restricted share'}
+                    </span>
                   )}
                 </div>
               </div>
@@ -621,6 +773,106 @@ ${compLine}
                   </>
                 )}
               </div>
+
+              {/* Sharing controls (owner/admin only; API enforces authz) */}
+              {!billingLoading && !canUseSharing && (
+                <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6">
+                  <h3 className="text-sm font-semibold text-amber-900">Organization Sharing</h3>
+                  <p className="text-xs text-amber-800 mt-1">
+                    This feature is available on the Practice tier and above.
+                  </p>
+                </div>
+              )}
+              {canUseSharing && (shareMembers.length > 0 || shareGrants.length > 0 || visitData?.visibility) && (
+                <div className="bg-white border border-gray-200 rounded-xl p-4 mb-6">
+                  <div className="flex items-center justify-between gap-3 mb-3">
+                    <div>
+                      <h3 className="text-sm font-semibold text-gray-900">Organization Sharing</h3>
+                      <p className="text-xs text-gray-500">Choose note visibility and optional restricted recipients.</p>
+                    </div>
+                    <button
+                      onClick={handleSaveSharing}
+                      disabled={shareLoading}
+                      className="px-3 py-1.5 rounded-lg bg-[#0d9488] text-white text-xs font-medium hover:bg-[#0f766e] disabled:opacity-60"
+                    >
+                      {shareLoading ? 'Saving...' : 'Save Sharing'}
+                    </button>
+                  </div>
+
+                  <div className="flex flex-wrap gap-3 mb-3">
+                    <label className="text-xs text-gray-700 flex items-center gap-2">
+                      <input
+                        type="radio"
+                        name="shareVisibility"
+                        checked={shareVisibility === 'private'}
+                        onChange={() => setShareVisibility('private')}
+                      />
+                      Private
+                    </label>
+                    <label className="text-xs text-gray-700 flex items-center gap-2">
+                      <input
+                        type="radio"
+                        name="shareVisibility"
+                        checked={shareVisibility === 'organization'}
+                        onChange={() => setShareVisibility('organization')}
+                      />
+                      Organization-wide
+                    </label>
+                    <label className="text-xs text-gray-700 flex items-center gap-2">
+                      <input
+                        type="radio"
+                        name="shareVisibility"
+                        checked={shareVisibility === 'restricted'}
+                        onChange={() => setShareVisibility('restricted')}
+                      />
+                      Restricted users
+                    </label>
+                  </div>
+
+                  {shareVisibility === 'restricted' && (
+                    <div className="space-y-2">
+                      <div className="text-xs text-gray-600">Allow selected organization members to view this note:</div>
+                      <div className="max-h-36 overflow-y-auto border border-gray-200 rounded-lg p-2 space-y-1">
+                        {shareMembers.filter((m) => m.id !== visitData?.ownerUserId).map((member) => (
+                          <label key={member.id} className="flex items-center gap-2 text-xs text-gray-700">
+                            <input
+                              type="checkbox"
+                              checked={selectedGranteeIds.includes(member.id)}
+                              onChange={() => handleToggleGrantee(member.id)}
+                            />
+                            <span>{member.name || member.email}</span>
+                            {member.name && <span className="text-gray-400">({member.email})</span>}
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {shareGrants.length > 0 && (
+                    <div className="mt-3 pt-3 border-t border-gray-100 space-y-1">
+                      <div className="text-xs font-medium text-gray-700">Current restricted grants</div>
+                      {shareGrants.map((grant) => (
+                        <div key={grant.id} className="flex items-center justify-between text-xs text-gray-600">
+                          <span>{grant.granteeName || grant.granteeEmail}</span>
+                          <button
+                            onClick={() => handleRevokeGrant(grant.id)}
+                            className="text-red-600 hover:text-red-700"
+                            disabled={shareLoading}
+                          >
+                            Revoke
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {shareError && (
+                    <div className="mt-3 text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                      {shareError}
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Stats bar */}
               {visitData && (
@@ -1053,7 +1305,7 @@ ${compLine}
                           setLastRegenTime(new Date().toLocaleTimeString());
                         }
                       } catch (err) {
-                        console.error('Regen error (non-PHI):', err instanceof Error ? err.message.slice(0,100) : 'unknown');
+                        appLog('error', 'VisitDetail', 'Clinical synthesis regeneration failed', { error: scrubError(err) });
                       } finally {
                         setRegenerating(false);
                       }

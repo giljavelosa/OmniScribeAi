@@ -25,8 +25,13 @@ model User {
   sessions       Session[]
   accounts       Account[]
   visits         Visit[]
+  sharedVisits   VisitShareGrant[] @relation("VisitShareGrantee")
+  grantsIssued   VisitShareGrant[] @relation("VisitShareGrantor")
   ownedTemplates NoteTemplate[] @relation("OwnedTemplates")
-  auditLogs      AuditLog[]
+  subscriptions  Subscription[] @relation("UserSubscriptions")
+  auditLogs      AuditLog[] @relation("AdminAuditLogs")
+  styleProfile   ClinicianStyleProfile?
+  styleFeedbackEvents ClinicianStyleFeedbackEvent[]
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
   lastLoginAt    DateTime?
@@ -84,9 +89,58 @@ model Organization {
   fax       String?
   users          User[]
   patients       Patient[]
+  visits         Visit[]
   noteTemplates  NoteTemplate[]
+  subscriptions  Subscription[] @relation("OrganizationSubscriptions")
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
+}
+
+model Subscription {
+  id                     String             @id @default(cuid())
+  planCode               PlanCode
+  status                 SubscriptionStatus @default(trialing)
+  billingInterval        BillingInterval    @default(monthly)
+  provider               String?            // stripe, manual, sandbox
+  externalCustomerId     String?
+  externalSubscriptionId String?            @unique
+  organizationId         String?
+  organization           Organization?      @relation("OrganizationSubscriptions", fields: [organizationId], references: [id])
+  userId                 String?
+  user                   User?              @relation("UserSubscriptions", fields: [userId], references: [id])
+  seatsIncluded          Int                @default(1)
+  seatsUsed              Int                @default(1)
+  quotaOverrides         Json?
+  featureOverrides       Json?
+  periodStart            DateTime?
+  periodEnd              DateTime?
+  cancelAtPeriodEnd      Boolean            @default(false)
+  cancelledAt            DateTime?
+  createdAt              DateTime           @default(now())
+  updatedAt              DateTime           @updatedAt
+
+  usageEvents UsageLedger[]
+
+  @@index([organizationId, status])
+  @@index([userId, status])
+  @@index([planCode, status])
+}
+
+model UsageLedger {
+  id             String   @id @default(cuid())
+  subscriptionId String?
+  subscription   Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+  userId         String?
+  organizationId String?
+  metric         String   // ai_calls, ai_tokens, notes_generated, audio_minutes
+  quantity       Int      @default(0)
+  metadata       Json?
+  occurredAt     DateTime @default(now())
+
+  @@index([subscriptionId, occurredAt])
+  @@index([userId, occurredAt])
+  @@index([organizationId, occurredAt])
+  @@index([metric, occurredAt])
 }
 
 // ─── FHIR-Aligned Patient ────────────────────────────────
@@ -257,6 +311,7 @@ model NoteTemplate {
   updatedAt         DateTime       @updatedAt
 
   visits            Visit[]        @relation("TemplateVisits")
+  styleFeedbackEvents ClinicianStyleFeedbackEvent[]
 
   @@index([ownerUserId])
   @@index([organizationId])
@@ -273,6 +328,9 @@ model Visit {
   patient       Patient     @relation(fields: [patientId], references: [id])
   userId        String
   user          User        @relation(fields: [userId], references: [id])
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id])
+  visibility     VisitVisibility @default(private)
   frameworkId           String
   domain                String
   templateId            String?
@@ -297,35 +355,100 @@ model Visit {
   finalizedAt   DateTime?
   finalizedBy   String?
   amendments    Json?       // array of {id, timestamp, author, reason, changes}
+  shareGrants   VisitShareGrant[]
+  styleFeedbackEvents ClinicianStyleFeedbackEvent[]
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
 
   @@index([userId])
   @@index([patientId])
   @@index([date])
+  @@index([organizationId])
+  @@index([organizationId, visibility])
+}
+
+model VisitShareGrant {
+  id              String    @id @default(cuid())
+  visitId         String
+  visit           Visit      @relation(fields: [visitId], references: [id], onDelete: Cascade)
+  granteeUserId   String
+  granteeUser     User       @relation("VisitShareGrantee", fields: [granteeUserId], references: [id], onDelete: Cascade)
+  grantedByUserId String
+  grantedByUser   User       @relation("VisitShareGrantor", fields: [grantedByUserId], references: [id], onDelete: Cascade)
+  permission      VisitSharePermission @default(view)
+  createdAt       DateTime   @default(now())
+  revokedAt       DateTime?
+
+  @@index([visitId])
+  @@index([granteeUserId])
+  @@index([visitId, granteeUserId, revokedAt])
+  @@unique([visitId, granteeUserId])
 }
 
 // ─── Audit ───────────────────────────────────────────────
 
 model AuditLog {
   id         String   @id @default(cuid())
-  userId     String?
-  user       User?    @relation(fields: [userId], references: [id])
+  adminId    String?
+  admin      User?    @relation("AdminAuditLogs", fields: [adminId], references: [id])
+  userId     String? // legacy compatibility field
   action     String
+  targetType String?
+  targetId   String?
+  metadata   Json?
   resource   String?
   details    Json?
-  ipAddress  String?
+  ip         String?
+  ipAddress  String? // legacy compatibility field
   userAgent  String?
   createdAt  DateTime @default(now())
 
-  @@index([userId])
-  @@index([action])
+  @@index([adminId])
   @@index([createdAt])
+  @@index([action])
+  @@index([targetType, targetId])
+  @@index([userId])
+}
+
+model ClinicianStyleProfile {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  profileJson Json
+  version     Int      @default(1)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([updatedAt])
+}
+
+model ClinicianStyleFeedbackEvent {
+  id            String                  @id @default(cuid())
+  userId        String
+  user          User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  visitId       String?
+  visit         Visit?                  @relation(fields: [visitId], references: [id], onDelete: SetNull)
+  templateId    String?
+  template      NoteTemplate?           @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  eventType     ClinicianStyleEventType
+  sectionKey    String?
+  sectionTitle  String?
+  snippetBefore String?
+  snippetAfter  String?
+  metadata      Json?
+  createdAt     DateTime                @default(now())
+
+  @@index([userId, createdAt])
+  @@index([userId, eventType, createdAt])
+  @@index([visitId])
+  @@index([templateId])
 }
 
 // ─── Enums ───────────────────────────────────────────────
 
 enum Role {
+  SUPER_ADMIN
+  ENTERPRISE_ADMIN
   ADMIN
   CLINICIAN
   SUPERVISOR
@@ -346,4 +469,41 @@ enum Gender {
   FEMALE
   OTHER
   UNKNOWN
+}
+
+enum VisitVisibility {
+  private
+  organization
+  restricted
+}
+
+enum VisitSharePermission {
+  view
+  comment
+}
+
+enum PlanCode {
+  starter
+  professional
+  practice
+  enterprise
+}
+
+enum SubscriptionStatus {
+  trialing
+  active
+  past_due
+  canceled
+  paused
+}
+
+enum BillingInterval {
+  monthly
+  annual
+}
+
+enum ClinicianStyleEventType {
+  section_edit
+  amendment
+  regenerate_request
 }

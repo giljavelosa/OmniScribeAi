@@ -1,50 +1,217 @@
-import { auth } from "@/lib/auth";
+import { Role } from "@prisma/client";
 import { auditLog } from "@/lib/audit";
+import {
+  requireSuperAdminWithMfa,
+} from "@/lib/auth/current-user";
+import { isAuthzError } from "@/lib/auth/errors";
 import { prisma } from "@/lib/db";
 import { NextRequest, NextResponse } from "next/server";
 import { appLog, scrubError } from "@/lib/logger";
 import bcrypt from "bcryptjs";
 
-// GET /api/admin/users — list all users (admin only)
-export async function GET() {
-  const session = await auth();
-  if (!session?.user || session.user.role !== "ADMIN") {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
+const ALLOWED_PATCH_ROLES = new Set<Role>([
+  Role.SUPER_ADMIN,
+  Role.ENTERPRISE_ADMIN,
+  Role.ADMIN,
+  Role.CLINICIAN,
+  Role.SUPERVISOR,
+]);
 
+function getRequestIp(req: NextRequest): string | undefined {
+  return (
+    req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
+    req.headers.get("x-real-ip") ??
+    undefined
+  );
+}
+
+async function logAdminAuditSafe(args: {
+  adminId: string;
+  action: string;
+  targetType?: string;
+  targetId?: string;
+  metadata?: Record<string, unknown>;
+  ip?: string;
+  userAgent?: string;
+}) {
   try {
+    await auditLog({
+      userId: args.adminId,
+      action: args.action,
+      resource: args.targetType && args.targetId ? `${args.targetType}:${args.targetId}` : undefined,
+      details: args.metadata,
+      ipAddress: args.ip,
+      userAgent: args.userAgent,
+      adminId: args.adminId,
+      targetType: args.targetType,
+      targetId: args.targetId,
+      metadata: args.metadata,
+      ip: args.ip,
+    });
+  } catch (error) {
+    appLog("warn", "AdminUsersRoute", "Audit logging failed", {
+      action: args.action,
+      targetType: args.targetType,
+      targetId: args.targetId,
+      error: scrubError(error),
+    });
+  }
+}
+
+// GET /api/admin/users — list users (SUPER_ADMIN + MFA)
+export async function GET(req: NextRequest) {
+  try {
+    await requireSuperAdminWithMfa();
+    const params = req.nextUrl.searchParams;
+    const limit = Math.min(Number(params.get("limit") ?? "50") || 50, 100);
+    const offset = Math.max(Number(params.get("offset") ?? "0") || 0, 0);
+
     const users = await prisma.user.findMany({
       select: {
         id: true, email: true, name: true, role: true,
         clinicianType: true, credentials: true, isActive: true,
-        lastLoginAt: true, createdAt: true, mustChangePassword: true,
+        lastLoginAt: true, createdAt: true, mustChangePassword: true, mfaEnabled: true,
+        organizationId: true,
+        organization: { select: { id: true, name: true } },
         _count: { select: { visits: true } },
       },
       orderBy: { createdAt: "desc" },
+      take: limit,
+      skip: offset,
     });
 
-    return NextResponse.json({ users });
+    return NextResponse.json({ success: true, users });
   } catch (error) {
-    appLog('error', 'GET /api/admin/users', scrubError(error));
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    if (isAuthzError(error)) {
+      return NextResponse.json(
+        { success: false, error: error.message, code: error.code },
+        { status: error.status },
+      );
+    }
+    appLog("error", "AdminUsersRoute", "GET admin users failed", { error: scrubError(error) });
+    return NextResponse.json(
+      { success: false, error: "Internal server error", code: "INTERNAL_ERROR" },
+      { status: 500 },
+    );
   }
 }
 
-// POST /api/admin/users — create user (admin only)
-export async function POST(req: NextRequest) {
-  const session = await auth();
-  if (!session?.user || session.user.role !== "ADMIN") {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
-
+// PATCH /api/admin/users — update user role or active flag (SUPER_ADMIN + MFA)
+export async function PATCH(req: NextRequest) {
   try {
+    const actor = await requireSuperAdminWithMfa();
+    const data = await req.json() as {
+      id?: string;
+      role?: Role;
+      isActive?: boolean;
+    };
+
+    if (!data.id) {
+      return NextResponse.json(
+        { success: false, error: "id is required", code: "VALIDATION_ERROR" },
+        { status: 400 },
+      );
+    }
+
+    if (data.role === undefined && data.isActive === undefined) {
+      return NextResponse.json(
+        { success: false, error: "Provide role and/or isActive", code: "VALIDATION_ERROR" },
+        { status: 400 },
+      );
+    }
+
+    if (data.role !== undefined && !ALLOWED_PATCH_ROLES.has(data.role)) {
+      return NextResponse.json(
+        { success: false, error: "Invalid role", code: "VALIDATION_ERROR" },
+        { status: 400 },
+      );
+    }
+
+    const existing = await prisma.user.findUnique({
+      where: { id: data.id },
+      select: { id: true, role: true, isActive: true },
+    });
+    if (!existing) {
+      return NextResponse.json(
+        { success: false, error: "User not found", code: "NOT_FOUND" },
+        { status: 404 },
+      );
+    }
+
+    const updateData: { role?: Role; isActive?: boolean } = {};
+    if (data.role !== undefined) updateData.role = data.role;
+    if (data.isActive !== undefined) updateData.isActive = data.isActive;
+
+    const updated = await prisma.user.update({
+      where: { id: data.id },
+      data: updateData,
+      select: {
+        id: true,
+        email: true,
+        role: true,
+        isActive: true,
+        mfaEnabled: true,
+        organizationId: true,
+      },
+    });
+
+    const action =
+      data.role !== undefined
+        ? "USER_ROLE_UPDATED"
+        : data.isActive === false
+          ? "USER_SUSPENDED"
+          : "USER_REACTIVATED";
+
+    await logAdminAuditSafe({
+      adminId: actor.id,
+      action,
+      targetType: "User",
+      targetId: updated.id,
+      metadata: {
+        oldRole: existing.role,
+        newRole: updated.role,
+        oldIsActive: existing.isActive,
+        newIsActive: updated.isActive,
+      },
+      ip: getRequestIp(req),
+      userAgent: req.headers.get("user-agent") ?? undefined,
+    });
+
+    return NextResponse.json({ success: true, user: updated });
+  } catch (error) {
+    if (isAuthzError(error)) {
+      return NextResponse.json(
+        { success: false, error: error.message, code: error.code },
+        { status: error.status },
+      );
+    }
+    appLog("error", "AdminUsersRoute", "PATCH admin user failed", { error: scrubError(error) });
+    return NextResponse.json(
+      { success: false, error: "Internal server error", code: "INTERNAL_ERROR" },
+      { status: 500 },
+    );
+  }
+}
+
+// POST /api/admin/users — create user (SUPER_ADMIN + MFA)
+export async function POST(req: NextRequest) {
+  try {
+    const actor = await requireSuperAdminWithMfa();
     const data = await req.json();
     if (!data.email || !data.password) {
-      return NextResponse.json({ error: "Email and password required" }, { status: 400 });
+      return NextResponse.json(
+        { success: false, error: "Email and password required", code: "VALIDATION_ERROR" },
+        { status: 400 },
+      );
     }
 
     const existing = await prisma.user.findUnique({ where: { email: data.email } });
-    if (existing) return NextResponse.json({ error: "Email already in use" }, { status: 409 });
+    if (existing) {
+      return NextResponse.json(
+        { success: false, error: "Email already in use", code: "CONFLICT" },
+        { status: 409 },
+      );
+    }
 
     const hash = await bcrypt.hash(data.password, 12);
     const user = await prisma.user.create({
@@ -52,23 +219,46 @@ export async function POST(req: NextRequest) {
         email: data.email,
         passwordHash: hash,
         name: data.name || null,
-        role: data.role || "CLINICIAN",
+        role: (data.role && ALLOWED_PATCH_ROLES.has(data.role) ? data.role : Role.CLINICIAN),
         clinicianType: data.clinicianType || null,
         credentials: data.credentials || null,
+        organizationId: data.organizationId || null,
         mustChangePassword: true,
       },
     });
 
-    await auditLog({
-      userId: session.user.id,
-      action: "CREATE_USER",
-      resource: `user:${user.id}`,
-      details: { email: user.email, role: user.role },
+    await logAdminAuditSafe({
+      adminId: actor.id,
+      action: "USER_CREATED",
+      targetType: "User",
+      targetId: user.id,
+      metadata: {
+        email: user.email,
+        role: user.role,
+        organizationId: user.organizationId,
+      },
+      ip: getRequestIp(req),
+      userAgent: req.headers.get("user-agent") ?? undefined,
     });
 
-    return NextResponse.json({ user: { id: user.id, email: user.email, name: user.name, role: user.role } }, { status: 201 });
+    return NextResponse.json(
+      {
+        success: true,
+        user: { id: user.id, email: user.email, name: user.name, role: user.role },
+      },
+      { status: 201 },
+    );
   } catch (error) {
-    appLog('error', 'POST /api/admin/users', scrubError(error));
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    if (isAuthzError(error)) {
+      return NextResponse.json(
+        { success: false, error: error.message, code: error.code },
+        { status: error.status },
+      );
+    }
+    appLog("error", "AdminUsersRoute", "POST admin user failed", { error: scrubError(error) });
+    return NextResponse.json(
+      { success: false, error: "Internal server error", code: "INTERNAL_ERROR" },
+      { status: 500 },
+    );
   }
 }

@@ -1,0 +1,55 @@
+---
+description:
+globs:
+alwaysApply: true
+---
+
+# ALWAYS-ON RULE: HIPAA + Anti-Regression Runtime Fix Protocol (No Exceptions)
+
+These rules override all other instructions at all times.
+
+## HIPAA / Security (ABSOLUTE — NO EXCEPTIONS)
+- Never paste, reproduce, summarize, transform, or request PHI/PII (patient names, DOB, MRN, addresses, phone/email, IDs, images, audio, clinical notes, visit content).
+- Never add or expand logging that could capture PHI/PII (request/response bodies, headers, user-entered content, clinical note text).
+- Never add analytics/telemetry/error-reporting SaaS or new third-party SDKs.
+- Never hardcode secrets; never print secrets. If an env var is missing, state the exact variable name(s) and where to set them (e.g., `.env.local`) and STOP—do not guess values.
+
+### PHI-safe output rule
+If terminal output/logs could contain PHI/PII:
+- Do NOT include raw logs.
+- Only include: error type, file path, line number, and stack frames.
+- Prefer stack traces and error codes; never include payloads/headers/tokens.
+
+## Anti-regression (MINIMAL CHANGE ONLY)
+- Do NOT refactor, rename, reorganize folders, reformat, or "clean up" unrelated code.
+- Do NOT change code that already works unless strictly necessary to fix the current error.
+- Keep diffs tiny: smallest number of lines + files.
+- Do NOT "fix" by disabling checks/tests, weakening types, commenting out logic, or hiding errors.
+
+## Runtime Fix Loop (ONE ERROR AT A TIME)
+Repeat until the app runs without runtime errors:
+
+1) Determine the run command by inspecting repo scripts/config (e.g., `package.json`).
+2) Run the program.
+3) Identify the FIRST blocking runtime error (top-most root cause / first fatal crash).
+4) Apply the smallest safe fix targeting ONLY that error.
+5) Re-run the original failing command.
+6) Run existing repo gates if present (skip only if script truly does not exist):
+   - tests (e.g., `npm run test`)
+   - typecheck (e.g., `npm run typecheck`)
+   - lint (e.g., `npm run lint`)
+7) If any gate fails due to your change: revert and re-fix with a smaller/safer change.
+8) Smoke check (PHI-safe): confirm server starts and a basic route/health endpoint returns 200 using synthetic data only.
+
+## STOP CONDITIONS (NO GUESSING)
+- Missing env vars/credentials/external services: list the exact missing items + where to configure them, then STOP.
+- If the fix requires a major refactor: STOP and propose 2–3 minimal alternatives; do not implement refactor.
+
+## Required reporting format for each iteration
+For each loop iteration, report:
+1) Command run
+2) First runtime error (PHI-safe lines only)
+3) Minimal fix summary (1–3 bullets)
+4) Files changed
+5) Verification results (commands + pass/fail)
+6) Next step (one sentence)
